@@ -1,12 +1,14 @@
 /**
- * Testes unitários para lib/scales.ts — foco em NEWS2.
- * Regra crítica verificada: escore final nunca pode sair de 0–20.
- * Referência: Royal College of Physicians, NEWS2 (2017).
+ * Testes unitários para lib/scales.ts — foco em NEWS2 e escalas de sedação.
+ * Regra crítica: escore NEWS2 nunca pode sair de 0–20.
+ * Referências: RCP NEWS2 (2017); Sessler/Ely RASS (2002/2003); Ramsay BMJ (1974).
  */
 import {
   news2SubScore,
   calcularNews2,
   calcularNews2FromRaw,
+  calcularRASS,
+  calcularRamsay,
 } from '../scales';
 
 // ─── news2SubScore: conversão de valores brutos ────────────────────────────
@@ -146,5 +148,49 @@ describe('calcularNews2FromRaw — valores brutos como os extraídos pela IA', (
     const resultado = calcularNews2FromRaw({ fr: 20, pas: 115, fc: 85, consc: 15 });
     expect(resultado.total).toBeGreaterThanOrEqual(0);
     expect(resultado.total).toBeLessThanOrEqual(20);
+  });
+});
+
+// ─── calcularRASS — escala de sedação/agitação ────────────────────────────
+
+describe('calcularRASS — nível único −5 a +4', () => {
+  test.each([
+    [4, 'Combativo (+4)'],
+    [3, 'Muito agitado (+3)'],
+    [2, 'Agitado (+2)'],
+    [1, 'Inquieto (+1)'],
+    [0, 'Alerta e calmo (0)'],
+    [-1, 'Sonolento (−1)'],
+    [-2, 'Leve sedação (−2)'],
+    [-3, 'Sedação moderada (−3)'],
+    [-4, 'Sedação profunda (−4)'],
+    [-5, 'Não desperta (−5)'],
+  ] as [number, string][])('RASS=%i → "%s"', (nivel, descricaoEsperada) => {
+    const r = calcularRASS([nivel]);
+    expect(r.total).toBe(nivel);
+    expect(r.risco).toBe(descricaoEsperada);
+  });
+
+  test('RASS negativo nunca aciona o guarda de intervalo do NEWS2', () => {
+    // Garantia: calcularRASS nunca chama calcularNews2 — total pode ser negativo
+    expect(() => calcularRASS([-5])).not.toThrow();
+    expect(calcularRASS([-5]).total).toBe(-5);
+  });
+});
+
+// ─── calcularRamsay — escala de sedação 1–6 ───────────────────────────────
+
+describe('calcularRamsay — nível único 1–6', () => {
+  test.each([
+    [1, 'Nível 1 — Ansioso/agitado/inquieto'],
+    [2, 'Nível 2 — Cooperativo, orientado e tranquilo'],
+    [3, 'Nível 3 — Obedece a comandos'],
+    [4, 'Nível 4 — Dormindo, resposta brusca a estímulos'],
+    [5, 'Nível 5 — Dormindo, resposta lenta a estímulos'],
+    [6, 'Nível 6 — Sem resposta a qualquer estímulo'],
+  ] as [number, string][])('Ramsay=%i → "%s"', (nivel, descricaoEsperada) => {
+    const r = calcularRamsay([nivel]);
+    expect(r.total).toBe(nivel);
+    expect(r.risco).toBe(descricaoEsperada);
   });
 });

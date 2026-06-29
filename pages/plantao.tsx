@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Layout from '../components/Layout';
 import { useTurno, montarDadosRelatorioFinal } from '../components/useTurno';
 import { COMPLEXIDADE_LABEL } from '../lib/types';
@@ -21,6 +21,7 @@ export default function Plantao() {
   const [alertas, setAlertas] = useState<ResultadoAlerta[]>([]);
   const [carregandoAlertas, setCarregandoAlertas] = useState(false);
   const [erroAlertas, setErroAlertas] = useState('');
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   async function verificarAlertas() {
     setCarregandoAlertas(true);
@@ -41,6 +42,15 @@ export default function Plantao() {
       setCarregandoAlertas(false);
     }
   }
+
+  // Recalcula 2 s após cada alteração no total de registros (add ou delete).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!carregado || turno.eventos.length === 0) return;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(verificarAlertas, 2000);
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [turno.eventos.length, carregado]); // verificarAlertas lê turno via closure — estável
 
   if (!carregado) return <Layout><div className="estado-vazio">Carregando...</div></Layout>;
 
@@ -106,19 +116,30 @@ export default function Plantao() {
             </div>
           )}
 
-          {/* Alertas NEWS2/qSOFA */}
-          <button
-            className="btn btn-secundario btn-bloco"
-            onClick={verificarAlertas}
-            disabled={carregandoAlertas}
-            style={{ marginBottom: 12 }}
-          >
-            {carregandoAlertas ? <span className="spinner" style={{ borderTopColor: 'var(--azul)', borderColor: 'var(--cinza-200)' }} /> : null}
-            {carregandoAlertas ? ' Calculando...' : 'Verificar alertas (NEWS2 / qSOFA)'}
-          </button>
+          {/* Alertas NEWS2/qSOFA — calculados automaticamente a cada novo registro */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--cinza-400)' }}>
+              Alertas NEWS2/qSOFA
+            </span>
+            {carregandoAlertas && (
+              <span
+                className="spinner"
+                style={{ width: 13, height: 13, borderTopColor: 'var(--azul)', borderColor: 'var(--cinza-200)' }}
+              />
+            )}
+          </div>
 
           {erroAlertas && (
-            <p style={{ color: 'var(--vermelho)', fontSize: '0.85rem', marginBottom: 10 }}>{erroAlertas}</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <p style={{ color: 'var(--vermelho)', fontSize: '0.85rem', flex: 1 }}>{erroAlertas}</p>
+              <button
+                className="btn btn-secundario"
+                style={{ padding: '4px 10px', fontSize: '0.78rem', flexShrink: 0 }}
+                onClick={verificarAlertas}
+              >
+                Tentar novamente
+              </button>
+            </div>
           )}
 
           {alertas.map((a) => {

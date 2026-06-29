@@ -264,3 +264,66 @@ export function calcularPush(valores: number[]): ResultadoEscala {
   const total = valores.reduce((a, b) => a + b, 0);
   return { total, risco: 'Comparar com avaliação anterior para avaliar tendência de cicatrização' };
 }
+
+// RASS (Richmond Agitation-Sedation Scale)
+// Reference: Sessler CN, et al. Chest. 2002;122(6):2163-2172.
+// Ely EW, et al. JAMA. 2003;289(22):2983-2991.
+export const RASS_CAMPOS: CampoEscala[] = [
+  { chave: 'nivel', label: 'Nível de sedação/agitação (RASS)', opcoes: [
+    { label: '+4 — Combativo: violento, risco imediato à equipe', valor: 4 },
+    { label: '+3 — Muito agitado: arranca tubos, agressivo', valor: 3 },
+    { label: '+2 — Agitado: movimentos não intencionais frequentes', valor: 2 },
+    { label: '+1 — Inquieto: ansioso, sem movimentos agressivos', valor: 1 },
+    { label: '0 — Alerta e calmo', valor: 0 },
+    { label: '−1 — Sonolento: abre olhos brevemente à voz (> 10 s)', valor: -1 },
+    { label: '−2 — Leve sedação: abre olhos à voz (< 10 s)', valor: -2 },
+    { label: '−3 — Sedação moderada: movimentos ou abertura ocular à voz', valor: -3 },
+    { label: '−4 — Sedação profunda: sem resposta à voz; responde a estímulo físico', valor: -4 },
+    { label: '−5 — Não desperta: sem resposta à voz ou estímulo físico', valor: -5 },
+  ]},
+];
+
+// Escala de Ramsay
+// Reference: Ramsay MAE, et al. Controlled sedation with alphaxalone-alphadolone. BMJ. 1974;2(5920):656-659.
+export const RAMSAY_CAMPOS: CampoEscala[] = [
+  { chave: 'nivel', label: 'Nível de sedação (Ramsay)', opcoes: [
+    { label: '1 — Ansioso, agitado ou inquieto', valor: 1 },
+    { label: '2 — Cooperativo, orientado e tranquilo', valor: 2 },
+    { label: '3 — Obedece a comandos', valor: 3 },
+    { label: '4 — Dormindo, com resposta brusca a estímulo luminoso ou sonoro', valor: 4 },
+    { label: '5 — Dormindo, com resposta lenta a estímulos', valor: 5 },
+    { label: '6 — Sem resposta a qualquer estímulo', valor: 6 },
+  ]},
+];
+
+/** RASS: Sessler et al. 2002 / Ely et al. 2003. Escala −5 a +4. Cada nível é um estado — não somar. */
+export function calcularRASS(valores: number[]): ResultadoEscala {
+  const nivel = valores[0];
+  switch (nivel) {
+    case 4: return { total: nivel, risco: 'Combativo (+4)' };
+    case 3: return { total: nivel, risco: 'Muito agitado (+3)' };
+    case 2: return { total: nivel, risco: 'Agitado (+2)' };
+    case 1: return { total: nivel, risco: 'Inquieto (+1)' };
+    case 0: return { total: nivel, risco: 'Alerta e calmo (0)' };
+    case -1: return { total: nivel, risco: 'Sonolento (−1)' };
+    case -2: return { total: nivel, risco: 'Leve sedação (−2)' };
+    case -3: return { total: nivel, risco: 'Sedação moderada (−3)' };
+    case -4: return { total: nivel, risco: 'Sedação profunda (−4)' };
+    case -5: return { total: nivel, risco: 'Não desperta (−5)' };
+    default: return { total: nivel, risco: `RASS ${nivel}` };
+  }
+}
+
+/** Ramsay: Ramsay et al. BMJ 1974. Escala 1–6. Cada nível é um estado — não somar. */
+export function calcularRamsay(valores: number[]): ResultadoEscala {
+  const nivel = valores[0];
+  switch (nivel) {
+    case 1: return { total: nivel, risco: 'Nível 1 — Ansioso/agitado/inquieto' };
+    case 2: return { total: nivel, risco: 'Nível 2 — Cooperativo, orientado e tranquilo' };
+    case 3: return { total: nivel, risco: 'Nível 3 — Obedece a comandos' };
+    case 4: return { total: nivel, risco: 'Nível 4 — Dormindo, resposta brusca a estímulos' };
+    case 5: return { total: nivel, risco: 'Nível 5 — Dormindo, resposta lenta a estímulos' };
+    case 6: return { total: nivel, risco: 'Nível 6 — Sem resposta a qualquer estímulo' };
+    default: return { total: nivel, risco: `Ramsay ${nivel}` };
+  }
+}

@@ -2,12 +2,13 @@ import { useState } from 'react';
 import Layout from '../components/Layout';
 import { useTurno } from '../components/useTurno';
 import {
-  NEWS2_CAMPOS, BRADEN_CAMPOS, MORSE_CAMPOS, GCS_CAMPOS, PUSH_CAMPOS,
+  NEWS2_CAMPOS, BRADEN_CAMPOS, MORSE_CAMPOS, GCS_CAMPOS, PUSH_CAMPOS, RASS_CAMPOS, RAMSAY_CAMPOS,
   calcularNews2, calcularBraden, calcularMorse, calcularGlasgow, calcularPush, calcularQsofa,
+  calcularRASS, calcularRamsay,
   CampoEscala, ResultadoEscala,
 } from '../lib/scales';
 
-type EscalaId = 'news2' | 'braden' | 'morse' | 'glasgow' | 'qsofa' | 'push';
+type EscalaId = 'news2' | 'braden' | 'morse' | 'glasgow' | 'qsofa' | 'push' | 'rass' | 'ramsay';
 
 const ESCALAS: { id: EscalaId; label: string; descricao: string }[] = [
   { id: 'news2', label: 'NEWS2', descricao: 'National Early Warning Score 2 — detecção de deterioração clínica' },
@@ -16,6 +17,8 @@ const ESCALAS: { id: EscalaId; label: string; descricao: string }[] = [
   { id: 'glasgow', label: 'Glasgow (GCS)', descricao: 'Escala de Coma de Glasgow — nível de consciência (3–15)' },
   { id: 'qsofa', label: 'qSOFA', descricao: 'Quick SOFA — critérios de sepse (consciência via Glasgow)' },
   { id: 'push', label: 'PUSH Tool', descricao: 'Pressure Ulcer Scale for Healing — tendência de cicatrização' },
+  { id: 'rass', label: 'RASS', descricao: 'Richmond Agitation-Sedation Scale — nível de sedação/agitação (−5 a +4)' },
+  { id: 'ramsay', label: 'Ramsay', descricao: 'Escala de Ramsay — nível de sedação (1–6)' },
 ];
 
 function camposDaEscala(id: EscalaId): CampoEscala[] {
@@ -25,6 +28,8 @@ function camposDaEscala(id: EscalaId): CampoEscala[] {
     case 'morse': return MORSE_CAMPOS;
     case 'glasgow': return GCS_CAMPOS;
     case 'push': return PUSH_CAMPOS;
+    case 'rass': return RASS_CAMPOS;
+    case 'ramsay': return RAMSAY_CAMPOS;
     default: return [];
   }
 }
@@ -55,8 +60,8 @@ export default function Kronos() {
       setResultado(calcularQsofa(qsofaPontos));
       return;
     }
-    // Braden e Glasgow têm valor mínimo 1; demais têm 0.
-    const defaultVal = escalaAtiva === 'braden' || escalaAtiva === 'glasgow' ? 1 : 0;
+    // Braden e Glasgow têm valor mínimo 1; Ramsay começa em 1; RASS pode ser 0; demais 0.
+    const defaultVal = (escalaAtiva === 'braden' || escalaAtiva === 'glasgow' || escalaAtiva === 'ramsay') ? 1 : 0;
     const vals = camposDaEscala(escalaAtiva).map((c) => valores[c.chave] ?? defaultVal);
     switch (escalaAtiva) {
       case 'news2': setResultado(calcularNews2(vals)); break;
@@ -64,6 +69,8 @@ export default function Kronos() {
       case 'morse': setResultado(calcularMorse(vals)); break;
       case 'glasgow': setResultado(calcularGlasgow(vals)); break;
       case 'push': setResultado(calcularPush(vals)); break;
+      case 'rass': setResultado(calcularRASS(vals)); break;
+      case 'ramsay': setResultado(calcularRamsay(vals)); break;
     }
   }
 
@@ -145,6 +152,11 @@ export default function Kronos() {
               {escalaAtiva === 'push' && (
                 <p style={{ fontSize: '0.78rem', color: 'var(--cinza-400)', marginTop: 8, fontStyle: 'italic' }}>
                   PUSH Tool avalia tendência — salve como evento e compare com avaliações anteriores do mesmo leito para verificar progressão de cicatrização.
+                </p>
+              )}
+              {(escalaAtiva === 'rass' || escalaAtiva === 'ramsay') && (
+                <p style={{ fontSize: '0.78rem', color: 'var(--cinza-400)', marginTop: 8, fontStyle: 'italic' }}>
+                  Escala de nível único — não soma pontos. Salve como evento para registrar no prontuário.
                 </p>
               )}
 
