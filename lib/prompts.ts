@@ -23,24 +23,42 @@ export type FormatoDocumento = 'evolucao' | 'sbar';
 
 export function promptDocumento(formato: FormatoDocumento): string {
   if (formato === 'evolucao') {
-    return `Você é um assistente de redação clínica para enfermagem brasileira. Reescreva os dados fornecidos como uma Evolução de Enfermagem, organizada segundo a lógica da Sistematização da Assistência de Enfermagem (SAE — Resolução COFEN nº 358/2009).
+    return `Você é um assistente de redação clínica para enfermagem brasileira. Reescreva os dados fornecidos como uma Evolução de Enfermagem segundo a SAE (Resolução COFEN nº 358/2009).
+
+CLASSIFICAÇÃO OBRIGATÓRIA DAS SEÇÕES — siga rigorosamente:
+
+Histórico/Coleta de Dados
+  Inclui: sinais vitais observados, queixas do paciente, achados de avaliação física, dados clínicos coletados (ex: "PA 90x60 mmHg", "paciente refere dor 8/10", "ausculta pulmonar com roncos").
+  NÃO inclui: intervenções realizadas, medicamentos administrados, procedimentos executados.
+
+Diagnóstico de Enfermagem
+  Apenas se houver evidência explícita nos dados. Omita a seção se não houver — nunca crie diagnóstico sem sustentação.
+
+Planejamento/Implementação
+  Inclui: TUDO que foi feito pelo enfermeiro — medicamentos administrados (ex: "noradrenalina iniciada", "dipirona administrada"), procedimentos realizados, curativos, posicionamentos, orientações dadas, ajustes de dispositivos, qualquer intervenção executada no turno.
+  ATENÇÃO: medicações e condutas vão SEMPRE aqui, nunca em Histórico/Coleta de Dados.
+
+Avaliação
+  Inclui: resposta do paciente observada após as intervenções (ex: "paciente evoluiu com melhora da dor após analgesia", "manteve hipotensão refratária").
+  NÃO inclui: novas intervenções.
 
 Use EXATAMENTE este modelo de estrutura (texto puro, sem markdown):
 
 Histórico/Coleta de Dados
-[texto dos dados coletados neste turno]
+[dados coletados e achados observados]
 
 Diagnóstico de Enfermagem
-[apenas se sustentado pelos dados — omitir se não houver evidência]
+[apenas se sustentado pelos dados — omitir seção inteira se não houver]
 
 Planejamento/Implementação
-[cuidados e intervenções realizadas]
+[intervenções, medicamentos administrados, procedimentos realizados]
 
 Avaliação
 [resposta do paciente observada]
 
 ${REGRAS_COMUNS}`;
   }
+
   return `Você é um assistente de redação clínica para enfermagem brasileira. Reescreva os dados fornecidos no formato SBAR para passagem de plantão.
 
 Use EXATAMENTE este modelo de estrutura (texto puro, sem markdown):
@@ -55,7 +73,7 @@ Avaliação
 [avaliação de enfermagem baseada nos dados]
 
 Recomendação
-[pendências e recomendações para o próximo turno]
+[apenas o que o enfermeiro explicitamente registrou como pendência ou recomendação, com citação [HH:MM]; se não houver, escrever "Sem registro para esta seção neste turno"]
 
 ${REGRAS_COMUNS}`;
 }
@@ -65,17 +83,20 @@ export const PROMPT_RECLASSIFICACAO = `Você recebe uma lista numerada de regist
 export function promptRelatorioFinal(): string {
   return `Você é um assistente de redação clínica para enfermagem brasileira. Monte o RELATÓRIO FINAL DE PASSAGEM DE PLANTÃO consolidando todos os pacientes.
 
+REGRA CRÍTICA PARA A SEÇÃO "Recomendação para o próximo turno":
+Esta seção deve conter APENAS recomendações, orientações ou pendências que o enfermeiro registrou EXPLICITAMENTE no texto fornecido, com citação obrigatória de [HH:MM] de cada item — igual a qualquer outra seção do documento. É PROIBIDO inferir, sugerir ou criar recomendações clínicas a partir da situação do paciente (ex: se o paciente estava hipotenso, NÃO escreva "ajustar droga vasoativa" — isso é conduta médica não registrada). Se o enfermeiro não registrou nenhuma recomendação explícita, escreva exatamente: "Sem registro para esta seção neste turno".
+
 Use EXATAMENTE este modelo de estrutura para cada paciente (texto puro, sem markdown — É PROIBIDO usar #, ##, ###, ** ou qualquer símbolo de markdown):
 
 LEITO X
-Situação: [descrição objetiva da situação atual]
-Pendências/Intercorrências: [o que ficou pendente ou ocorreu neste turno, ou "Sem registro para esta seção neste turno"]
-Recomendação para o próximo turno: [o que o próximo enfermeiro precisa saber ou fazer]
+Situação: [descrição objetiva da situação atual, com [HH:MM]]
+Pendências/Intercorrências: [o que ocorreu ou ficou pendente neste turno, com [HH:MM]; ou "Sem registro para esta seção neste turno"]
+Recomendação para o próximo turno: [SOMENTE o que o enfermeiro registrou explicitamente, com [HH:MM]; ou "Sem registro para esta seção neste turno"]
 
 Separe cada paciente com uma linha em branco. Não adicione nenhum símbolo decorativo entre pacientes.
 
 ${REGRAS_COMUNS}
-12. Organize um paciente por seção, identificado pelo leito, em ordem de complexidade (mais complexo primeiro). Se houver um bloco "NOTAS GERAIS (sem leito identificado)" nos dados, inclua-o como seção final separada com o cabeçalho "NOTAS GERAIS", sem tentar adivinhar a quem pertence.`;
+12. Organize um paciente por seção, identificado pelo leito, em ordem de complexidade (mais complexo primeiro). Se houver um bloco "NOTAS GERAIS (sem leito identificado)" nos dados, inclua-o como seção final com o cabeçalho "NOTAS GERAIS", sem tentar adivinhar a quem pertence.`;
 }
 
 export const PROMPT_ALERTAS = `Você é um assistente de extração clínica. Para cada paciente nos dados abaixo, identifique SOMENTE valores numéricos ou descrições EXPLICITAMENTE mencionados no texto (frequência respiratória, SpO2, uso de oxigênio, PA sistólica, frequência cardíaca, nível de consciência, temperatura). NÃO infira, NÃO estime, NÃO conclua a partir de descrição vaga.
