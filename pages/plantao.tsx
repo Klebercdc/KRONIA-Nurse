@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Layout from '../components/Layout';
 import { useTurno, montarDadosRelatorioFinal } from '../components/useTurno';
-import { COMPLEXIDADE_LABEL } from '../lib/types';
+import { COMPLEXIDADE_LABEL, Complexidade } from '../lib/types';
 
 interface TermoSemValor {
   termo: string;
@@ -16,31 +16,59 @@ interface ResultadoAlerta {
   termosSemValor: TermoSemValor[];
 }
 
+interface SugestaoComplexidade {
+  leito: string;
+  complexidade: Complexidade;
+  justificativa: string;
+}
+
 export default function Plantao() {
-  const { turno, carregado } = useTurno();
+  const { turno, carregado, atualizarComplexidade } = useTurno();
   const [alertas, setAlertas] = useState<ResultadoAlerta[]>([]);
   const [carregandoAlertas, setCarregandoAlertas] = useState(false);
   const [erroAlertas, setErroAlertas] = useState('');
+  const [sugestoes, setSugestoes] = useState<SugestaoComplexidade[]>([]);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   async function verificarAlertas() {
     setCarregandoAlertas(true);
     setErroAlertas('');
     try {
       const dados = montarDadosRelatorioFinal(turno.pacientes, turno.eventos);
-      const resp = await fetch('/api/plantao/calcular-alertas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dados }),
-      });
-      const json = await resp.json();
-      if (!resp.ok) throw new Error(json.erro);
-      setAlertas(json.resultado);
+      const [respAlertas, respSugestoes] = await Promise.all([
+        fetch('/api/plantao/calcular-alertas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dados }),
+        }),
+        fetch('/api/plantao/sugerir-complexidade', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dados }),
+        }),
+      ]);
+      const jsonAlertas = await respAlertas.json();
+      if (!respAlertas.ok) throw new Error(jsonAlertas.erro);
+      setAlertas(jsonAlertas.resultado);
+      if (respSugestoes.ok) {
+        const jsonSugestoes = await respSugestoes.json();
+        setSugestoes(jsonSugestoes.sugestoes ?? []);
+      }
     } catch (e: unknown) {
       setErroAlertas(e instanceof Error ? e.message : 'Erro ao calcular alertas.');
     } finally {
       setCarregandoAlertas(false);
     }
   }
+
+  // Recalcula 2 s após cada alteração no total de registros (add ou delete).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!carregado || turno.eventos.length === 0) return;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(verificarAlertas, 2000);
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [turno.eventos.length, carregado]); // verificarAlertas lê turno via closure — estável
 
   if (!carregado) return <Layout><div className="estado-vazio">Carregando...</div></Layout>;
 
@@ -55,6 +83,12 @@ export default function Plantao() {
     },
     {}
   );
+
+  // Suggestions where AI disagrees with current classification — only those need nurse action.
+  const sugestoesAcionar = sugestoes.filter((s) => {
+    const p = pacientes.find((x) => x.leito.toLowerCase() === s.leito.toLowerCase());
+    return p && p.complexidade !== s.complexidade;
+  });
 
   return (
     <Layout>
@@ -87,6 +121,51 @@ export default function Plantao() {
             })}
           </div>
 
+          {/* Sugestões de complexidade — só aparece quando a IA diverge da classificação atual */}
+          {sugestoesAcionar.length > 0 && (
+            <div className="card" style={{ borderLeft: '4px solid var(--azul)' }}>
+              <p className="card-titulo" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>Sugestão de complexidade</span>
+                {carregandoAlertas && (
+                  <span className="spinner" style={{ width: 12, height: 12, borderTopColor: 'var(--azul)', borderColor: 'var(--cinza-200)' }} />
+                )}
+              </p>
+              {sugestoesAcionar.map((s, idx) => {
+                const paciente = pacientes.find((x) => x.leito.toLowerCase() === s.leito.toLowerCase());
+                if (!paciente) return null;
+                const isLast = idx === sugestoesAcionar.length - 1;
+                return (
+                  <div key={s.leito} style={{
+                    borderBottom: isLast ? 'none' : '1px solid var(--cinza-200)',
+                    paddingBottom: isLast ? 0 : 10,
+                    marginBottom: isLast ? 0 : 10,
+                  }}>
+                    <strong style={{ fontSize: '0.875rem' }}>{s.leito}</strong>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, marginBottom: 6 }}>
+                      <span className={`badge badge-${paciente.complexidade}`}>
+                        {COMPLEXIDADE_LABEL[paciente.complexidade]}
+                      </span>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--cinza-400)' }}>→</span>
+                      <span className={`badge badge-${s.complexidade}`}>
+                        {COMPLEXIDADE_LABEL[s.complexidade]}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--cinza-700)', marginBottom: 8 }}>
+                      {s.justificativa}
+                    </p>
+                    <button
+                      className="btn btn-primario"
+                      style={{ padding: '5px 14px', fontSize: '0.8rem' }}
+                      onClick={() => atualizarComplexidade(paciente.id, s.complexidade)}
+                    >
+                      Confirmar
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {/* Últimos registros */}
           {ultimosEventos.length > 0 && (
             <div className="card">
@@ -106,19 +185,30 @@ export default function Plantao() {
             </div>
           )}
 
-          {/* Alertas NEWS2/qSOFA */}
-          <button
-            className="btn btn-secundario btn-bloco"
-            onClick={verificarAlertas}
-            disabled={carregandoAlertas}
-            style={{ marginBottom: 12 }}
-          >
-            {carregandoAlertas ? <span className="spinner" style={{ borderTopColor: 'var(--azul)', borderColor: 'var(--cinza-200)' }} /> : null}
-            {carregandoAlertas ? ' Calculando...' : 'Verificar alertas (NEWS2 / qSOFA)'}
-          </button>
+          {/* Alertas NEWS2/qSOFA — calculados automaticamente a cada novo registro */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--cinza-400)' }}>
+              Alertas NEWS2/qSOFA
+            </span>
+            {carregandoAlertas && (
+              <span
+                className="spinner"
+                style={{ width: 13, height: 13, borderTopColor: 'var(--azul)', borderColor: 'var(--cinza-200)' }}
+              />
+            )}
+          </div>
 
           {erroAlertas && (
-            <p style={{ color: 'var(--vermelho)', fontSize: '0.85rem', marginBottom: 10 }}>{erroAlertas}</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <p style={{ color: 'var(--vermelho)', fontSize: '0.85rem', flex: 1 }}>{erroAlertas}</p>
+              <button
+                className="btn btn-secundario"
+                style={{ padding: '4px 10px', fontSize: '0.78rem', flexShrink: 0 }}
+                onClick={verificarAlertas}
+              >
+                Tentar novamente
+              </button>
+            </div>
           )}
 
           {alertas.map((a) => {
