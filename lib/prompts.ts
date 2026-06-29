@@ -104,6 +104,24 @@ ${REGRAS_COMUNS}
 12. Organize um paciente por seção, identificado pelo leito, em ordem de complexidade (mais complexo primeiro). Se houver um bloco "NOTAS GERAIS (sem leito identificado)" nos dados, inclua-o como seção final com o cabeçalho "NOTAS GERAIS", sem tentar adivinhar a quem pertence.`;
 }
 
+export function promptSugestaoComplexidade(): string {
+  return `Você é um assistente de classificação assistencial. Classifique a complexidade de cada paciente com base EXCLUSIVAMENTE nos dados fornecidos.
+
+Use EXATAMENTE uma destas chaves (sem espaço, sem acento, em minúsculas):
+- minimos: Cuidados Mínimos — paciente estável, sem monitorização contínua, sem dispositivo invasivo, sem droga vasoativa
+- intermediarios: Intermediários — monitorização básica, estável, sem dispositivo invasivo de alto risco
+- alta_dependencia: Alta Dependência — necessita de cuidado frequente; pode ter SNE, SNG, SVD, mas sem drogas vasoativas ou ventilação mecânica
+- semi_intensivos: Semi-Intensivos — instabilidade clínica, ou CVC, dreno torácico/abdominal, drogas vasoativas em dose baixa, ou qSOFA 2 pts
+- intensivos: Intensivos — drogas vasoativas em infusão ativa (ex: noradrenalina, dopamina, dobutamina, vasopressina), ou ventilação mecânica, ou qSOFA >= 3, ou NEWS2 >= 7
+
+REGRAS OBRIGATÓRIAS:
+1. Cite na justificativa APENAS termos ou valores que aparecem EXPLICITAMENTE nos dados fornecidos — nunca infira.
+2. A justificativa deve ser curta (máximo 2 itens separados por vírgula) e específica. Exemplos corretos: "noradrenalina em infusão, qSOFA 3 pts" / "sinais vitais estáveis, sem dispositivo invasivo". NUNCA escreva apenas "paciente grave" ou "paciente estável" sem citar o dado de origem.
+3. Se não houver dado suficiente para classificar, use "intermediarios" e escreva: "dados insuficientes para classificação precisa".
+4. Responda APENAS com JSON válido, sem markdown, sem texto antes ou depois, exatamente neste formato:
+[{"leito":"Leito X","complexidade":"intensivos","justificativa":"noradrenalina em infusão, qSOFA 3 pts"}]`;
+}
+
 export const PROMPT_ALERTAS = `Você é um assistente de extração clínica. Para cada paciente nos dados abaixo, identifique SOMENTE valores numéricos ou descrições EXPLICITAMENTE mencionados no texto (frequência respiratória, SpO2, uso de oxigênio, PA sistólica, frequência cardíaca, nível de consciência, temperatura). NÃO infira, NÃO estime, NÃO conclua a partir de descrição vaga.
 
 TERMOS QUALITATIVOS SEM NÚMERO: além dos valores numéricos, identifique termos que sugerem alteração de sinal vital mas SEM valor numérico associado no mesmo texto. Exemplos e o parâmetro que cada um implica:
