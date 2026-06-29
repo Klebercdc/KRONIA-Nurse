@@ -46,7 +46,7 @@ export default function Layout({ children }: Props) {
           onClick={() => navegar('/kronos')}
         >
           <IconKronos />
-          KRONOS
+          Escalas
         </button>
 
         <button

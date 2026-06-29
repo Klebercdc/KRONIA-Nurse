@@ -78,7 +78,7 @@ export default function Kronos() {
   return (
     <Layout>
       <div className="tela-header">
-        <h1 className="tela-titulo">KRONOS</h1>
+        <h1 className="tela-titulo">Escalas</h1>
       </div>
       <p style={{ fontSize: '0.82rem', color: 'var(--cinza-400)', marginBottom: 16 }}>
         Calculadoras manuais — apenas sobre valores que você informar. A IA nunca estima.

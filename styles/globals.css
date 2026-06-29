@@ -341,7 +341,7 @@ select {
 .alerta-medio { background: #FFFBEB; border-color: var(--amarelo); }
 .alerta-baixo { background: #F0FDF4; border-color: var(--verde); }
 
-/* Seção de escalas KRONOS */
+/* Seção de escalas */
 .escala-opcao {
   display: flex;
   align-items: center;

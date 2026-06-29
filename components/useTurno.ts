@@ -1,6 +1,6 @@
 /**
  * useTurno — o hook que junta tudo. As 5 telas (Plantão/Pacientes/Registrar/
- * KRONOS/Encerramento) só leem estado e chamam ações daqui; nenhuma delas
+ * Escalas/Encerramento) só leem estado e chamam ações daqui; nenhuma delas
  * deve falar direto com storage.ts ou com as rotas de API.
  *
  * Port direto da lógica já testada no protótipo (artifact), só reorganizada
