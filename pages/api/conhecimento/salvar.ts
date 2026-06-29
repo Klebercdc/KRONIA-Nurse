@@ -17,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   let embedding: number[];
   try {
-    embedding = await gerarEmbedding(textoParaEmbedding(titulo, resumo ?? '', conteudo));
+    embedding = await gerarEmbedding(textoParaEmbedding(titulo, resumo ?? '', conteudo), 'search_document');
   } catch (err) {
     console.error('[conhecimento/salvar] embedding error:', err);
     return res.status(500).json({ erro: 'Falha ao gerar embedding.' });

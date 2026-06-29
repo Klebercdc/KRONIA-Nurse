@@ -1,32 +1,40 @@
 /**
- * Geração de embeddings via OpenAI text-embedding-3-small (1536 dims).
- * Groq não oferece endpoint de embeddings — provider separado obrigatório.
+ * Geração de embeddings via Cohere embed-multilingual-v3.0 (1024 dims).
+ * Suporta português nativamente. Free tier: 100 req/min.
  * Importar apenas em pages/api/**.
  */
 
-const OPENAI_EMBED_URL = 'https://api.openai.com/v1/embeddings';
-const EMBED_MODEL = 'text-embedding-3-small';
+const COHERE_EMBED_URL = 'https://api.cohere.com/v2/embed';
+const EMBED_MODEL = 'embed-multilingual-v3.0';
 
-export async function gerarEmbedding(texto: string): Promise<number[]> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error('OPENAI_API_KEY não configurada no ambiente do servidor.');
+export async function gerarEmbedding(
+  texto: string,
+  tipo: 'search_document' | 'search_query' = 'search_query'
+): Promise<number[]> {
+  const apiKey = process.env.COHERE_API_KEY;
+  if (!apiKey) throw new Error('COHERE_API_KEY não configurada no ambiente do servidor.');
 
-  const resp = await fetch(OPENAI_EMBED_URL, {
+  const resp = await fetch(COHERE_EMBED_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({ model: EMBED_MODEL, input: texto }),
+    body: JSON.stringify({
+      model: EMBED_MODEL,
+      texts: [texto],
+      input_type: tipo,
+      embedding_types: ['float'],
+    }),
   });
 
   if (!resp.ok) {
     const corpo = await resp.text().catch(() => '');
-    throw new Error(`OpenAI Embeddings falhou (${resp.status}): ${corpo}`);
+    throw new Error(`Cohere Embeddings falhou (${resp.status}): ${corpo}`);
   }
 
   const data = await resp.json();
-  const vetor = data?.data?.[0]?.embedding;
+  const vetor = data?.embeddings?.float?.[0];
   if (!Array.isArray(vetor)) throw new Error('Resposta de embedding inválida.');
   return vetor as number[];
 }
