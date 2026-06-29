@@ -448,3 +448,231 @@ select {
   line-height: 1.6;
   margin-bottom: 16px;
 }
+
+/* ─── Registrar: contexto ativo ─────────────────────────────── */
+.contexto-bar {
+  background: var(--azul-claro);
+  border: 1.5px solid #C7D9FF;
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.contexto-leito {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--azul);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.contexto-sub {
+  font-size: 0.72rem;
+  color: #4B71CC;
+  margin-top: 2px;
+}
+
+.contexto-select {
+  background: none;
+  border: 1px solid #93B4FF;
+  border-radius: 8px;
+  color: var(--azul);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 5px 8px;
+  cursor: pointer;
+  outline: none;
+  max-width: 120px;
+}
+
+/* ─── Registrar: área de captura ativa ──────────────────────── */
+.captura-wrapper {
+  border: 2px solid var(--cinza-200);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: var(--branco);
+  margin-bottom: 16px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.captura-wrapper.ativa {
+  border-color: var(--azul);
+  box-shadow: 0 0 0 4px rgba(0, 85, 255, 0.1);
+}
+
+.captura-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  height: 18px;
+}
+
+.captura-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cinza-400);
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.captura-dot.pulsando {
+  background: var(--azul);
+  animation: pulsar 1.2s ease-in-out infinite;
+}
+
+@keyframes pulsar {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(1.4); }
+}
+
+.captura-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--cinza-400);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: color 0.2s;
+}
+
+.captura-label.ativa {
+  color: var(--azul);
+}
+
+.captura-textarea {
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--texto);
+  background: transparent;
+  min-height: 72px;
+}
+
+.captura-textarea::placeholder {
+  color: var(--cinza-400);
+  font-size: 0.9rem;
+}
+
+.captura-preview {
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: var(--azul);
+  font-weight: 600;
+  min-height: 18px;
+}
+
+.captura-acoes {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* ─── Registrar: cards "Past Sessions" ──────────────────────── */
+.sessoes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.sessoes-titulo {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--cinza-400);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sessao-card {
+  background: var(--branco);
+  border: 1px solid var(--cinza-200);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  transition: border-color 0.15s;
+}
+
+.sessao-card:last-child {
+  margin-bottom: 0;
+}
+
+.sessao-card-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.sessao-hora-pill {
+  background: var(--azul);
+  color: var(--branco);
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.sessao-leito-pill {
+  background: var(--azul-claro);
+  color: var(--azul);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+  flex-shrink: 0;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sessao-sem-leito-pill {
+  background: #FEF3C7;
+  color: #92400E;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+
+.sessao-tipo-pill {
+  background: var(--cinza-100);
+  color: var(--cinza-700);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sessao-acoes {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.sessao-texto {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--texto);
+}
+
+.sessao-card.editando {
+  border-color: var(--azul);
+  box-shadow: 0 0 0 3px rgba(0, 85, 255, 0.08);
+}
