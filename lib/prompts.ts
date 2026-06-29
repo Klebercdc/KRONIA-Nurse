@@ -84,7 +84,12 @@ export function promptRelatorioFinal(): string {
   return `Você é um assistente de redação clínica para enfermagem brasileira. Monte o RELATÓRIO FINAL DE PASSAGEM DE PLANTÃO consolidando todos os pacientes.
 
 REGRA CRÍTICA PARA A SEÇÃO "Recomendação para o próximo turno":
-Esta seção deve conter APENAS recomendações, orientações ou pendências que o enfermeiro registrou EXPLICITAMENTE no texto fornecido, com citação obrigatória de [HH:MM] de cada item — igual a qualquer outra seção do documento. É PROIBIDO inferir, sugerir ou criar recomendações clínicas a partir da situação do paciente (ex: se o paciente estava hipotenso, NÃO escreva "ajustar droga vasoativa" — isso é conduta médica não registrada). Se o enfermeiro não registrou nenhuma recomendação explícita, escreva exatamente: "Sem registro para esta seção neste turno".
+Esta seção deve conter APENAS recomendações, orientações ou pendências que o enfermeiro registrou EXPLICITAMENTE no texto fornecido, com citação obrigatória de [HH:MM] de cada item — igual a qualquer outra seção do documento.
+PROIBIÇÕES ABSOLUTAS nesta seção (sem exceção):
+- É PROIBIDO inferir, sugerir ou criar recomendações clínicas a partir da situação do paciente (ex: se PA estava baixa, NÃO escreva "atenção para hipotensão" ou "ajustar droga vasoativa" — isso é conduta não registrada).
+- A regra geral de tradução de terminologia (regra 2) NÃO se aplica aqui. Valores numéricos como temperatura 34,8°C NÃO podem virar "hipotermia"; PA 82 NÃO pode virar "hipotensão grave" nesta seção. Somente o que o enfermeiro escreveu em palavras.
+- Qualquer texto gerado nesta seção que não seja cópia literal do que o enfermeiro registrou é uma fabricação clínica. Prefira sempre "Sem registro para esta seção neste turno".
+Se o enfermeiro não registrou nenhuma recomendação explícita com [HH:MM], escreva exatamente: "Sem registro para esta seção neste turno".
 
 Use EXATAMENTE este modelo de estrutura para cada paciente (texto puro, sem markdown — É PROIBIDO usar #, ##, ###, ** ou qualquer símbolo de markdown):
 
@@ -101,8 +106,6 @@ ${REGRAS_COMUNS}
 
 export const PROMPT_ALERTAS = `Você é um assistente de extração clínica. Para cada paciente nos dados abaixo, identifique SOMENTE valores numéricos ou descrições EXPLICITAMENTE mencionados no texto (frequência respiratória, SpO2, uso de oxigênio, PA sistólica, frequência cardíaca, nível de consciência, temperatura). NÃO infira, NÃO estime, NÃO conclua a partir de descrição vaga.
 
-Identifique também, se mencionados explicitamente, os 3 critérios do qSOFA: PA sistólica <=100; FR >=22; alteração do nível de consciência.
-
 TERMOS QUALITATIVOS SEM NÚMERO: além dos valores numéricos, identifique termos que sugerem alteração de sinal vital mas SEM valor numérico associado no mesmo texto. Exemplos e o parâmetro que cada um implica:
 - "hipotenso", "hipotensão", "hipertenso", "hipertensão" -> PA sistólica (chaveNews2: "pas")
 - "taquicárdico", "taquicardia", "bradicárdico", "bradicardia" -> Frequência cardíaca (chaveNews2: "fc")
@@ -117,5 +120,5 @@ REGRAS OBRIGATÓRIAS:
 1. Se não houver dado explícito suficiente para um parâmetro numérico, NÃO o inclua em "valores" — nunca estime ou arredonde.
 2. Cite o horário [HH:MM] de cada valor numérico usado no campo "fontes".
 3. Responda APENAS com JSON válido, sem markdown, sem texto antes ou depois, exatamente neste formato:
-[{"leito":"Leito X","valores":{"fr":N,"spo2":N,"o2":N,"pas":N,"fc":N,"consc":N,"temp":N},"qsofaPontos":N,"fontes":"...","termosQualitativos":[{"termo":"hipotenso","parametro":"PA sistólica (mmHg)","chaveNews2":"pas"}]}]
-Omita do objeto "valores" qualquer parâmetro sem dado explícito. Omita "termosQualitativos" se não houver nenhum termo qualitativo detectado. O cálculo da pontuação final (NEWS2/qSOFA) é feito por código a partir destes valores — você só extrai, nunca soma ou classifica risco.`;
+[{"leito":"Leito X","valores":{"fr":N,"spo2":N,"o2":N,"pas":N,"fc":N,"consc":N,"temp":N},"fontes":"...","termosQualitativos":[{"termo":"hipotenso","parametro":"PA sistólica (mmHg)","chaveNews2":"pas"}]}]
+Omita do objeto "valores" qualquer parâmetro sem dado explícito. Omita "termosQualitativos" se não houver nenhum termo qualitativo detectado. O cálculo da pontuação final (NEWS2 e qSOFA) é feito inteiramente por código a partir destes valores — você só extrai valores brutos, nunca soma, nunca classifica risco, nunca conta critérios.`;

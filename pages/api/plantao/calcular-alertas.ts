@@ -10,7 +10,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { chamarGroq, extrairJson } from '../../../lib/groq-client';
 import { PROMPT_ALERTAS } from '../../../lib/prompts';
-import { calcularNews2FromRaw, calcularQsofa, ChaveNews2 } from '../../../lib/scales';
+import { calcularNews2FromRaw, calcularQsofa, ChaveNews2, ResultadoEscala } from '../../../lib/scales';
 
 interface TermoQualitativo {
   termo: string;
@@ -21,9 +21,21 @@ interface TermoQualitativo {
 interface ExtracaoPaciente {
   leito: string;
   valores: Partial<Record<ChaveNews2, number>>;
-  qsofaPontos?: number;
   fontes?: string;
   termosQualitativos?: TermoQualitativo[];
+}
+
+// qSOFA calculado inteiramente em código a partir dos valores brutos extraídos pela IA.
+// Nunca delegado ao LLM — elimina não-determinismo no critério Glasgow < 15.
+function qsofaFromRaw(valores: Partial<Record<ChaveNews2, number>>): ResultadoEscala | null {
+  const { pas, fr, consc } = valores;
+  if (pas === undefined && fr === undefined && consc === undefined) return null;
+  let pts = 0;
+  if (pas !== undefined && pas <= 100) pts++;
+  if (fr !== undefined && fr >= 22) pts++;
+  // consc: 0 = AVPU alerta; 15 = GCS normal; qualquer outro = alterado
+  if (consc !== undefined && consc !== 0 && consc < 15) pts++;
+  return calcularQsofa(pts);
 }
 
 export interface TermoSemValor {
@@ -56,10 +68,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       return {
         leito: e.leito,
-        // calcularNews2FromRaw converte cada valor bruto (FR em irpm, PAS em mmHg, etc.)
-        // para sub-escore 0–3 antes de somar — corrige o bug de score 370+.
         news2: completoOSuficiente ? calcularNews2FromRaw(e.valores ?? {}) : null,
-        qsofa: e.qsofaPontos !== undefined ? calcularQsofa(e.qsofaPontos) : null,
+        qsofa: qsofaFromRaw(e.valores ?? {}),
         fontes: e.fontes ?? '',
         termosSemValor,
       };
