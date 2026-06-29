@@ -1,4 +1,5 @@
 import { useRouter } from 'next/router';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Props {
   children: React.ReactNode;
@@ -7,13 +8,41 @@ interface Props {
 export default function Layout({ children }: Props) {
   const router = useRouter();
   const rota = router.pathname;
+  const { signOut, user } = useAuth();
 
   function navegar(href: string) {
     router.push(href);
   }
 
+  async function sair() {
+    await signOut();
+    router.replace('/login');
+  }
+
+  const nomeUsuario = user?.user_metadata?.nome || user?.email?.split('@')[0] || '';
+
   return (
     <div className="app-shell">
+      {/* Barra de usuário */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '8px 16px',
+        borderBottom: '1px solid var(--cinza-200)',
+        background: '#fff',
+        fontSize: '0.72rem',
+        color: 'var(--cinza-400)',
+        minHeight: 36,
+      }}>
+        <span style={{ fontWeight: 500 }}>{nomeUsuario}</span>
+        <button
+          onClick={sair}
+          style={{ background: 'none', border: 'none', fontSize: '0.72rem', color: 'var(--cinza-400)', cursor: 'pointer', padding: '2px 6px', borderRadius: 4 }}
+        >
+          Sair
+        </button>
+      </div>
       <main className="main-content">{children}</main>
 
       <nav className="bottom-nav">

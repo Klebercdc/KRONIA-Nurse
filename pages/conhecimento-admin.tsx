@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
+import { useAuth } from '../contexts/AuthContext';
+import { getSupabaseBrowser } from '../lib/supabase-browser';
 
 const CATEGORIAS = ['Procedimentos', 'Administração de Medicamentos', 'Aprazamento', 'Protocolos', 'Segurança do Paciente', 'Perguntas Frequentes'];
 
@@ -38,18 +40,37 @@ const FORM_VAZIO: FormState = {
 };
 
 export default function ConhecimentoAdmin() {
+  const { user, session } = useAuth();
   const [form, setForm] = useState<FormState>(FORM_VAZIO);
   const [salvando, setSalvando] = useState(false);
   const [mensagem, setMensagem] = useState('');
   const [entradas, setEntradas] = useState<Entrada[]>([]);
   const [carregandoLista, setCarregandoLista] = useState(true);
 
+  // Preencher autor automaticamente com o usuário logado
+  useEffect(() => {
+    if (user && !form.autor) {
+      const nome = (user.user_metadata?.nome as string | undefined) || user.email?.split('@')[0] || '';
+      setForm((f) => ({ ...f, autor: nome }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   useEffect(() => { carregarLista(); }, []);
+
+  async function getToken(): Promise<string> {
+    const supabase = getSupabaseBrowser();
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token ?? '';
+  }
 
   async function carregarLista() {
     setCarregandoLista(true);
     try {
-      const resp = await fetch('/api/conhecimento/listar');
+      const token = await getToken();
+      const resp = await fetch('/api/conhecimento/listar', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const data = await resp.json();
       setEntradas(data.entradas ?? []);
     } catch {
@@ -77,9 +98,10 @@ export default function ConhecimentoAdmin() {
     setSalvando(true);
     setMensagem('');
     try {
+      const token = await getToken();
       const resp = await fetch('/api/conhecimento/salvar', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(form),
       });
       const data = await resp.json();
@@ -107,9 +129,10 @@ export default function ConhecimentoAdmin() {
   async function arquivar(id: string) {
     if (!confirm('Arquivar esta entrada? Ela não aparecerá mais nas buscas do KRONOS.')) return;
     try {
+      const token = await getToken();
       await fetch('/api/conhecimento/arquivar', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ id }),
       });
       await carregarLista();

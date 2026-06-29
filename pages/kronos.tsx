@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import Layout from '../components/Layout';
+import { getSupabaseBrowser } from '../lib/supabase-browser';
 
 type Mensagem = {
   tipo: 'pergunta' | 'resposta' | 'erro';
@@ -26,16 +27,18 @@ export default function KronosPage() {
     setCarregando(true);
 
     try {
+      const sessaoResult = await getSupabaseBrowser().auth.getSession();
+      const token = sessaoResult.data.session?.access_token ?? '';
       const resp = await fetch('/api/kronos/professor', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ pergunta: texto }),
       });
-      const data = await resp.json();
+      const respData = await resp.json() as { erro?: string; resposta?: string; fontes?: { titulo: string; categoria: string }[] };
       if (!resp.ok) {
-        setMensagens((m) => [...m, { tipo: 'erro', texto: data.erro || 'Erro inesperado.' }]);
+        setMensagens((m) => [...m, { tipo: 'erro', texto: respData.erro || 'Erro inesperado.' }]);
       } else {
-        setMensagens((m) => [...m, { tipo: 'resposta', texto: data.resposta, fontes: data.fontes }]);
+        setMensagens((m) => [...m, { tipo: 'resposta', texto: respData.resposta ?? '', fontes: respData.fontes }]);
       }
     } catch {
       setMensagens((m) => [...m, { tipo: 'erro', texto: 'Falha de rede. Tente novamente.' }]);

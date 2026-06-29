@@ -1,10 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSupabase } from '../../../lib/supabase-client';
+import { getUsuarioAutenticado } from '../../../lib/auth-server';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ erro: 'Método não permitido.' });
 
-  const { id, usuario } = req.body as { id?: string; usuario?: string };
+  const usuario = await getUsuarioAutenticado(req);
+  if (!usuario) return res.status(401).json({ erro: 'Não autenticado.' });
+
+  const { id } = req.body as { id?: string };
   if (!id) return res.status(400).json({ erro: 'Campo "id" obrigatório.' });
 
   const supabase = getSupabase();
@@ -20,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   await supabase.from('knowledge_audit').insert({
     knowledge_id: id,
-    usuario: usuario || 'sistema',
+    usuario: usuario.email,
     acao: 'arquivar',
     valor_novo: agora,
   });
