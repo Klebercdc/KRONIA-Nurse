@@ -3,11 +3,17 @@ import Layout from '../components/Layout';
 import { useTurno, montarDadosRelatorioFinal } from '../components/useTurno';
 import { COMPLEXIDADE_LABEL } from '../lib/types';
 
+interface TermoSemValor {
+  termo: string;
+  parametro: string;
+}
+
 interface ResultadoAlerta {
   leito: string;
   news2: { total: number; risco: string } | null;
   qsofa: { total: number; risco: string } | null;
   fontes: string;
+  termosSemValor: TermoSemValor[];
 }
 
 export default function Plantao() {
@@ -116,23 +122,85 @@ export default function Plantao() {
           )}
 
           {alertas.map((a) => {
+            const temScore = a.news2 !== null || a.qsofa !== null;
+            const temTermos = a.termosSemValor.length > 0;
             const risco = a.news2?.risco ?? a.qsofa?.risco ?? 'Baixo';
             const cls = risco === 'Alto' ? 'alerta-alto' : risco === 'Médio' ? 'alerta-medio' : 'alerta-baixo';
             const badgeCls = risco === 'Alto' ? 'badge-risco-alto' : risco === 'Médio' ? 'badge-risco-medio' : 'badge-risco-baixo';
+
             return (
-              <div key={a.leito} className={`alerta-card ${cls}`}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <strong style={{ fontSize: '0.9rem' }}>{a.leito}</strong>
-                  <span className={`badge ${badgeCls}`}>{risco}</span>
-                </div>
-                {a.news2 && (
-                  <p style={{ fontSize: '0.8rem' }}>NEWS2: {a.news2.total} pts</p>
+              <div key={a.leito}>
+                {/* Score NEWS2 / qSOFA — só exibe se houver dados numéricos suficientes */}
+                {temScore && (
+                  <div className={`alerta-card ${cls}`}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                      <strong style={{ fontSize: '0.9rem' }}>{a.leito}</strong>
+                      <span className={`badge ${badgeCls}`}>{risco}</span>
+                    </div>
+                    {a.news2 && (
+                      <p style={{ fontSize: '0.8rem' }}>NEWS2: {a.news2.total} pts</p>
+                    )}
+                    {a.qsofa && (
+                      <p style={{ fontSize: '0.8rem' }}>qSOFA: {a.qsofa.total} pts — {a.qsofa.risco}</p>
+                    )}
+                    {a.fontes && (
+                      <p style={{ fontSize: '0.72rem', color: 'var(--cinza-700)', marginTop: 4 }}>{a.fontes}</p>
+                    )}
+                  </div>
                 )}
-                {a.qsofa && (
-                  <p style={{ fontSize: '0.8rem' }}>qSOFA: {a.qsofa.total} pts — {a.qsofa.risco}</p>
+
+                {/* Termos qualitativos sem valor numérico — alerta separado, não pontua */}
+                {temTermos && (
+                  <div className="alerta-card" style={{
+                    background: '#FFFBEB',
+                    borderColor: '#D97706',
+                    borderLeft: '4px solid #D97706',
+                    marginBottom: 8,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                      <span style={{ fontSize: '0.85rem' }}>⚠</span>
+                      <strong style={{ fontSize: '0.875rem', color: '#92400E' }}>
+                        {!temScore ? a.leito + ' — ' : ''}Termos sem valor numérico
+                      </strong>
+                    </div>
+
+                    {a.termosSemValor.map((t) => (
+                      <div key={t.termo} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'baseline',
+                        padding: '4px 0',
+                        borderBottom: '1px solid #FDE68A',
+                      }}>
+                        <span style={{ fontSize: '0.82rem', color: '#78350F', fontWeight: 600 }}>
+                          &ldquo;{t.termo}&rdquo;
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: '#92400E' }}>
+                          → {t.parametro}
+                        </span>
+                      </div>
+                    ))}
+
+                    <p style={{
+                      fontSize: '0.72rem',
+                      color: '#92400E',
+                      marginTop: 8,
+                      lineHeight: 1.5,
+                      fontStyle: 'italic',
+                    }}>
+                      Termo citado sem valor numérico — verificar manualmente e registrar o valor com o botão +.
+                    </p>
+                  </div>
                 )}
-                {a.fontes && (
-                  <p style={{ fontSize: '0.72rem', color: 'var(--cinza-700)', marginTop: 4 }}>{a.fontes}</p>
+
+                {/* Leito sem score E sem termos: dados insuficientes */}
+                {!temScore && !temTermos && (
+                  <div className="alerta-card alerta-baixo">
+                    <strong style={{ fontSize: '0.875rem' }}>{a.leito}</strong>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--cinza-700)', marginTop: 4 }}>
+                      Dados insuficientes para calcular NEWS2/qSOFA neste turno.
+                    </p>
+                  </div>
                 )}
               </div>
             );

@@ -1,19 +1,42 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Layout from '../components/Layout';
 import { useTurno } from '../components/useTurno';
+import { detectarLeito } from '../lib/leito-parser';
+import { COMPLEXIDADE_LABEL } from '../lib/types';
 
 export default function Registrar() {
   const { turno, carregado, capturar, editarEvento, excluirEvento } = useTurno();
+
   const [texto, setTexto] = useState('');
+  const [focado, setFocado] = useState(false);
+  const [contextoId, setContextoId] = useState<string>('');
+
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [editTexto, setEditTexto] = useState('');
   const [editPatientId, setEditPatientId] = useState<string | null>(null);
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Leito detectado em tempo real enquanto o enfermeiro digita
+  const deteccaoAoVivo = texto.trim() ? detectarLeito(texto) : null;
+
+  // Paciente do contexto ativo (seletor no topo)
+  const pacienteContexto = turno.pacientes.find((p) => p.id === contextoId) ?? null;
 
   function handleCapturar() {
     const t = texto.trim();
     if (!t) return;
     capturar(t);
     setTexto('');
+    textareaRef.current?.focus();
+
+    // Atualiza contexto para o leito que acabou de ser detectado ou o já selecionado
+    if (deteccaoAoVivo) {
+      const p = turno.pacientes.find(
+        (x) => x.leito.toLowerCase() === deteccaoAoVivo.leito.toLowerCase()
+      );
+      if (p) setContextoId(p.id);
+    }
   }
 
   function iniciarEdicao(id: string, textoAtual: string, patientId: string | null) {
@@ -29,27 +52,86 @@ export default function Registrar() {
   }
 
   const eventosOrdenados = [...turno.eventos].sort((a, b) => b.ts - a.ts);
+  const temAtivo = focado || texto.length > 0;
 
   if (!carregado) return <Layout><div className="estado-vazio">Carregando...</div></Layout>;
 
   return (
     <Layout>
-      <div className="tela-header">
-        <h1 className="tela-titulo">Registrar</h1>
+      {/* ── Contexto ativo ─────────────────────────────────────── */}
+      <div className="contexto-bar">
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {pacienteContexto ? (
+            <>
+              <div className="contexto-leito">{pacienteContexto.leito}</div>
+              <div className="contexto-sub">
+                {COMPLEXIDADE_LABEL[pacienteContexto.complexidade]}
+                {pacienteContexto.dx ? ` · ${pacienteContexto.dx}` : ''}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="contexto-leito" style={{ color: 'var(--cinza-400)', fontSize: '0.95rem', fontWeight: 600 }}>
+                Nenhum leito selecionado
+              </div>
+              <div className="contexto-sub">O leito é detectado automaticamente pelo texto</div>
+            </>
+          )}
+        </div>
+
+        {turno.pacientes.length > 0 && (
+          <select
+            className="contexto-select"
+            value={contextoId}
+            onChange={(e) => setContextoId(e.target.value)}
+            aria-label="Selecionar leito de contexto"
+          >
+            <option value="">— Geral —</option>
+            {turno.pacientes.map((p) => (
+              <option key={p.id} value={p.id}>{p.leito}</option>
+            ))}
+          </select>
+        )}
       </div>
 
-      {/* Captura */}
-      <div className="card" style={{ marginBottom: 16 }}>
-        <div className="campo" style={{ marginBottom: 10 }}>
-          <label>Anotação (voz ou texto)</label>
-          <textarea
-            placeholder={'ex: "leito 5, PA 130x80, paciente refere dor 3/10"\n\nO leito é detectado automaticamente.'}
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
-            rows={3}
-          />
+      {/* ── Área de captura ─────────────────────────────────────── */}
+      <div className={`captura-wrapper${temAtivo ? ' ativa' : ''}`}>
+        <div className="captura-status">
+          <span className={`captura-dot${temAtivo ? ' pulsando' : ''}`} />
+          <span className={`captura-label${temAtivo ? ' ativa' : ''}`}>
+            {temAtivo ? 'Capturando' : 'Aguardando'}
+          </span>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+
+        <textarea
+          ref={textareaRef}
+          className="captura-textarea"
+          placeholder={'Dite ou escreva: "leito 5, PA 130x80, dor 3/10"\nO leito é detectado automaticamente pelo contexto.'}
+          value={texto}
+          rows={3}
+          onChange={(e) => setTexto(e.target.value)}
+          onFocus={() => setFocado(true)}
+          onBlur={() => setFocado(false)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+              e.preventDefault();
+              handleCapturar();
+            }
+          }}
+        />
+
+        {/* Preview de leito detectado em tempo real */}
+        <div className="captura-preview">
+          {deteccaoAoVivo
+            ? `→ será associado a: ${deteccaoAoVivo.leito}`
+            : pacienteContexto && texto.trim()
+              ? `→ contexto: ${pacienteContexto.leito}`
+              : texto.trim()
+                ? '→ nota geral (sem leito detectado)'
+                : ''}
+        </div>
+
+        <div className="captura-acoes">
           <button
             className="btn btn-primario"
             style={{ flex: 1 }}
@@ -60,98 +142,111 @@ export default function Registrar() {
           </button>
           <button
             className="btn btn-secundario"
+            style={{ padding: '10px 14px' }}
             onClick={() => setTexto('')}
             disabled={!texto}
+            aria-label="Limpar"
           >
-            Limpar
+            ✕
           </button>
         </div>
       </div>
 
-      {/* Lista de eventos */}
+      {/* ── Histórico estilo "Past Sessions" ────────────────────── */}
       {eventosOrdenados.length === 0 ? (
         <div className="estado-vazio">Nenhum registro neste turno.</div>
       ) : (
-        <div className="card">
-          <p className="card-titulo">{turno.eventos.length} registro{turno.eventos.length !== 1 ? 's' : ''} neste turno</p>
+        <>
+          <div className="sessoes-header">
+            <span className="sessoes-titulo">
+              {turno.eventos.length} registro{turno.eventos.length !== 1 ? 's' : ''} neste turno
+            </span>
+          </div>
+
           {eventosOrdenados.map((ev) => {
             const paciente = turno.pacientes.find((p) => p.id === ev.patientId);
-
-            if (editandoId === ev.id) {
-              return (
-                <div key={ev.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--cinza-200)' }}>
-                  <div style={{ display: 'flex', gap: 6, marginBottom: 8, alignItems: 'center' }}>
-                    <span className="evento-hora">{ev.hora}</span>
-                    <span className="tipo-tag">{ev.tipo}</span>
-                  </div>
-                  <div className="campo" style={{ marginBottom: 8 }}>
-                    <textarea
-                      value={editTexto}
-                      onChange={(e) => setEditTexto(e.target.value)}
-                      rows={2}
-                    />
-                  </div>
-                  <div className="campo" style={{ marginBottom: 8 }}>
-                    <label>Paciente</label>
-                    <select
-                      value={editPatientId ?? ''}
-                      onChange={(e) => setEditPatientId(e.target.value || null)}
-                    >
-                      <option value="">— Notas gerais (sem leito) —</option>
-                      {turno.pacientes.map((p) => (
-                        <option key={p.id} value={p.id}>{p.leito}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button className="btn btn-primario" style={{ flex: 1, padding: '8px' }} onClick={salvarEdicao}>
-                      Salvar
-                    </button>
-                    <button className="btn btn-secundario" style={{ padding: '8px 12px' }} onClick={() => setEditandoId(null)}>
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              );
-            }
+            const estaEditando = editandoId === ev.id;
 
             return (
-              <div key={ev.id} className="evento-linha">
-                <span className="evento-hora">{ev.hora}</span>
-                <div style={{ flex: 1 }}>
-                  {paciente && (
-                    <span className="tipo-tag">{paciente.leito} · </span>
-                  )}
-                  <span className="evento-texto">{ev.texto}</span>
-                  <div style={{ marginTop: 2 }}>
-                    <span className="tipo-tag">{ev.tipo}</span>
-                    {!paciente && (
-                      <span className="tipo-tag" style={{ color: 'var(--amarelo)', marginLeft: 6 }}>
-                        ⚠ sem leito
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="evento-acoes">
-                  <button
-                    className="btn-icone"
-                    onClick={() => iniciarEdicao(ev.id, ev.texto, ev.patientId)}
-                    aria-label="Editar"
-                  >
-                    <IconLapis />
-                  </button>
-                  <button
-                    className="btn-icone perigo"
-                    onClick={() => excluirEvento(ev.id)}
-                    aria-label="Excluir"
-                  >
-                    <IconLixeira />
-                  </button>
-                </div>
+              <div key={ev.id} className={`sessao-card${estaEditando ? ' editando' : ''}`}>
+                {estaEditando ? (
+                  /* ── Modo edição inline ────────────────────────── */
+                  <>
+                    <div className="sessao-card-header">
+                      <span className="sessao-hora-pill">{ev.hora}</span>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--cinza-400)' }}>Editando</span>
+                    </div>
+
+                    <div className="campo" style={{ marginBottom: 8 }}>
+                      <textarea
+                        value={editTexto}
+                        onChange={(e) => setEditTexto(e.target.value)}
+                        rows={2}
+                        autoFocus
+                      />
+                    </div>
+
+                    <div className="campo" style={{ marginBottom: 10 }}>
+                      <label>Paciente</label>
+                      <select
+                        value={editPatientId ?? ''}
+                        onChange={(e) => setEditPatientId(e.target.value || null)}
+                      >
+                        <option value="">— Notas gerais (sem leito) —</option>
+                        {turno.pacientes.map((p) => (
+                          <option key={p.id} value={p.id}>{p.leito}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button className="btn btn-primario" style={{ flex: 1 }} onClick={salvarEdicao}>
+                        Salvar
+                      </button>
+                      <button className="btn btn-secundario" onClick={() => setEditandoId(null)}>
+                        Cancelar
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  /* ── Modo visualização ─────────────────────────── */
+                  <>
+                    <div className="sessao-card-header">
+                      <span className="sessao-hora-pill">{ev.hora}</span>
+
+                      {paciente ? (
+                        <span className="sessao-leito-pill">{paciente.leito}</span>
+                      ) : (
+                        <span className="sessao-sem-leito-pill">⚠ sem leito</span>
+                      )}
+
+                      <span className="sessao-tipo-pill">{ev.tipo}</span>
+
+                      <div className="sessao-acoes">
+                        <button
+                          className="btn-icone"
+                          onClick={() => iniciarEdicao(ev.id, ev.texto, ev.patientId)}
+                          aria-label="Editar"
+                        >
+                          <IconLapis />
+                        </button>
+                        <button
+                          className="btn-icone perigo"
+                          onClick={() => excluirEvento(ev.id)}
+                          aria-label="Excluir"
+                        >
+                          <IconLixeira />
+                        </button>
+                      </div>
+                    </div>
+
+                    <p className="sessao-texto">{ev.texto}</p>
+                  </>
+                )}
               </div>
             );
           })}
-        </div>
+        </>
       )}
     </Layout>
   );
