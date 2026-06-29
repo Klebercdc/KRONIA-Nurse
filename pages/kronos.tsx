@@ -2,20 +2,32 @@ import { useState } from 'react';
 import Layout from '../components/Layout';
 import { useTurno } from '../components/useTurno';
 import {
-  NEWS2_CAMPOS, BRADEN_CAMPOS, MORSE_CAMPOS,
-  calcularNews2, calcularBraden, calcularMorse, calcularQsofa,
+  NEWS2_CAMPOS, BRADEN_CAMPOS, MORSE_CAMPOS, GCS_CAMPOS, PUSH_CAMPOS,
+  calcularNews2, calcularBraden, calcularMorse, calcularGlasgow, calcularPush, calcularQsofa,
   CampoEscala, ResultadoEscala,
 } from '../lib/scales';
-import { horaAgora } from '../lib/types';
 
-type EscalaId = 'news2' | 'braden' | 'morse' | 'qsofa';
+type EscalaId = 'news2' | 'braden' | 'morse' | 'glasgow' | 'qsofa' | 'push';
 
 const ESCALAS: { id: EscalaId; label: string; descricao: string }[] = [
   { id: 'news2', label: 'NEWS2', descricao: 'National Early Warning Score 2 — detecção de deterioração clínica' },
   { id: 'braden', label: 'Braden', descricao: 'Risco de lesão por pressão' },
   { id: 'morse', label: 'Morse', descricao: 'Risco de queda' },
-  { id: 'qsofa', label: 'qSOFA', descricao: 'Quick SOFA — critérios de sepse' },
+  { id: 'glasgow', label: 'Glasgow (GCS)', descricao: 'Escala de Coma de Glasgow — nível de consciência (3–15)' },
+  { id: 'qsofa', label: 'qSOFA', descricao: 'Quick SOFA — critérios de sepse (consciência via Glasgow)' },
+  { id: 'push', label: 'PUSH Tool', descricao: 'Pressure Ulcer Scale for Healing — tendência de cicatrização' },
 ];
+
+function camposDaEscala(id: EscalaId): CampoEscala[] {
+  switch (id) {
+    case 'news2': return NEWS2_CAMPOS;
+    case 'braden': return BRADEN_CAMPOS;
+    case 'morse': return MORSE_CAMPOS;
+    case 'glasgow': return GCS_CAMPOS;
+    case 'push': return PUSH_CAMPOS;
+    default: return [];
+  }
+}
 
 export default function Kronos() {
   const { turno, carregado, capturar } = useTurno();
@@ -38,39 +50,38 @@ export default function Kronos() {
   }
 
   function calcular() {
-    if (escalaAtiva === 'news2') {
-      const campos = NEWS2_CAMPOS;
-      const vals = campos.map((c) => valores[c.chave] ?? 0);
-      setResultado(calcularNews2(vals));
-    } else if (escalaAtiva === 'braden') {
-      const vals = BRADEN_CAMPOS.map((c) => valores[c.chave] ?? 1);
-      setResultado(calcularBraden(vals));
-    } else if (escalaAtiva === 'morse') {
-      const vals = MORSE_CAMPOS.map((c) => valores[c.chave] ?? 0);
-      setResultado(calcularMorse(vals));
-    } else if (escalaAtiva === 'qsofa') {
+    if (!escalaAtiva) return;
+    if (escalaAtiva === 'qsofa') {
       setResultado(calcularQsofa(qsofaPontos));
+      return;
+    }
+    // Braden e Glasgow têm valor mínimo 1; demais têm 0.
+    const defaultVal = escalaAtiva === 'braden' || escalaAtiva === 'glasgow' ? 1 : 0;
+    const vals = camposDaEscala(escalaAtiva).map((c) => valores[c.chave] ?? defaultVal);
+    switch (escalaAtiva) {
+      case 'news2': setResultado(calcularNews2(vals)); break;
+      case 'braden': setResultado(calcularBraden(vals)); break;
+      case 'morse': setResultado(calcularMorse(vals)); break;
+      case 'glasgow': setResultado(calcularGlasgow(vals)); break;
+      case 'push': setResultado(calcularPush(vals)); break;
     }
   }
 
   function salvarComoEvento() {
     if (!resultado || !escalaAtiva) return;
     const nomeEscala = ESCALAS.find((e) => e.id === escalaAtiva)?.label ?? escalaAtiva;
-    const texto = `[${escalaAtiva === 'news2' ? 'Sinal Vital' : 'Avaliação'}] Escala ${nomeEscala}: ${resultado.total} pts — ${resultado.risco}`;
-    const eventoCompleto = pacienteSelecionado
-      ? `${turno.pacientes.find((p) => p.id === pacienteSelecionado)?.leito ?? ''} — ${texto}`
-      : texto;
-    capturar(eventoCompleto);
+    const tipo = escalaAtiva === 'news2' ? 'Sinal Vital' : escalaAtiva === 'push' ? 'Ferida' : 'Avaliação';
+    const texto = `[${tipo}] Escala ${nomeEscala}: ${resultado.total} pts — ${resultado.risco}`;
+    const leito = turno.pacientes.find((p) => p.id === pacienteSelecionado)?.leito;
+    capturar(leito ? `${leito} — ${texto}` : texto);
     setSalvandoEvento(true);
     setTimeout(() => setSalvandoEvento(false), 2000);
   }
 
   const todosCamposPreenchidos = () => {
-    if (escalaAtiva === 'news2') return NEWS2_CAMPOS.every((c) => valores[c.chave] !== undefined);
-    if (escalaAtiva === 'braden') return BRADEN_CAMPOS.every((c) => valores[c.chave] !== undefined);
-    if (escalaAtiva === 'morse') return MORSE_CAMPOS.every((c) => valores[c.chave] !== undefined);
     if (escalaAtiva === 'qsofa') return true;
-    return false;
+    if (!escalaAtiva) return false;
+    return camposDaEscala(escalaAtiva).every((c) => valores[c.chave] !== undefined);
   };
 
   if (!carregado) return <Layout><div className="estado-vazio">Carregando...</div></Layout>;
@@ -84,8 +95,7 @@ export default function Kronos() {
         Calculadoras manuais — apenas sobre valores que você informar. A IA nunca estima.
       </p>
 
-      {/* Seleção de escala */}
-      {!escalaAtiva && (
+      {!escalaAtiva ? (
         <div>
           {ESCALAS.map((e) => (
             <div key={e.id} className="card" style={{ cursor: 'pointer' }} onClick={() => selecionarEscala(e.id)}>
@@ -99,26 +109,23 @@ export default function Kronos() {
             </div>
           ))}
         </div>
-      )}
-
-      {/* Formulário da escala */}
-      {escalaAtiva && (
+      ) : (
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-            <button className="btn btn-secundario" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={() => { setEscalaAtiva(null); setResultado(null); }}>
+            <button
+              className="btn btn-secundario"
+              style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+              onClick={() => { setEscalaAtiva(null); setResultado(null); }}
+            >
               ← Voltar
             </button>
             <strong>{ESCALAS.find((e) => e.id === escalaAtiva)?.label}</strong>
           </div>
 
           {escalaAtiva === 'qsofa' ? (
-            <QsofaForm pontos={qsofaPontos} onChange={setQsofaPontos} />
+            <QsofaForm onChange={setQsofaPontos} />
           ) : (
-            <EscalaForm
-              campos={escalaAtiva === 'news2' ? NEWS2_CAMPOS : escalaAtiva === 'braden' ? BRADEN_CAMPOS : MORSE_CAMPOS}
-              valores={valores}
-              onChange={setValor}
-            />
+            <EscalaForm campos={camposDaEscala(escalaAtiva)} valores={valores} onChange={setValor} />
           )}
 
           <button
@@ -135,6 +142,12 @@ export default function Kronos() {
               <div className="escala-total">{resultado.total}</div>
               <div className="escala-risco">{resultado.risco}</div>
 
+              {escalaAtiva === 'push' && (
+                <p style={{ fontSize: '0.78rem', color: 'var(--cinza-400)', marginTop: 8, fontStyle: 'italic' }}>
+                  PUSH Tool avalia tendência — salve como evento e compare com avaliações anteriores do mesmo leito para verificar progressão de cicatrização.
+                </p>
+              )}
+
               <div className="sep" />
 
               {turno.pacientes.length > 0 && (
@@ -149,11 +162,7 @@ export default function Kronos() {
                 </div>
               )}
 
-              <button
-                className="btn btn-secundario btn-bloco"
-                onClick={salvarComoEvento}
-                style={{ marginTop: 4 }}
-              >
+              <button className="btn btn-secundario btn-bloco" onClick={salvarComoEvento} style={{ marginTop: 4 }}>
                 {salvandoEvento ? '✓ Salvo!' : 'Salvar como evento'}
               </button>
             </div>
@@ -195,35 +204,104 @@ function EscalaForm({ campos, valores, onChange }: {
   );
 }
 
-function QsofaForm({ pontos, onChange }: { pontos: number; onChange: (n: number) => void }) {
-  const criterios = [
-    { label: 'PA sistólica ≤ 100 mmHg', chave: 'pas' },
-    { label: 'FR ≥ 22 irpm', chave: 'fr' },
-    { label: 'Alteração do nível de consciência', chave: 'consc' },
-  ];
-  const [selecionados, setSelecionados] = useState<Record<string, boolean>>({});
+function QsofaForm({ onChange }: { onChange: (n: number) => void }) {
+  const [pas, setPas] = useState(false);
+  const [fr, setFr] = useState(false);
+  const [gcsInput, setGcsInput] = useState('');
 
-  function toggle(chave: string) {
-    const novo = { ...selecionados, [chave]: !selecionados[chave] };
-    setSelecionados(novo);
-    onChange(Object.values(novo).filter(Boolean).length);
+  const gcsNum = gcsInput !== '' ? parseInt(gcsInput, 10) : null;
+  const gcsValido = gcsNum !== null && !isNaN(gcsNum) && gcsNum >= 3 && gcsNum <= 15;
+  const conscienciaAtiva = gcsValido && gcsNum! < 15;
+
+  function reportar(novoPas: boolean, novoFr: boolean, novoConsc: boolean) {
+    onChange([novoPas, novoFr, novoConsc].filter(Boolean).length);
+  }
+
+  function togglePas() {
+    const v = !pas;
+    setPas(v);
+    reportar(v, fr, conscienciaAtiva);
+  }
+
+  function toggleFr() {
+    const v = !fr;
+    setFr(v);
+    reportar(pas, v, conscienciaAtiva);
+  }
+
+  function onGcsChange(val: string) {
+    setGcsInput(val);
+    const num = val !== '' ? parseInt(val, 10) : null;
+    const valido = num !== null && !isNaN(num) && num >= 3 && num <= 15;
+    const consc = valido && num! < 15;
+    reportar(pas, fr, consc);
   }
 
   return (
     <div className="card">
-      <p className="card-titulo" style={{ marginBottom: 10 }}>Critérios presentes (marque os que se aplicam)</p>
-      {criterios.map((c) => (
-        <label key={c.chave} className="escala-opcao">
+      <p className="card-titulo" style={{ marginBottom: 10 }}>Critérios presentes</p>
+
+      <label className="escala-opcao">
+        <input
+          type="checkbox"
+          checked={pas}
+          onChange={togglePas}
+          style={{ accentColor: 'var(--azul)', width: 16, height: 16 }}
+        />
+        <span style={{ fontSize: '0.875rem', flex: 1 }}>PA sistólica ≤ 100 mmHg</span>
+        {pas && <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--azul)' }}>+1 pt</span>}
+      </label>
+
+      <label className="escala-opcao">
+        <input
+          type="checkbox"
+          checked={fr}
+          onChange={toggleFr}
+          style={{ accentColor: 'var(--azul)', width: 16, height: 16 }}
+        />
+        <span style={{ fontSize: '0.875rem', flex: 1 }}>FR ≥ 22 irpm</span>
+        {fr && <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--azul)' }}>+1 pt</span>}
+      </label>
+
+      <div style={{ paddingTop: 10, borderTop: '1px solid var(--cinza-200)', marginTop: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+          <span style={{ fontSize: '0.875rem', flex: 1 }}>Glasgow total (3–15)</span>
           <input
-            type="checkbox"
-            checked={!!selecionados[c.chave]}
-            onChange={() => toggle(c.chave)}
-            style={{ accentColor: 'var(--azul)', width: 16, height: 16 }}
+            type="number"
+            min={3}
+            max={15}
+            value={gcsInput}
+            onChange={(e) => onGcsChange(e.target.value)}
+            placeholder="—"
+            style={{
+              width: 64,
+              padding: '6px 8px',
+              border: '1px solid var(--cinza-200)',
+              borderRadius: 6,
+              fontSize: '0.9rem',
+              textAlign: 'center',
+              background: 'white',
+            }}
           />
-          <span style={{ fontSize: '0.875rem' }}>{c.label}</span>
-        </label>
-      ))}
-      <p style={{ fontSize: '0.78rem', color: 'var(--cinza-400)', marginTop: 8 }}>
+          {gcsValido && (
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: conscienciaAtiva ? 'var(--azul)' : 'var(--cinza-400)' }}>
+              {conscienciaAtiva ? '+1 pt' : '0 pt'}
+            </span>
+          )}
+        </div>
+        {gcsValido && (
+          <p style={{ fontSize: '0.75rem', color: conscienciaAtiva ? '#B91C1C' : 'var(--cinza-400)', marginBottom: 4 }}>
+            {conscienciaAtiva
+              ? `GCS ${gcsNum} < 15 — alteração de consciência (critério ativo)`
+              : 'GCS = 15 — sem alteração de consciência (critério inativo)'}
+          </p>
+        )}
+        <p style={{ fontSize: '0.72rem', color: 'var(--cinza-400)', lineHeight: 1.4 }}>
+          Use a calculadora Glasgow acima para obter o total. Deixe em branco se não avaliado (critério não pontua).
+        </p>
+      </div>
+
+      <p style={{ fontSize: '0.78rem', color: 'var(--cinza-400)', marginTop: 10 }}>
         2+ pontos: considerar avaliação de sepse (critério publicado — nunca diagnóstico pela IA).
       </p>
     </div>

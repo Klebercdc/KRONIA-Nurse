@@ -72,6 +72,64 @@ export const BRADEN_CAMPOS: CampoEscala[] = [
   ]},
 ];
 
+// Glasgow Coma Scale — Teasdale G, Jennett B. Lancet. 1974.
+// Total 3–15. < 15 = alteração de consciência (critério de qSOFA e NEWS2).
+export const GCS_CAMPOS: CampoEscala[] = [
+  { chave: 'ocular', label: 'Abertura ocular', opcoes: [
+    { label: 'Nenhuma', valor: 1 },
+    { label: 'À dor', valor: 2 },
+    { label: 'À voz', valor: 3 },
+    { label: 'Espontânea', valor: 4 },
+  ]},
+  { chave: 'verbal', label: 'Resposta verbal', opcoes: [
+    { label: 'Nenhuma (sem resposta)', valor: 1 },
+    { label: 'Sons incompreensíveis', valor: 2 },
+    { label: 'Palavras inapropriadas', valor: 3 },
+    { label: 'Confusa', valor: 4 },
+    { label: 'Orientada', valor: 5 },
+  ]},
+  { chave: 'motor', label: 'Resposta motora', opcoes: [
+    { label: 'Nenhuma (sem resposta)', valor: 1 },
+    { label: 'Extensão anormal (descerebração)', valor: 2 },
+    { label: 'Flexão anormal (decorticação)', valor: 3 },
+    { label: 'Retirada à dor', valor: 4 },
+    { label: 'Localiza a dor', valor: 5 },
+    { label: 'Obedece a comandos', valor: 6 },
+  ]},
+];
+
+// PUSH Tool (Pressure Ulcer Scale for Healing)
+// NPUAP; validação pt-BR: Santos VLCG, Sellmer D, Massulo MME (2004).
+// Avalia TENDÊNCIA — requer pelo menos 2 avaliações registradas para gerar alerta de progressão.
+export const PUSH_CAMPOS: CampoEscala[] = [
+  { chave: 'area', label: 'Área da ferida (comprimento × largura)', opcoes: [
+    { label: 'Fechada (0 cm²)', valor: 0 },
+    { label: '< 0,3 cm²', valor: 1 },
+    { label: '0,3–0,6 cm²', valor: 2 },
+    { label: '0,7–1,0 cm²', valor: 3 },
+    { label: '1,1–2,0 cm²', valor: 4 },
+    { label: '2,1–3,0 cm²', valor: 5 },
+    { label: '3,1–4,0 cm²', valor: 6 },
+    { label: '4,1–8,0 cm²', valor: 7 },
+    { label: '8,1–12,0 cm²', valor: 8 },
+    { label: '12,1–24,0 cm²', valor: 9 },
+    { label: '> 24,0 cm²', valor: 10 },
+  ]},
+  { chave: 'exsudato', label: 'Quantidade de exsudato', opcoes: [
+    { label: 'Ausente', valor: 0 },
+    { label: 'Pequeno', valor: 1 },
+    { label: 'Moderado', valor: 2 },
+    { label: 'Grande', valor: 3 },
+  ]},
+  { chave: 'tecido', label: 'Tipo de tecido (pior condição presente)', opcoes: [
+    { label: 'Fechada / epitelizada', valor: 0 },
+    { label: 'Tecido epitelial', valor: 1 },
+    { label: 'Tecido de granulação', valor: 2 },
+    { label: 'Esfacelo', valor: 3 },
+    { label: 'Tecido necrótico (escara)', valor: 4 },
+  ]},
+];
+
 export const MORSE_CAMPOS: CampoEscala[] = [
   { chave: 'historico', label: 'Histórico de quedas', opcoes: [{ label: 'Não', valor: 0 }, { label: 'Sim', valor: 25 }] },
   { chave: 'diagnostico', label: 'Diagnóstico secundário (2+)', opcoes: [{ label: 'Não', valor: 0 }, { label: 'Sim', valor: 15 }] },
@@ -125,4 +183,21 @@ export function calcularMorse(valores: number[]): ResultadoEscala {
 /** qSOFA: 2+ pontos = "considerar avaliação de sepse" — contagem de critério publicado, nunca diagnóstico. */
 export function calcularQsofa(pontos: number): ResultadoEscala {
   return { total: pontos, risco: pontos >= 2 ? 'Atenção — considerar avaliação de sepse' : 'Baixo' };
+}
+
+/** GCS: Teasdale & Jennett 1974. Total 3–15. < 15 = alteração de consciência (critério de qSOFA). */
+export function calcularGlasgow(valores: number[]): ResultadoEscala {
+  const total = valores.reduce((a, b) => a + b, 0);
+  let risco: string;
+  if (total <= 8) risco = 'Grave (≤ 8)';
+  else if (total <= 12) risco = 'Moderado (9–12)';
+  else if (total < 15) risco = 'Leve (13–14) — critério de consciência qSOFA ativo';
+  else risco = 'Normal (15) — sem alteração de consciência';
+  return { total, risco };
+}
+
+/** PUSH Tool: NPUAP / Santos et al. 2004. Escore 0–17. Avalia tendência — comparar com avaliação anterior. */
+export function calcularPush(valores: number[]): ResultadoEscala {
+  const total = valores.reduce((a, b) => a + b, 0);
+  return { total, risco: 'Comparar com avaliação anterior para avaliar tendência de cicatrização' };
 }
