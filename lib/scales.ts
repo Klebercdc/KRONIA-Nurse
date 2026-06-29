@@ -18,6 +18,9 @@ export interface CampoEscala {
   opcoes: Opcao[];
 }
 
+// Chaves dos parâmetros NEWS2 — exportada para uso em calcular-alertas.ts e nos testes.
+export type ChaveNews2 = 'fr' | 'spo2' | 'o2' | 'pas' | 'fc' | 'consc' | 'temp';
+
 export const NEWS2_CAMPOS: CampoEscala[] = [
   { chave: 'fr', label: 'Frequência respiratória (irpm)', opcoes: [
     { label: '≤ 8', valor: 3 }, { label: '9–11', valor: 1 }, { label: '12–20', valor: 0 },
@@ -153,8 +156,68 @@ export interface ResultadoEscala {
   risco: string;
 }
 
+/**
+ * Converte um valor clínico bruto (ex: FR=22, PAS=90) para o sub-escore NEWS2 (0–3)
+ * conforme tabela do Royal College of Physicians NEWS2 (2017).
+ * Usada em calcularNews2FromRaw() para corrigir extração da IA.
+ */
+export function news2SubScore(chave: ChaveNews2, valor: number): number {
+  switch (chave) {
+    case 'fr':
+      if (valor <= 8) return 3;
+      if (valor <= 11) return 1;
+      if (valor <= 20) return 0;
+      if (valor <= 24) return 2;
+      return 3;
+    case 'spo2':
+      if (valor <= 91) return 3;
+      if (valor <= 93) return 2;
+      if (valor <= 95) return 1;
+      return 0;
+    case 'o2':
+      // 0 = ar ambiente; qualquer outro valor = O2 suplementar
+      return valor === 0 ? 0 : 2;
+    case 'pas':
+      if (valor <= 90) return 3;
+      if (valor <= 100) return 2;
+      if (valor <= 110) return 1;
+      if (valor <= 219) return 0;
+      return 3;
+    case 'fc':
+      if (valor <= 40) return 3;
+      if (valor <= 50) return 1;
+      if (valor <= 90) return 0;
+      if (valor <= 110) return 1;
+      if (valor <= 130) return 2;
+      return 3;
+    case 'consc':
+      // 0 = alerta (AVPU); 15 = GCS normal; qualquer outro = não-alerta
+      return valor === 0 || valor === 15 ? 0 : 3;
+    case 'temp':
+      if (valor <= 35.0) return 3;
+      if (valor <= 36.0) return 1;
+      if (valor <= 38.0) return 0;
+      if (valor <= 39.0) return 1;
+      return 2;
+  }
+}
+
+/** Calcula NEWS2 a partir de valores clínicos BRUTOS extraídos pela IA (FR em irpm, PAS em mmHg, etc.). */
+export function calcularNews2FromRaw(valores: Partial<Record<ChaveNews2, number>>): ResultadoEscala {
+  const subScores = (Object.entries(valores) as [ChaveNews2, number][])
+    .map(([chave, valor]) => news2SubScore(chave, valor));
+  return calcularNews2(subScores);
+}
+
 export function calcularNews2(valores: number[]): ResultadoEscala {
   const total = valores.reduce((a, b) => a + b, 0);
+  // Máximo possível: fr(3)+spo2(3)+o2(2)+pas(3)+fc(3)+consc(3)+temp(3) = 20.
+  // Se total > 20, os valores são brutos em vez de sub-escores — bug de integração.
+  if (total < 0 || total > 20) {
+    throw new RangeError(
+      `NEWS2: escore ${total} fora do intervalo 0–20. Use calcularNews2FromRaw() para valores clínicos brutos.`
+    );
+  }
   const algumTres = valores.some((v) => v === 3);
   let risco = 'Baixo';
   if (total >= 7) risco = 'Alto';

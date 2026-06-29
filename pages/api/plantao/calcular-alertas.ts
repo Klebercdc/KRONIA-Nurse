@@ -10,9 +10,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { chamarGroq, extrairJson } from '../../../lib/groq-client';
 import { PROMPT_ALERTAS } from '../../../lib/prompts';
-import { calcularNews2, calcularQsofa } from '../../../lib/scales';
-
-type ChaveNews2 = 'fr' | 'spo2' | 'o2' | 'pas' | 'fc' | 'consc' | 'temp';
+import { calcularNews2FromRaw, calcularQsofa, ChaveNews2 } from '../../../lib/scales';
 
 interface TermoQualitativo {
   termo: string;
@@ -44,7 +42,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const extracoes = extrairJson<ExtracaoPaciente[]>(texto);
 
     const resultado = extracoes.map((e) => {
-      const valoresPresentes = Object.values(e.valores ?? {});
       // NEWS2 só é calculado se houver pelo menos os parâmetros mínimos
       // de PA, FC, FR e consciência — caso contrário fica null (sem dado).
       const completoOSuficiente = ['fr', 'pas', 'fc', 'consc'].every(
@@ -59,7 +56,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       return {
         leito: e.leito,
-        news2: completoOSuficiente ? calcularNews2(valoresPresentes) : null,
+        // calcularNews2FromRaw converte cada valor bruto (FR em irpm, PAS em mmHg, etc.)
+        // para sub-escore 0–3 antes de somar — corrige o bug de score 370+.
+        news2: completoOSuficiente ? calcularNews2FromRaw(e.valores ?? {}) : null,
         qsofa: e.qsofaPontos !== undefined ? calcularQsofa(e.qsofaPontos) : null,
         fontes: e.fontes ?? '',
         termosSemValor,
