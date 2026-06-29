@@ -414,6 +414,42 @@ select {
   letter-spacing: 0.04em;
 }
 
+/* Campo de texto genérico (sem wrapper .campo) */
+.campo-texto {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--cinza-200);
+  border-radius: 8px;
+  background: var(--branco);
+  color: var(--texto);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.campo-texto:focus {
+  border-color: var(--azul);
+}
+
+/* Estilo global para inputs/textareas fora de .campo */
+input[type="text"]:not(.campo input),
+input[type="date"]:not(.campo input),
+textarea:not(.campo textarea) {
+  padding: 9px 11px;
+  border: 1px solid var(--cinza-200);
+  border-radius: 8px;
+  width: 100%;
+  background: var(--branco);
+  color: var(--texto);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+input[type="text"]:focus,
+input[type="date"]:focus,
+textarea:focus {
+  border-color: var(--azul);
+}
+
 /* Vazio */
 .estado-vazio {
   text-align: center;

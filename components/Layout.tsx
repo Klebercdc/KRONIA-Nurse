@@ -42,11 +42,19 @@ export default function Layout({ children }: Props) {
         </button>
 
         <button
+          className={`nav-item${rota === '/escalas' ? ' ativo' : ''}`}
+          onClick={() => navegar('/escalas')}
+        >
+          <IconEscalas />
+          Escalas
+        </button>
+
+        <button
           className={`nav-item${rota === '/kronos' ? ' ativo' : ''}`}
           onClick={() => navegar('/kronos')}
         >
           <IconKronos />
-          Escalas
+          KRONOS
         </button>
 
         <button
@@ -92,11 +100,20 @@ function IconMais() {
   );
 }
 
-function IconKronos() {
+function IconEscalas() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="9" />
       <polyline points="12 7 12 12 15 15" />
+    </svg>
+  );
+}
+
+function IconKronos() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
     </svg>
   );
 }
