@@ -77,7 +77,7 @@ function traduzirErro(msg: string): string {
   if (msg.includes('Invalid login credentials')) return 'Email ou senha incorretos.';
   if (msg.includes('Email not confirmed')) return 'Confirme o email antes de entrar.';
   if (msg.includes('User already registered')) return 'Este email já está cadastrado.';
-  if (msg.includes('Password should be at least')) return 'A senha deve ter pelo menos 6 caracteres.';
+  if (msg.includes('Password should be at least')) return 'A senha deve ter pelo menos 6 caracteres (padrão Supabase).';
   if (msg.includes('rate limit')) return 'Muitas tentativas. Aguarde alguns minutos.';
   return msg;
 }

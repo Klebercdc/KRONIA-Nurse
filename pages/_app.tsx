@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import '../styles/globals.css';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 
-const ROTAS_PUBLICAS = ['/login'];
+const ROTAS_PUBLICAS = ['/', '/login', '/cadastro'];
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
