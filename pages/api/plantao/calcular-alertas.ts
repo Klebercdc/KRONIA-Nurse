@@ -12,11 +12,25 @@ import { chamarGroq, extrairJson } from '../../../lib/groq-client';
 import { PROMPT_ALERTAS } from '../../../lib/prompts';
 import { calcularNews2, calcularQsofa } from '../../../lib/scales';
 
+type ChaveNews2 = 'fr' | 'spo2' | 'o2' | 'pas' | 'fc' | 'consc' | 'temp';
+
+interface TermoQualitativo {
+  termo: string;
+  parametro: string;
+  chaveNews2: ChaveNews2 | null;
+}
+
 interface ExtracaoPaciente {
   leito: string;
-  valores: Partial<Record<'fr' | 'spo2' | 'o2' | 'pas' | 'fc' | 'consc' | 'temp', number>>;
+  valores: Partial<Record<ChaveNews2, number>>;
   qsofaPontos?: number;
   fontes?: string;
+  termosQualitativos?: TermoQualitativo[];
+}
+
+export interface TermoSemValor {
+  termo: string;
+  parametro: string;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -34,13 +48,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // NEWS2 só é calculado se houver pelo menos os parâmetros mínimos
       // de PA, FC, FR e consciência — caso contrário fica null (sem dado).
       const completoOSuficiente = ['fr', 'pas', 'fc', 'consc'].every(
-        (k) => e.valores && e.valores[k as keyof typeof e.valores] !== undefined
+        (k) => e.valores && e.valores[k as ChaveNews2] !== undefined
       );
+
+      // Filtra termos qualitativos cujo parâmetro numérico já foi extraído —
+      // evita mostrar alerta qualitativo quando o número concreto já está presente.
+      const termosSemValor: TermoSemValor[] = (e.termosQualitativos ?? [])
+        .filter((t) => !t.chaveNews2 || e.valores?.[t.chaveNews2] === undefined)
+        .map(({ termo, parametro }) => ({ termo, parametro }));
+
       return {
         leito: e.leito,
         news2: completoOSuficiente ? calcularNews2(valoresPresentes) : null,
         qsofa: e.qsofaPontos !== undefined ? calcularQsofa(e.qsofaPontos) : null,
         fontes: e.fontes ?? '',
+        termosSemValor,
       };
     });
 

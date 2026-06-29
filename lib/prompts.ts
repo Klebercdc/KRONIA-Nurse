@@ -40,9 +40,19 @@ export const PROMPT_ALERTAS = `Você é um assistente de extração clínica. Pa
 
 Identifique também, se mencionados explicitamente, os 3 critérios do qSOFA: PA sistólica ≤100; FR ≥22; alteração do nível de consciência.
 
+TERMOS QUALITATIVOS SEM NÚMERO: além dos valores numéricos, identifique termos que sugerem alteração de sinal vital mas SEM valor numérico associado no mesmo texto. Exemplos e o parâmetro que cada um implica:
+- "hipotenso", "hipotensão", "hipertenso", "hipertensão" → PA sistólica (chaveNews2: "pas")
+- "taquicárdico", "taquicardia", "bradicárdico", "bradicardia" → Frequência cardíaca (chaveNews2: "fc")
+- "febril", "febre", "subfebril", "afebril" → Temperatura (chaveNews2: "temp")
+- "taquipneico", "taquipneia", "bradipneico" → Frequência respiratória (chaveNews2: "fr")
+- "dispneico", "dispneia", "taquidispneico" → Frequência respiratória (chaveNews2: "fr")
+- "dessaturando", "dessaturação", "saturando mal", "hipoxêmico" → SpO₂ (chaveNews2: "spo2")
+- "confuso", "desorientado", "agitado", "sonolento", "rebaixado" → Nível de consciência (chaveNews2: "consc")
+Inclua o termo no campo "termosQualitativos" APENAS SE não houver valor numérico explícito para o mesmo parâmetro nos dados daquele paciente. Se o parâmetro já tiver número, omita.
+
 REGRAS OBRIGATÓRIAS:
-1. Se não houver dado explícito suficiente para um parâmetro, NÃO o inclua — nunca estime ou arredonde.
-2. Cite o horário [HH:MM] de cada valor usado.
+1. Se não houver dado explícito suficiente para um parâmetro numérico, NÃO o inclua em "valores" — nunca estime ou arredonde.
+2. Cite o horário [HH:MM] de cada valor numérico usado no campo "fontes".
 3. Responda APENAS com JSON válido, sem markdown, sem texto antes ou depois, exatamente neste formato:
-[{"leito":"Leito X","valores":{"fr":N,"spo2":N,"o2":N,"pas":N,"fc":N,"consc":N,"temp":N},"qsofaPontos":N,"fontes":"..."}]
-Omita do objeto "valores" qualquer parâmetro sem dado explícito (não inclua a chave). O cálculo da pontuação final (NEWS2/qSOFA) é feito por código a partir destes valores — você só extrai, nunca soma ou classifica risco.`;
+[{"leito":"Leito X","valores":{"fr":N,"spo2":N,"o2":N,"pas":N,"fc":N,"consc":N,"temp":N},"qsofaPontos":N,"fontes":"...","termosQualitativos":[{"termo":"hipotenso","parametro":"PA sistólica (mmHg)","chaveNews2":"pas"}]}]
+Omita do objeto "valores" qualquer parâmetro sem dado explícito. Omita "termosQualitativos" se não houver nenhum termo qualitativo detectado. O cálculo da pontuação final (NEWS2/qSOFA) é feito por código a partir destes valores — você só extrai, nunca soma ou classifica risco.`;
