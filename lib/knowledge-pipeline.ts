@@ -1,10 +1,10 @@
 /**
- * Pipeline de auditoria da Biblioteca Técnica — Etapas 3–8.
- * Etapas 1 (Pesquisador) e 2 (Redator) são responsabilidade humana:
- * o usuário preenche as fontes e o conteúdo antes de executar o pipeline.
+ * Pipeline de auditoria da Biblioteca Técnica — Etapas 1–8.
  *
- * Execução é SEQUENCIAL: qualquer reprovação nas Etapas 3–6 interrompe
- * o pipeline imediatamente (Constitution §PIPELINE OBRIGATÓRIO).
+ * Etapas 1 (Pesquisador) e 2 (Redator) podem ser executadas por IA via
+ * processar.ts, ou manualmente pelo usuário no formulário da Biblioteca.
+ * Etapas 3–6 são auditores binários: qualquer reprovação interrompe o
+ * pipeline imediatamente (Constitution §PIPELINE OBRIGATÓRIO).
  *
  * Importar apenas em pages/api/** (usa GROQ_API_KEY).
  */
@@ -16,7 +16,154 @@ import type {
   ResultadoDominio,
   ResultadoPipeline,
   ClassificacaoPipeline,
+  ReferenciaOficial,
 } from './knowledge-spec';
+
+// ─── Tipos de retorno das Etapas 1 e 2 ────────────────────────────────────
+
+export interface ResultadoPesquisador {
+  referencias: ReferenciaOficial[];
+  observacao: string;
+  categoria: string;
+  subcategoria: string;
+}
+
+export type RascunhoRedator = Pick<KnowledgeSpec,
+  | 'titulo' | 'resumo' | 'objetivo' | 'escopo'
+  | 'indicacoes' | 'contraindicacoes' | 'materiais' | 'preparacao'
+  | 'procedimento' | 'cuidados' | 'complicacoes'
+  | 'prevencao_eventos_adversos' | 'pontos_criticos'
+  | 'observacoes' | 'limitacoes' | 'variacoes_institucionais'
+>;
+
+// ─── Etapa 1: Pesquisador ──────────────────────────────────────────────────
+
+const PROMPT_PESQUISADOR = `Você é o Pesquisador da Biblioteca Técnica KRONIA Nurse.
+
+Sua tarefa: identificar fontes oficiais brasileiras e internacionais reconhecidas para o tema de enfermagem solicitado. Use APENAS fontes que você conhece com segurança a partir do seu treinamento — não invente referências.
+
+FONTES ACEITAS (em ordem de preferência):
+- ANVISA: Resoluções RDC, Notas Técnicas, Instruções Normativas
+- COFEN: Resoluções, Pareceres normativos
+- COREN estaduais: Pareceres técnicos
+- Ministério da Saúde: Portarias, Protocolos Clínicos, Cadernos de Atenção Básica
+- CDC (Centers for Disease Control and Prevention): Guidelines
+- OMS/WHO: Guidelines e Notas Técnicas
+- Sociedades de especialidade reconhecidas (SOBEP, ABEn, AMIB, SBN, etc.)
+
+FONTES NÃO ACEITAS: blog, fórum, Wikipedia, site pessoal, protocolo interno de hospital não publicado.
+
+Para CADA fonte que você conhecer com certeza, informe:
+- instituicao: nome da instituição emissora (ex: "ANVISA", "COFEN", "Ministério da Saúde")
+- documento: título completo do documento
+- numero: número da resolução/portaria/nota (OMITIR se não tiver certeza)
+- ano: ano de publicação/última revisão conhecida (OMITIR se não souber)
+- trecho: trecho relevante da fonte que embasa o conteúdo técnico para este tema. Se não souber o trecho exato, descreva o que a fonte aborda sobre o tema.
+- data_atualizacao: data da última atualização conhecida (OMITIR se não souber)
+
+INSTRUÇÕES CRÍTICAS:
+- Máximo de 6 fontes, as mais relevantes e específicas para o tema
+- Se o número exato de uma resolução for incerto, omita o campo "numero"
+- Se não encontrar fontes oficiais suficientes (menos de 2), retorne array vazio e explique em "observacao"
+- Classifique o tema na categoria e subcategoria mais adequadas da lista fornecida
+
+Responda SOMENTE com JSON válido, sem markdown, sem texto antes ou depois:
+{"categoria":"string da lista fornecida","subcategoria":"string ou vazio","referencias":[{"instituicao":"...","documento":"...","trecho":"..."}],"observacao":"vazio se fontes encontradas, ou descrição do problema"}`;
+
+export async function pesquisarFontes(tema: string, dominios: readonly string[]): Promise<ResultadoPesquisador> {
+  const listaDominios = dominios.join(', ');
+  const resposta = await chamarGroq(
+    PROMPT_PESQUISADOR,
+    `Tema: "${tema}"\n\nLista de categorias disponíveis: ${listaDominios}`
+  );
+  const resultado = extrairJson<{
+    categoria?: string;
+    subcategoria?: string;
+    referencias?: ReferenciaOficial[];
+    observacao?: string;
+  }>(resposta);
+
+  return {
+    referencias: Array.isArray(resultado.referencias) ? resultado.referencias : [],
+    observacao: resultado.observacao ?? '',
+    categoria: resultado.categoria ?? dominios[0],
+    subcategoria: resultado.subcategoria ?? '',
+  };
+}
+
+// ─── Etapa 2: Redator ─────────────────────────────────────────────────────
+
+const PROMPT_REDATOR = `Você é o Redator da Biblioteca Técnica KRONIA Nurse.
+
+Sua tarefa: redigir o conteúdo técnico de enfermagem para o tema indicado, usando EXCLUSIVAMENTE as referências fornecidas.
+
+REGRAS OBRIGATÓRIAS:
+1. NUNCA acrescente informação que não esteja nas referências fornecidas
+2. NUNCA copie texto das fontes — parafraseie sempre com suas próprias palavras técnicas
+3. Se uma seção não tiver embasamento nas referências, deixe vazia ("") — nunca invente
+4. O conteúdo é REFERÊNCIA TÉCNICA GERAL — não dirija recomendações a um paciente específico
+5. Use linguagem técnica de enfermagem clara, objetiva e no presente
+6. O procedimento deve ser descrito como passo a passo numerado
+
+Responda SOMENTE com JSON válido, sem markdown, sem texto antes ou depois:
+{
+  "titulo": "título formal do procedimento/tema",
+  "resumo": "1-2 frases descrevendo o procedimento e sua finalidade",
+  "objetivo": "o que o procedimento visa alcançar clinicamente",
+  "escopo": "a quem se aplica e em que contexto clínico",
+  "indicacoes": "situações que justificam a realização",
+  "contraindicacoes": "situações em que não deve ser realizado",
+  "materiais": "lista de todos os materiais necessários",
+  "preparacao": "higiene das mãos, paramentação, preparo do paciente e do ambiente",
+  "procedimento": "passo a passo técnico numerado",
+  "cuidados": "cuidados de enfermagem durante e após o procedimento",
+  "complicacoes": "complicações descritas na literatura para este procedimento",
+  "prevencao_eventos_adversos": "medidas preventivas específicas para eventos adversos",
+  "pontos_criticos": "etapas que exigem atenção redobrada pela equipe",
+  "observacoes": "informações adicionais relevantes não cobertas nas seções anteriores",
+  "limitacoes": "o que esta especificação NÃO cobre ou onde diverge de outros contextos",
+  "variacoes_institucionais": "variações de protocolo conhecidas entre diferentes serviços ou regiões"
+}`;
+
+export async function redigirConteudo(
+  tema: string,
+  referencias: ReferenciaOficial[],
+): Promise<RascunhoRedator> {
+  const refsFormatadas = referencias.length > 0
+    ? referencias.map((r, i) => {
+        const partes = [`${i + 1}. ${r.instituicao} — ${r.documento}`];
+        if (r.numero) partes.push(`Nº ${r.numero}`);
+        if (r.ano) partes.push(`(${r.ano})`);
+        if (r.trecho) partes.push(`\n   Conteúdo relevante: "${r.trecho}"`);
+        return partes.join(' ');
+      }).join('\n')
+    : 'Nenhuma referência oficial encontrada para este tema.';
+
+  const resposta = await chamarGroq(
+    PROMPT_REDATOR,
+    `Tema: "${tema}"\n\nReferências disponíveis:\n${refsFormatadas}`
+  );
+
+  const resultado = extrairJson<RascunhoRedator>(resposta);
+  return {
+    titulo:                     resultado.titulo                     ?? tema,
+    resumo:                     resultado.resumo                     ?? '',
+    objetivo:                   resultado.objetivo                   ?? '',
+    escopo:                     resultado.escopo                     ?? '',
+    indicacoes:                 resultado.indicacoes                 ?? '',
+    contraindicacoes:           resultado.contraindicacoes           ?? '',
+    materiais:                  resultado.materiais                  ?? '',
+    preparacao:                 resultado.preparacao                 ?? '',
+    procedimento:               resultado.procedimento               ?? '',
+    cuidados:                   resultado.cuidados                   ?? '',
+    complicacoes:               resultado.complicacoes               ?? '',
+    prevencao_eventos_adversos: resultado.prevencao_eventos_adversos ?? '',
+    pontos_criticos:            resultado.pontos_criticos            ?? '',
+    observacoes:                resultado.observacoes                ?? '',
+    limitacoes:                 resultado.limitacoes                 ?? '',
+    variacoes_institucionais:   resultado.variacoes_institucionais   ?? '',
+  };
+}
 
 // ─── Montagem do contexto para os auditores ────────────────────────────────
 

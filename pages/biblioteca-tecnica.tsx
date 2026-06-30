@@ -69,7 +69,7 @@ const FORM_VAZIO: Omit<KnowledgeSpec, 'id' | 'status' | 'criado_por' | 'created_
 
 type FormState = typeof FORM_VAZIO;
 
-type Visao = 'lista' | 'form' | 'detalhe';
+type Visao = 'lista' | 'form' | 'detalhe' | 'aprovacao' | 'processar';
 
 // ─── Componente principal ──────────────────────────────────────────────────
 
@@ -90,6 +90,35 @@ export default function BibliotecaTecnica() {
   const [reprovando, setReprovando] = useState(false);
   const [refForm, setRefForm] = useState<ReferenciaOficial>({ instituicao: '', documento: '' });
 
+  // ── Estado da tela de aprovação em lote ──────────────────────────────────
+  const [specsAprovacao, setSpecsAprovacao] = useState<KnowledgeSpec[]>([]);
+  const [carregandoAprovacao, setCarregandoAprovacao] = useState(false);
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  const [aprovandoLote, setAprovandoLote] = useState(false);
+  const [logLote, setLogLote] = useState<string[]>([]);
+
+  // ── Estado do processador IA ─────────────────────────────────────────────
+  const [temasInput, setTemasInput] = useState('sonda vesical de demora\noxigenoterapia por cateter nasal\ncoleta de hemocultura');
+  const [processando, setProcessando] = useState(false);
+  const [resultadoProcessar, setResultadoProcessar] = useState<null | { processados: { tema: string; spec_id: string | null; status: string; classificacao: string | null; score: number | null; erro?: string }[]; total: number; sucessos: number; erros: number }>(null);
+
+  const carregarAprovacao = useCallback(async () => {
+    setCarregandoAprovacao(true);
+    setSelecionados(new Set());
+    try {
+      const data = await apiFetch<{ specs: KnowledgeSpecSummary[] }>('/api/knowledge-spec/listar?status=aguardando_aprovacao');
+      // Carregar specs completas para exibição detalhada
+      const completas = await Promise.all(
+        data.specs.map((s) => apiFetch<{ spec: KnowledgeSpec }>(`/api/knowledge-spec/obter?id=${s.id}`).then((d) => d.spec).catch(() => null))
+      );
+      setSpecsAprovacao(completas.filter(Boolean) as KnowledgeSpec[]);
+    } catch {
+      setSpecsAprovacao([]);
+    } finally {
+      setCarregandoAprovacao(false);
+    }
+  }, []);
+
   const carregarLista = useCallback(async () => {
     setCarregandoLista(true);
     try {
@@ -103,6 +132,7 @@ export default function BibliotecaTecnica() {
   }, [filtroStatus]);
 
   useEffect(() => { carregarLista(); }, [carregarLista]);
+  useEffect(() => { if (visao === 'aprovacao') carregarAprovacao(); }, [visao, carregarAprovacao]);
 
   function set<K extends keyof FormState>(campo: K, valor: FormState[K]) {
     setForm((f) => ({ ...f, [campo]: valor }));
@@ -227,6 +257,47 @@ export default function BibliotecaTecnica() {
     }
   }
 
+  async function aprovarEmLote() {
+    if (selecionados.size === 0) return;
+    if (!confirm(`Aprovar ${selecionados.size} especificação(ões) selecionada(s)? Elas serão publicadas na Base de Conhecimento do KRONOS.`)) return;
+    setAprovandoLote(true);
+    setLogLote([]);
+    const ids = Array.from(selecionados);
+    const novoLog: string[] = [];
+    for (const id of ids) {
+      const spec = specsAprovacao.find((s) => s.id === id);
+      try {
+        await apiFetch('/api/knowledge-spec/aprovar', { method: 'POST', body: JSON.stringify({ id }) });
+        novoLog.push(`✓ ${spec?.titulo ?? id} — aprovada`);
+      } catch (err) {
+        novoLog.push(`✗ ${spec?.titulo ?? id} — ${err instanceof Error ? err.message : 'erro'}`);
+      }
+      setLogLote([...novoLog]);
+    }
+    await carregarAprovacao();
+    await carregarLista();
+    setAprovandoLote(false);
+  }
+
+  async function executarProcessar() {
+    const temas = temasInput.split('\n').map((t) => t.trim()).filter(Boolean);
+    if (temas.length === 0) { alert('Informe ao menos um tema.'); return; }
+    if (!confirm(`Executar o pipeline completo (Etapas 1–8) para ${temas.length} tema(s)? Isso consome chamadas de IA e pode levar alguns minutos.`)) return;
+    setProcessando(true);
+    setResultadoProcessar(null);
+    try {
+      const data = await apiFetch<{ processados: { tema: string; spec_id: string | null; status: string; classificacao: string | null; score: number | null; erro?: string }[]; total: number; sucessos: number; erros: number }>(
+        '/api/kronos/biblioteca/processar', { method: 'POST', body: JSON.stringify({ temas }) }
+      );
+      setResultadoProcessar(data);
+      await carregarLista();
+    } catch (err) {
+      alert(`Erro: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setProcessando(false);
+    }
+  }
+
   function adicionarReferencia() {
     if (!refForm.instituicao.trim() || !refForm.documento.trim()) { alert('Instituição e documento são obrigatórios.'); return; }
     set('referencias_oficiais', [...form.referencias_oficiais, { ...refForm }]);
@@ -249,16 +320,24 @@ export default function BibliotecaTecnica() {
             <h1 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>Biblioteca Técnica</h1>
             <p style={{ margin: 0, fontSize: '0.72rem', color: '#718096' }}>Pipeline de Knowledge Specifications — {nomeUsuario}</p>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {visao !== 'lista' && (
               <button onClick={() => setVisao('lista')} style={btnSecStyle}>
                 ← Lista
               </button>
             )}
             {visao === 'lista' && (
-              <button onClick={novaSpec} style={btnPrimStyle}>
-                + Nova Spec
-              </button>
+              <>
+                <button onClick={() => setVisao('processar')} style={btnSecStyle}>
+                  ⚡ Processar Temas (IA)
+                </button>
+                <button onClick={() => setVisao('aprovacao')} style={{ ...btnSecStyle, borderColor: '#F6AD55', color: '#744210' }}>
+                  ✅ Tela de Aprovação
+                </button>
+                <button onClick={novaSpec} style={btnPrimStyle}>
+                  + Nova Spec
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -305,6 +384,43 @@ export default function BibliotecaTecnica() {
               onExecutarPipeline={executarPipelineAction}
               onAprovar={aprovar}
               onReprovar={reprovar}
+            />
+          )}
+
+          {/* ── VISTA: TELA DE APROVAÇÃO ── */}
+          {visao === 'aprovacao' && (
+            <AprovacaoView
+              specs={specsAprovacao}
+              carregando={carregandoAprovacao}
+              selecionados={selecionados}
+              onToggle={(id) => setSelecionados((prev) => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; })}
+              onToggleTodosVerdes={() => {
+                const verdes = specsAprovacao.filter((s) => s.pipeline_classificacao === 'verde').map((s) => s.id);
+                const todosSelecionados = verdes.every((id) => selecionados.has(id));
+                setSelecionados((prev) => {
+                  const s = new Set(prev);
+                  if (todosSelecionados) { verdes.forEach((id) => s.delete(id)); }
+                  else { verdes.forEach((id) => s.add(id)); }
+                  return s;
+                });
+              }}
+              onAprovarLote={aprovarEmLote}
+              aprovandoLote={aprovandoLote}
+              logLote={logLote}
+              onAbrirDetalhe={(id) => { abrirDetalhe(id); setVisao('detalhe'); }}
+              onRecarregar={carregarAprovacao}
+            />
+          )}
+
+          {/* ── VISTA: PROCESSADOR IA ── */}
+          {visao === 'processar' && (
+            <ProcessarView
+              temasInput={temasInput}
+              onTemasChange={setTemasInput}
+              onProcessar={executarProcessar}
+              processando={processando}
+              resultado={resultadoProcessar}
+              onVerAprovacao={() => setVisao('aprovacao')}
             />
           )}
         </div>
@@ -769,6 +885,311 @@ function SpecConteudoView({ spec }: { spec: KnowledgeSpec }) {
         </div>
       ))}
     </SecaoDetalhe>
+  );
+}
+
+// ─── Tela de Aprovação ────────────────────────────────────────────────────────
+
+function AprovacaoView({
+  specs, carregando, selecionados, onToggle, onToggleTodosVerdes,
+  onAprovarLote, aprovandoLote, logLote, onAbrirDetalhe, onRecarregar,
+}: {
+  specs: KnowledgeSpec[];
+  carregando: boolean;
+  selecionados: Set<string>;
+  onToggle: (id: string) => void;
+  onToggleTodosVerdes: () => void;
+  onAprovarLote: () => void;
+  aprovandoLote: boolean;
+  logLote: string[];
+  onAbrirDetalhe: (id: string) => void;
+  onRecarregar: () => void;
+}) {
+  const verdes   = specs.filter((s) => s.pipeline_classificacao === 'verde');
+  const amarelos = specs.filter((s) => s.pipeline_classificacao === 'amarelo');
+  const vermelhos = specs.filter((s) => s.pipeline_classificacao === 'vermelho');
+
+  const todosVerdesSelecionados = verdes.length > 0 && verdes.every((s) => selecionados.has(s.id));
+
+  if (carregando) return <p style={{ fontSize: '0.85rem', color: '#718096', padding: '40px 0', textAlign: 'center' }}>Carregando specs aguardando aprovação...</p>;
+
+  if (specs.length === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: '60px 0', color: '#718096' }}>
+        <p style={{ fontSize: '1.1rem', marginBottom: 8 }}>Nenhum item aguardando aprovação.</p>
+        <p style={{ fontSize: '0.82rem' }}>Execute o pipeline em novos temas para gerar conteúdo para aprovação.</p>
+        <button onClick={onRecarregar} style={{ ...btnSecStyle, marginTop: 16 }}>↻ Recarregar</button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Cabeçalho da tela */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 8 }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>Tela de Aprovação</h2>
+          <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#718096' }}>
+            {specs.length} item(ns) aguardando decisão humana · 🟢 {verdes.length} · 🟡 {amarelos.length} · 🔴 {vermelhos.length}
+          </p>
+        </div>
+        <button onClick={onRecarregar} disabled={carregando} style={btnSecStyle}>↻ Recarregar</button>
+      </div>
+
+      {/* Seção Verde */}
+      {verdes.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
+            <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: '#276749' }}>🟢 Aprovação Rápida ({verdes.length})</h3>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: '#4A5568', cursor: 'pointer' }}>
+              <input type="checkbox" checked={todosVerdesSelecionados} onChange={onToggleTodosVerdes} />
+              Selecionar todos 🟢
+            </label>
+            {selecionados.size > 0 && (
+              <button
+                onClick={onAprovarLote}
+                disabled={aprovandoLote}
+                style={{ background: '#276749', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 16px', fontWeight: 700, fontSize: '0.82rem', cursor: aprovandoLote ? 'not-allowed' : 'pointer', opacity: aprovandoLote ? 0.7 : 1 }}
+              >
+                {aprovandoLote ? `Aprovando...` : `✓ Aprovar selecionados (${selecionados.size})`}
+              </button>
+            )}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {verdes.map((s) => (
+              <AprovacaoCard
+                key={s.id}
+                spec={s}
+                selecionado={selecionados.has(s.id)}
+                onToggle={() => onToggle(s.id)}
+                onAbrir={() => onAbrirDetalhe(s.id)}
+                showCheckbox
+              />
+            ))}
+          </div>
+          {logLote.length > 0 && (
+            <div style={{ marginTop: 10, padding: '10px 14px', background: '#F7FAFC', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: '0.78rem' }}>
+              {logLote.map((l, i) => <div key={i} style={{ color: l.startsWith('✓') ? '#276749' : '#C53030', padding: '2px 0' }}>{l}</div>)}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Seção Amarelo */}
+      {amarelos.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <h3 style={{ margin: '0 0 10px', fontSize: '0.9rem', fontWeight: 700, color: '#744210' }}>🟡 Revisão Necessária ({amarelos.length})</h3>
+          <p style={{ fontSize: '0.78rem', color: '#744210', background: '#FFFBEB', padding: '8px 12px', borderRadius: 6, marginBottom: 10 }}>
+            Todas as auditorias aprovaram, mas há trechos que exigem revisão pontual antes da aprovação. Abra cada item para revisar.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {amarelos.map((s) => (
+              <AprovacaoCard
+                key={s.id}
+                spec={s}
+                selecionado={false}
+                onToggle={() => {}}
+                onAbrir={() => onAbrirDetalhe(s.id)}
+                showCheckbox={false}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Seção Vermelho */}
+      {vermelhos.length > 0 && (
+        <div>
+          <h3 style={{ margin: '0 0 10px', fontSize: '0.9rem', fontWeight: 700, color: '#C53030' }}>🔴 Precisa Revisão Completa ({vermelhos.length})</h3>
+          <p style={{ fontSize: '0.78rem', color: '#C53030', background: '#FFF5F5', padding: '8px 12px', borderRadius: 6, marginBottom: 10 }}>
+            Estas specs passaram pelo pipeline mas foram classificadas como vermelho. Abra cada uma para ver o motivo e corrija antes de reenviar.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {vermelhos.map((s) => (
+              <AprovacaoCard
+                key={s.id}
+                spec={s}
+                selecionado={false}
+                onToggle={() => {}}
+                onAbrir={() => onAbrirDetalhe(s.id)}
+                showCheckbox={false}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AprovacaoCard({
+  spec, selecionado, onToggle, onAbrir, showCheckbox,
+}: {
+  spec: KnowledgeSpec;
+  selecionado: boolean;
+  onToggle: () => void;
+  onAbrir: () => void;
+  showCheckbox: boolean;
+}) {
+  const cls = spec.pipeline_classificacao ? COR_CLASSIFICACAO[spec.pipeline_classificacao] : null;
+  const pipeline = spec.pipeline_resultado;
+  const dominio = pipeline?.auditor_dominio;
+
+  // Trechos de atenção para amarelo
+  const trechosAtencao: string[] = [];
+  if (dominio) {
+    trechosAtencao.push(...(dominio.observacoes ?? []));
+    trechosAtencao.push(...(dominio.divergencias ?? []));
+  }
+  if (pipeline?.resumo_consolidacao) trechosAtencao.push(pipeline.resumo_consolidacao);
+
+  return (
+    <div style={{
+      background: '#fff',
+      border: `1px solid ${cls?.bg ? (spec.pipeline_classificacao === 'verde' ? '#9AE6B4' : spec.pipeline_classificacao === 'amarelo' ? '#F6AD55' : '#FC8181') : '#E2E8F0'}`,
+      borderRadius: 10,
+      padding: '12px 16px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+        {showCheckbox && (
+          <input
+            type="checkbox"
+            checked={selecionado}
+            onChange={onToggle}
+            style={{ marginTop: 3, flexShrink: 0, width: 16, height: 16, cursor: 'pointer' }}
+          />
+        )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+            <div>
+              <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9rem' }}>{spec.titulo}</p>
+              <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: '#718096' }}>
+                {spec.categoria}{spec.subcategoria ? ` / ${spec.subcategoria}` : ''}
+                {pipeline && ` · Score: ${pipeline.score}%`}
+                {' · '}{new Date(spec.updated_at).toLocaleDateString('pt-BR')}
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+              {cls && (
+                <span style={{ fontSize: '0.72rem', padding: '2px 8px', borderRadius: 12, background: cls.bg, color: cls.cor }}>
+                  {cls.emoji} {CLASSIFICACAO_LABEL[spec.pipeline_classificacao!]}
+                </span>
+              )}
+              <button onClick={onAbrir} style={{ ...btnSecStyle, padding: '4px 12px', fontSize: '0.78rem' }}>Abrir →</button>
+            </div>
+          </div>
+
+          {/* Trechos de atenção (amarelo) */}
+          {spec.pipeline_classificacao === 'amarelo' && trechosAtencao.length > 0 && (
+            <div style={{ marginTop: 8, padding: '8px 10px', background: '#FFFBEB', border: '1px solid #F6AD55', borderRadius: 6, fontSize: '0.78rem', color: '#744210' }}>
+              <strong>Pontos de atenção:</strong>
+              <ul style={{ margin: '4px 0 0', paddingLeft: 16 }}>
+                {trechosAtencao.slice(0, 4).map((t, i) => <li key={i}>{t}</li>)}
+              </ul>
+            </div>
+          )}
+
+          {/* Motivo de reprovação (vermelho) */}
+          {spec.pipeline_classificacao === 'vermelho' && pipeline?.parado_em && (
+            <div style={{ marginTop: 8, padding: '6px 10px', background: '#FFF5F5', border: '1px solid #FC8181', borderRadius: 6, fontSize: '0.78rem', color: '#C53030' }}>
+              Pipeline interrompido na etapa: <strong>{pipeline.parado_em}</strong>. Abra para ver os itens reprovados.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Processador IA ───────────────────────────────────────────────────────────
+
+function ProcessarView({
+  temasInput, onTemasChange, onProcessar, processando, resultado, onVerAprovacao,
+}: {
+  temasInput: string;
+  onTemasChange: (v: string) => void;
+  onProcessar: () => void;
+  processando: boolean;
+  resultado: null | { processados: { tema: string; spec_id: string | null; status: string; classificacao: string | null; score: number | null; erro?: string }[]; total: number; sucessos: number; erros: number };
+  onVerAprovacao: () => void;
+}) {
+  const CLS_COLOR: Record<string, string> = { verde: '#276749', amarelo: '#744210', vermelho: '#C53030' };
+  const CLS_EMOJI: Record<string, string> = { verde: '🟢', amarelo: '🟡', vermelho: '🔴' };
+
+  return (
+    <div>
+      <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 12, padding: '20px', marginBottom: 16 }}>
+        <h2 style={{ margin: '0 0 8px', fontSize: '1rem', fontWeight: 700 }}>⚡ Processador IA — Pipeline Completo (Etapas 1–8)</h2>
+        <p style={{ margin: '0 0 16px', fontSize: '0.8rem', color: '#718096' }}>
+          Para cada tema: <strong>Etapa 1</strong> (Pesquisador — busca fontes oficiais) → <strong>Etapa 2</strong> (Redator — redige conteúdo) → <strong>Etapas 3–8</strong> (auditoria). Resultado vai para "Aguardando Aprovação".
+          Máx. 10 temas por execução. Pode levar 2–5 min para temas completos.
+        </p>
+        <div style={{ background: '#FFFBEB', border: '1px solid #F6AD55', borderRadius: 6, padding: '8px 12px', fontSize: '0.78rem', color: '#744210', marginBottom: 16 }}>
+          <strong>Nenhum conteúdo é publicado automaticamente.</strong> Todo conteúdo gerado aguarda aprovação humana explícita na Tela de Aprovação.
+        </div>
+
+        <label style={labelStyle}>Temas (um por linha):</label>
+        <textarea
+          value={temasInput}
+          onChange={(e) => onTemasChange(e.target.value)}
+          rows={6}
+          style={{ ...inputStyle, marginTop: 6, fontFamily: 'monospace', fontSize: '0.85rem', resize: 'vertical' }}
+          placeholder="sonda vesical de demora&#10;oxigenoterapia por cateter nasal&#10;coleta de hemocultura"
+          disabled={processando}
+        />
+
+        <button
+          onClick={onProcessar}
+          disabled={processando}
+          style={{ ...btnPrimStyle, marginTop: 12, padding: '11px 24px', fontSize: '0.9rem', opacity: processando ? 0.7 : 1, cursor: processando ? 'not-allowed' : 'pointer' }}
+        >
+          {processando ? '⏳ Processando... (aguarde, pode levar alguns minutos)' : '▶ Executar Pipeline Completo'}
+        </button>
+      </div>
+
+      {/* Resultado */}
+      {resultado && (
+        <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 12, padding: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700 }}>
+              Resultado: {resultado.sucessos} de {resultado.total} processado(s) com sucesso
+              {resultado.erros > 0 && ` · ${resultado.erros} erro(s)`}
+            </h3>
+            <button onClick={onVerAprovacao} style={{ ...btnPrimStyle, padding: '6px 14px', fontSize: '0.8rem' }}>
+              Ver Tela de Aprovação →
+            </button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {resultado.processados.map((r, i) => (
+              <div key={i} style={{
+                padding: '10px 14px', borderRadius: 8, border: '1px solid',
+                borderColor: r.erro ? '#FC8181' : (r.classificacao === 'verde' ? '#9AE6B4' : r.classificacao === 'amarelo' ? '#F6AD55' : '#FC8181'),
+                background: r.erro ? '#FFF5F5' : (r.classificacao === 'verde' ? '#F0FFF4' : r.classificacao === 'amarelo' ? '#FFFBEB' : '#FFF5F5'),
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                  <div>
+                    <p style={{ margin: 0, fontWeight: 600, fontSize: '0.85rem' }}>{r.tema}</p>
+                    {r.erro ? (
+                      <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: '#C53030' }}>Erro: {r.erro}</p>
+                    ) : (
+                      <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: '#718096' }}>
+                        ID: {r.spec_id} · Status: {r.status}
+                        {r.score !== null && ` · Score: ${r.score}%`}
+                      </p>
+                    )}
+                  </div>
+                  {r.classificacao && (
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: CLS_COLOR[r.classificacao] ?? '#4A5568', flexShrink: 0 }}>
+                      {CLS_EMOJI[r.classificacao] ?? ''} {r.classificacao}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
