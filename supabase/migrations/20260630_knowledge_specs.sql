@@ -149,3 +149,15 @@ DROP TRIGGER IF EXISTS trg_knowledge_specs_updated_at ON knowledge_specs;
 CREATE TRIGGER trg_knowledge_specs_updated_at
   BEFORE UPDATE ON knowledge_specs
   FOR EACH ROW EXECUTE FUNCTION update_knowledge_specs_updated_at();
+
+
+-- ============================================================
+-- ROW LEVEL SECURITY
+-- Apenas usuarios autenticados acessam as tabelas do pipeline.
+-- ============================================================
+
+ALTER TABLE knowledge_specs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "specs_auth_all" ON knowledge_specs FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE knowledge_spec_audit ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "spec_audit_auth_all" ON knowledge_spec_audit FOR ALL TO authenticated USING (true) WITH CHECK (true);

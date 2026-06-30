@@ -354,5 +354,17 @@ WHERE routine_schema = 'public'
   AND routine_name = 'buscar_conhecimento';
 
 -- ================================================================
+-- PARTE 7: ROW LEVEL SECURITY (RLS)
+-- Apenas usuarios autenticados acessam as tabelas do pipeline.
+-- ================================================================
+
+ALTER TABLE knowledge_specs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "specs_auth_all" ON knowledge_specs FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE knowledge_spec_audit ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "spec_audit_auth_all" ON knowledge_spec_audit FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+
+-- ================================================================
 -- FIM DO SCRIPT
 -- ================================================================
