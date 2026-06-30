@@ -79,20 +79,43 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ erro: 'Falha ao gerar embedding. Tente novamente.' });
   }
 
-  // Inserir no knowledge_base (fonte canônica do KRONOS)
+  // Inserir no knowledge_base (fonte canônica do KRONOS).
+  // conteudo = texto composto de todas as seções (usado para embedding e KRONOS).
+  // Colunas estruturadas = cada seção individualmente (requer ALTER TABLE — ver migration).
   const { data: kbEntry, error: errKb } = await supabase
     .from('knowledge_base')
     .insert({
-      titulo: specTyped.titulo,
-      resumo: specTyped.resumo ?? '',
-      categoria: specTyped.categoria,
-      subcategoria: specTyped.subcategoria ?? '',
+      // Campos originais
+      titulo:        specTyped.titulo,
+      resumo:        specTyped.resumo        ?? '',
+      categoria:     specTyped.categoria,
+      subcategoria:  specTyped.subcategoria  ?? '',
       especialidade: '',
       palavras_chave: '',
-      conteudo,
+      conteudo,    // texto composto de todas as seções — base do embedding
       referencias,
-      autor: usuario.nome,
+      autor:         usuario.nome,
       embedding,
+
+      // Seções estruturadas (adicionadas via ALTER TABLE — migration 20260630_alter)
+      objetivo:                   specTyped.objetivo                   ?? null,
+      escopo:                     specTyped.escopo                     ?? null,
+      indicacoes:                 specTyped.indicacoes                 ?? null,
+      contraindicacoes:           specTyped.contraindicacoes           ?? null,
+      materiais:                  specTyped.materiais                  ?? null,
+      preparacao:                 specTyped.preparacao                 ?? null,
+      procedimento:               specTyped.procedimento               ?? null,
+      cuidados:                   specTyped.cuidados                   ?? null,
+      complicacoes:               specTyped.complicacoes               ?? null,
+      prevencao_eventos_adversos: specTyped.prevencao_eventos_adversos ?? null,
+      pontos_criticos:            specTyped.pontos_criticos            ?? null,
+      observacoes:                specTyped.observacoes                ?? null,
+      limitacoes:                 specTyped.limitacoes                 ?? null,
+      variacoes_institucionais:   specTyped.variacoes_institucionais   ?? null,
+
+      // Rastreabilidade
+      spec_id: id,
+      hash:    spec.hash ?? null,
     })
     .select('id')
     .single();

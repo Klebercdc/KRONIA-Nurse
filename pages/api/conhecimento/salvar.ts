@@ -29,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (id) {
     const { data: atual } = await supabase
       .from('knowledge_base')
-      .select('titulo, resumo, conteudo, referencias, autor')
+      .select('titulo, resumo, conteudo, referencias, autor, objetivo, escopo, indicacoes, contraindicacoes, materiais, preparacao, procedimento, cuidados, complicacoes, prevencao_eventos_adversos, pontos_criticos, observacoes, limitacoes, variacoes_institucionais')
       .eq('id', id)
       .single();
 
@@ -48,6 +48,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       conteudo: atual.conteudo,
       referencias: atual.referencias,
       autor: atual.autor,
+      // Seções estruturadas (colunas adicionadas via ALTER TABLE — migration 20260630_alter)
+      objetivo:                   atual.objetivo                   ?? null,
+      escopo:                     atual.escopo                     ?? null,
+      indicacoes:                 atual.indicacoes                 ?? null,
+      contraindicacoes:           atual.contraindicacoes           ?? null,
+      materiais:                  atual.materiais                  ?? null,
+      preparacao:                 atual.preparacao                 ?? null,
+      procedimento:               atual.procedimento               ?? null,
+      cuidados:                   atual.cuidados                   ?? null,
+      complicacoes:               atual.complicacoes               ?? null,
+      prevencao_eventos_adversos: atual.prevencao_eventos_adversos ?? null,
+      pontos_criticos:            atual.pontos_criticos            ?? null,
+      observacoes:                atual.observacoes                ?? null,
+      limitacoes:                 atual.limitacoes                 ?? null,
+      variacoes_institucionais:   atual.variacoes_institucionais   ?? null,
     });
 
     const { error } = await supabase
