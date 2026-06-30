@@ -1,302 +1,335 @@
-import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
-import { useTurno, montarDadosRelatorioFinal } from '../components/useTurno';
-import { COMPLEXIDADE_LABEL, Complexidade } from '../lib/types';
+import { useTurno } from '../components/useTurno';
+import { useAuth } from '../contexts/AuthContext';
 
-interface TermoSemValor {
-  termo: string;
-  parametro: string;
-}
-
-interface ResultadoAlerta {
-  leito: string;
-  news2: { total: number; risco: string } | null;
-  qsofa: { total: number; risco: string } | null;
-  fontes: string;
-  termosSemValor: TermoSemValor[];
-}
-
-interface SugestaoComplexidade {
-  leito: string;
-  complexidade: Complexidade;
-  justificativa: string;
-}
-
-export default function Plantao() {
-  const { turno, carregado, atualizarComplexidade } = useTurno();
-  const [alertas, setAlertas] = useState<ResultadoAlerta[]>([]);
-  const [carregandoAlertas, setCarregandoAlertas] = useState(false);
-  const [erroAlertas, setErroAlertas] = useState('');
-  const [sugestoes, setSugestoes] = useState<SugestaoComplexidade[]>([]);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  async function verificarAlertas() {
-    setCarregandoAlertas(true);
-    setErroAlertas('');
-    try {
-      const dados = montarDadosRelatorioFinal(turno.pacientes, turno.eventos);
-      const [respAlertas, respSugestoes] = await Promise.all([
-        fetch('/api/plantao/calcular-alertas', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ dados }),
-        }),
-        fetch('/api/plantao/sugerir-complexidade', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ dados }),
-        }),
-      ]);
-      const jsonAlertas = await respAlertas.json();
-      if (!respAlertas.ok) throw new Error(jsonAlertas.erro);
-      setAlertas(jsonAlertas.resultado);
-      if (respSugestoes.ok) {
-        const jsonSugestoes = await respSugestoes.json();
-        setSugestoes(jsonSugestoes.sugestoes ?? []);
-      }
-    } catch (e: unknown) {
-      setErroAlertas(e instanceof Error ? e.message : 'Erro ao calcular alertas.');
-    } finally {
-      setCarregandoAlertas(false);
-    }
-  }
-
-  // Recalcula 2 s após cada alteração no total de registros (add ou delete).
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (!carregado || turno.eventos.length === 0) return;
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(verificarAlertas, 2000);
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [turno.eventos.length, carregado]); // verificarAlertas lê turno via closure — estável
+export default function Home() {
+  const { turno, carregado } = useTurno();
+  const { user } = useAuth();
+  const router = useRouter();
 
   if (!carregado) return <Layout><div className="estado-vazio">Carregando...</div></Layout>;
 
-  const { pacientes, eventos } = turno;
-  const totalEventos = eventos.length;
-  const ultimosEventos = [...eventos].sort((a, b) => b.ts - a.ts).slice(0, 5);
+  const nome = user?.user_metadata?.nome || user?.email?.split('@')[0] || 'Enfermeiro(a)';
+  const primeiroNome = nome.split(' ')[0];
 
-  const contagemComplexidade = Object.entries(COMPLEXIDADE_LABEL).reduce<Record<string, number>>(
-    (acc, [chave]) => {
-      acc[chave] = pacientes.filter((p) => p.complexidade === chave).length;
-      return acc;
-    },
-    {}
-  );
+  const hora = new Date().getHours();
+  const saudacao = hora < 12 ? 'BOM DIA' : hora < 18 ? 'BOA TARDE' : 'BOA NOITE';
 
-  // Suggestions where AI disagrees with current classification — only those need nurse action.
-  const sugestoesAcionar = sugestoes.filter((s) => {
-    const p = pacientes.find((x) => x.leito.toLowerCase() === s.leito.toLowerCase());
-    return p && p.complexidade !== s.complexidade;
-  });
+  const ultimosEventos = [...turno.eventos].sort((a, b) => b.ts - a.ts).slice(0, 5);
 
   return (
     <Layout>
-      <div className="tela-header">
-        <h1 className="tela-titulo">Plantão</h1>
-        <span style={{ fontSize: '0.8rem', color: 'var(--cinza-400)' }}>
-          {pacientes.length} paciente{pacientes.length !== 1 ? 's' : ''}
-        </span>
+      {/* Header */}
+      <div style={{ padding: '18px 0 10px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div>
+          <p style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: '0.65rem',
+            color: 'var(--color-ink-faint)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            margin: '0 0 2px',
+          }}>
+            {saudacao}
+          </p>
+          <h1 style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '1.45rem',
+            fontWeight: 700,
+            color: 'var(--color-ink)',
+            margin: 0,
+            lineHeight: 1.15,
+          }}>
+            {primeiroNome}
+          </h1>
+        </div>
+        <button
+          onClick={() => router.push('/perfil')}
+          style={{
+            background: 'var(--color-clinical-tint)',
+            border: 'none',
+            borderRadius: '50%',
+            width: 40,
+            height: 40,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: 'var(--color-clinical)',
+            marginTop: 4,
+          }}
+          aria-label="Notificações"
+        >
+          <IconSino />
+        </button>
       </div>
 
-      {pacientes.length === 0 ? (
-        <div className="estado-vazio">
-          <p>Nenhum paciente registrado ainda.</p>
-          <p style={{ marginTop: 8, fontSize: '0.8rem' }}>Use o botão + para registrar o primeiro evento.</p>
+      {/* StatCards */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+        <div className="stat-card">
+          <span className="stat-card-label">Pacientes</span>
+          <span className="stat-card-value">{turno.pacientes.length}</span>
         </div>
-      ) : (
-        <>
-          {/* Contagem por complexidade */}
-          <div className="card">
-            <p className="card-titulo">Distribuição por complexidade</p>
-            {Object.entries(COMPLEXIDADE_LABEL).map(([chave, label]) => {
-              const n = contagemComplexidade[chave];
-              if (!n) return null;
-              return (
-                <div key={chave} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0' }}>
-                  <span className={`badge badge-${chave}`}>{label}</span>
-                  <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{n}</span>
-                </div>
-              );
-            })}
+        <div className="stat-card">
+          <span className="stat-card-label">Registros</span>
+          <span className="stat-card-value">{turno.eventos.length}</span>
+        </div>
+      </div>
+
+      {/* Quick actions */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+        <button
+          className="btn btn-primario"
+          style={{ borderRadius: 14, padding: '14px 12px', fontSize: '0.88rem', justifyContent: 'center' }}
+          onClick={() => router.push('/registrar')}
+        >
+          <IconMais />
+          Novo registro
+        </button>
+        <button
+          className="btn btn-secundario"
+          style={{ borderRadius: 14, padding: '14px 12px', fontSize: '0.88rem', justifyContent: 'center' }}
+          onClick={() => router.push('/pacientes')}
+        >
+          <IconPacientes />
+          Pacientes
+        </button>
+      </div>
+
+      {/* Escalas quick access */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+        <button
+          onClick={() => router.push('/escalas')}
+          style={{
+            background: 'var(--color-surface)',
+            border: '1px solid var(--color-line)',
+            borderRadius: 14,
+            padding: '14px 12px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontSize: '0.88rem',
+            fontWeight: 600,
+            color: 'var(--color-ink)',
+          }}
+        >
+          <div style={{
+            width: 28,
+            height: 28,
+            borderRadius: 7,
+            background: 'var(--color-clinical-tint)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--color-clinical)',
+            flexShrink: 0,
+          }}>
+            <IconRelogio />
           </div>
-
-          {/* Sugestões de complexidade — só aparece quando a IA diverge da classificação atual */}
-          {sugestoesAcionar.length > 0 && (
-            <div className="card" style={{ borderLeft: '4px solid var(--azul)' }}>
-              <p className="card-titulo" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span>Sugestão de complexidade</span>
-                {carregandoAlertas && (
-                  <span className="spinner" style={{ width: 12, height: 12, borderTopColor: 'var(--azul)', borderColor: 'var(--cinza-200)' }} />
-                )}
-              </p>
-              {sugestoesAcionar.map((s, idx) => {
-                const paciente = pacientes.find((x) => x.leito.toLowerCase() === s.leito.toLowerCase());
-                if (!paciente) return null;
-                const isLast = idx === sugestoesAcionar.length - 1;
-                return (
-                  <div key={s.leito} style={{
-                    borderBottom: isLast ? 'none' : '1px solid var(--cinza-200)',
-                    paddingBottom: isLast ? 0 : 10,
-                    marginBottom: isLast ? 0 : 10,
-                  }}>
-                    <strong style={{ fontSize: '0.875rem' }}>{s.leito}</strong>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, marginBottom: 6 }}>
-                      <span className={`badge badge-${paciente.complexidade}`}>
-                        {COMPLEXIDADE_LABEL[paciente.complexidade]}
-                      </span>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--cinza-400)' }}>→</span>
-                      <span className={`badge badge-${s.complexidade}`}>
-                        {COMPLEXIDADE_LABEL[s.complexidade]}
-                      </span>
-                    </div>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--cinza-700)', marginBottom: 8 }}>
-                      {s.justificativa}
-                    </p>
-                    <button
-                      className="btn btn-primario"
-                      style={{ padding: '5px 14px', fontSize: '0.8rem' }}
-                      onClick={() => atualizarComplexidade(paciente.id, s.complexidade)}
-                    >
-                      Confirmar
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Últimos registros */}
-          {ultimosEventos.length > 0 && (
-            <div className="card">
-              <p className="card-titulo">Últimos registros ({totalEventos} total)</p>
-              {ultimosEventos.map((ev) => {
-                const p = pacientes.find((x) => x.id === ev.patientId);
-                return (
-                  <div key={ev.id} className="evento-linha">
-                    <span className="evento-hora">{ev.hora}</span>
-                    <div style={{ flex: 1 }}>
-                      {p && <span className="tipo-tag">{p.leito} · </span>}
-                      <span className="evento-texto">{ev.texto}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Alertas NEWS2/qSOFA — calculados automaticamente a cada novo registro */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--cinza-400)' }}>
-              Alertas NEWS2/qSOFA
-            </span>
-            {carregandoAlertas && (
-              <span
-                className="spinner"
-                style={{ width: 13, height: 13, borderTopColor: 'var(--azul)', borderColor: 'var(--cinza-200)' }}
-              />
-            )}
+          Escalas
+        </button>
+        <button
+          onClick={() => router.push('/kronos')}
+          style={{
+            background: 'var(--color-surface)',
+            border: '1px solid var(--color-line)',
+            borderRadius: 14,
+            padding: '14px 12px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontSize: '0.88rem',
+            fontWeight: 600,
+            color: 'var(--color-ink)',
+          }}
+        >
+          <div style={{
+            width: 28,
+            height: 28,
+            borderRadius: 7,
+            background: 'var(--color-clinical-tint)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--color-clinical)',
+            flexShrink: 0,
+          }}>
+            <IconKronos />
           </div>
+          KRONOS
+        </button>
+      </div>
 
-          {erroAlertas && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <p style={{ color: 'var(--vermelho)', fontSize: '0.85rem', flex: 1 }}>{erroAlertas}</p>
-              <button
-                className="btn btn-secundario"
-                style={{ padding: '4px 10px', fontSize: '0.78rem', flexShrink: 0 }}
-                onClick={verificarAlertas}
-              >
-                Tentar novamente
-              </button>
-            </div>
-          )}
+      {/* Encerrar turno card */}
+      <div
+        style={{
+          background: 'var(--color-clinical-tint)',
+          border: '1px solid rgba(11,79,138,.18)',
+          borderRadius: 14,
+          padding: '16px',
+          marginBottom: 16,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}
+      >
+        <div>
+          <p style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '0.95rem',
+            fontWeight: 700,
+            color: 'var(--color-ink)',
+            margin: '0 0 3px',
+          }}>
+            Encerrar turno
+          </p>
+          <p style={{ fontSize: '0.8rem', color: 'var(--color-ink-muted)', margin: 0 }}>
+            Gere a evolução SAE/COFEN do plantão
+          </p>
+        </div>
+        <button
+          className="btn btn-primario"
+          style={{ padding: '10px 16px', fontSize: '0.85rem', borderRadius: 10, whiteSpace: 'nowrap', flexShrink: 0 }}
+          onClick={() => router.push('/encerramento')}
+        >
+          Gerar evolução
+        </button>
+      </div>
 
-          {alertas.map((a) => {
-            const temScore = a.news2 !== null || a.qsofa !== null;
-            const temTermos = a.termosSemValor.length > 0;
-            const risco = a.news2?.risco ?? a.qsofa?.risco ?? 'Baixo';
-            const cls = risco === 'Alto' ? 'alerta-alto' : risco === 'Médio' ? 'alerta-medio' : 'alerta-baixo';
-            const badgeCls = risco === 'Alto' ? 'badge-risco-alto' : risco === 'Médio' ? 'badge-risco-medio' : 'badge-risco-baixo';
-
+      {/* Atividade recente */}
+      {ultimosEventos.length > 0 && (
+        <div className="card">
+          <p className="card-titulo">Atividade recente</p>
+          {ultimosEventos.map((ev) => {
+            const paciente = turno.pacientes.find((p) => p.id === ev.patientId);
             return (
-              <div key={a.leito}>
-                {/* Score NEWS2 / qSOFA — só exibe se houver dados numéricos suficientes */}
-                {temScore && (
-                  <div className={`alerta-card ${cls}`}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                      <strong style={{ fontSize: '0.9rem' }}>{a.leito}</strong>
-                      <span className={`badge ${badgeCls}`}>{risco}</span>
-                    </div>
-                    {a.news2 && (
-                      <p style={{ fontSize: '0.8rem' }}>NEWS2: {a.news2.total} pts</p>
-                    )}
-                    {a.qsofa && (
-                      <p style={{ fontSize: '0.8rem' }}>qSOFA: {a.qsofa.total} pts — {a.qsofa.risco}</p>
-                    )}
-                    {a.fontes && (
-                      <p style={{ fontSize: '0.72rem', color: 'var(--cinza-700)', marginTop: 4 }}>{a.fontes}</p>
-                    )}
-                  </div>
-                )}
-
-                {/* Termos qualitativos sem valor numérico — alerta separado, não pontua */}
-                {temTermos && (
-                  <div className="alerta-card" style={{
-                    background: '#FFFBEB',
-                    borderColor: '#D97706',
-                    borderLeft: '4px solid #D97706',
-                    marginBottom: 8,
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                      <span style={{ fontSize: '0.85rem' }}>⚠</span>
-                      <strong style={{ fontSize: '0.875rem', color: '#92400E' }}>
-                        {!temScore ? a.leito + ' — ' : ''}Termos sem valor numérico
-                      </strong>
-                    </div>
-
-                    {a.termosSemValor.map((t) => (
-                      <div key={t.termo} style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'baseline',
-                        padding: '4px 0',
-                        borderBottom: '1px solid #FDE68A',
-                      }}>
-                        <span style={{ fontSize: '0.82rem', color: '#78350F', fontWeight: 600 }}>
-                          &ldquo;{t.termo}&rdquo;
-                        </span>
-                        <span style={{ fontSize: '0.75rem', color: '#92400E' }}>
-                          → {t.parametro}
-                        </span>
-                      </div>
-                    ))}
-
-                    <p style={{
-                      fontSize: '0.72rem',
-                      color: '#92400E',
-                      marginTop: 8,
-                      lineHeight: 1.5,
-                      fontStyle: 'italic',
+              <div key={ev.id} className="evento-linha">
+                <span className="evento-hora">{ev.hora}</span>
+                <div style={{ flex: 1 }}>
+                  {paciente && (
+                    <span style={{
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      color: 'var(--color-clinical)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                      fontFamily: 'var(--font-mono)',
                     }}>
-                      Termo citado sem valor numérico — verificar manualmente e registrar o valor com o botão +.
-                    </p>
-                  </div>
-                )}
-
-                {/* Leito sem score E sem termos: dados insuficientes */}
-                {!temScore && !temTermos && (
-                  <div className="alerta-card alerta-baixo">
-                    <strong style={{ fontSize: '0.875rem' }}>{a.leito}</strong>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--cinza-700)', marginTop: 4 }}>
-                      Dados insuficientes para calcular NEWS2/qSOFA neste turno.
-                    </p>
-                  </div>
-                )}
+                      {paciente.leito} ·{' '}
+                    </span>
+                  )}
+                  <span className="evento-texto">{ev.texto}</span>
+                </div>
+                <span style={{
+                  background: 'var(--color-ok-tint)',
+                  color: 'var(--color-ok)',
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  padding: '2px 7px',
+                  borderRadius: 20,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.03em',
+                  flexShrink: 0,
+                }}>
+                  Registrado
+                </span>
               </div>
             );
           })}
-        </>
+        </div>
+      )}
+
+      {turno.pacientes.length === 0 && turno.eventos.length === 0 && (
+        <div style={{
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-line)',
+          borderRadius: 14,
+          padding: '32px 16px',
+          textAlign: 'center',
+        }}>
+          <div style={{
+            width: 48,
+            height: 48,
+            borderRadius: 14,
+            background: 'var(--color-clinical-tint)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 12px',
+            color: 'var(--color-clinical)',
+          }}>
+            <IconPlantao />
+          </div>
+          <p style={{ fontWeight: 700, color: 'var(--color-ink)', marginBottom: 4, fontSize: '0.95rem' }}>
+            Plantão iniciado
+          </p>
+          <p style={{ fontSize: '0.83rem', color: 'var(--color-ink-muted)', lineHeight: 1.5 }}>
+            Use o botão + para registrar o primeiro evento do turno
+          </p>
+        </div>
       )}
     </Layout>
+  );
+}
+
+function IconSino() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+  );
+}
+
+function IconMais() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+function IconPacientes() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
+function IconRelogio() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <polyline points="12 7 12 12 15 15" />
+    </svg>
+  );
+}
+
+function IconKronos() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+    </svg>
+  );
+}
+
+function IconPlantao() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <rect x="14" y="14" width="7" height="7" rx="1" />
+    </svg>
   );
 }
