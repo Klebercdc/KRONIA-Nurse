@@ -29,21 +29,22 @@ PASSO 1 — Branch e instalação
   (ou: git checkout claude/kronia-knowledge-system-lduov9)
 
 PASSO 2 — Verificar .env.local na raiz do projeto
-  Deve conter exatamente estas 6 variáveis:
+  Deve conter exatamente estas 6 variáveis (obter os valores reais com o
+  usuário — NUNCA commitar valores reais neste arquivo):
 
   NEXT_PUBLIC_SUPABASE_URL=https://uguxeoftfnljrxhwvdkj.supabase.co
-  NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVndXhlb2Z0Zm5sanJ4aHd2ZGtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4MTEwMjIsImV4cCI6MjA5NzM4NzAyMn0.LGqp_clFWcRBa01RDV3gTwgzcotg24y-wux9AKrlZX8
+  NEXT_PUBLIC_SUPABASE_ANON_KEY=<obter via MCP Supabase get_publishable_keys ou com o usuário>
   SUPABASE_URL=https://uguxeoftfnljrxhwvdkj.supabase.co
-  SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVndXhlb2Z0Zm5sanJ4aHd2ZGtqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTgxMTAyMiwiZXhwIjoyMDk3Mzg3MDIyfQ.ubiyoQsvc23CyO9iyV0hnKFdeEx0cY-jrReXpGKTeps
-  GROQ_API_KEY=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
-  COHERE_API_KEY=FjC8b6XvzMTzXHH07gtcnyS3kDdgdGeq8GM3G476
+  SUPABASE_SERVICE_ROLE_KEY=<obter com o usuário — NUNCA commitar>
+  GROQ_API_KEY=<obter com o usuário — NUNCA commitar>
+  COHERE_API_KEY=<obter com o usuário — NUNCA commitar>
 
   Se qualquer variável estiver ausente → PARAR e reportar quais faltam.
 
 PASSO 3 — Criar usuário de teste e obter TOKEN
 
-  SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVndXhlb2Z0Zm5sanJ4aHd2ZGtqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTgxMTAyMiwiZXhwIjoyMDk3Mzg3MDIyfQ.ubiyoQsvc23CyO9iyV0hnKFdeEx0cY-jrReXpGKTeps"
-  ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVndXhlb2Z0Zm5sanJ4aHd2ZGtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4MTEwMjIsImV4cCI6MjA5NzM4NzAyMn0.LGqp_clFWcRBa01RDV3gTwgzcotg24y-wux9AKrlZX8"
+  SUPABASE_SERVICE_ROLE_KEY="<preencher em memória/shell, nunca em arquivo commitado>"
+  ANON_KEY="<preencher em memória/shell, nunca em arquivo commitado>"
 
   # Criar usuário (ignorar erro se já existe)
   curl -s -X POST "https://uguxeoftfnljrxhwvdkj.supabase.co/auth/v1/admin/users" \
