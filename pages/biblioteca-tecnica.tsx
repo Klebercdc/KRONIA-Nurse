@@ -840,11 +840,21 @@ function PipelineResultadoView({ resultado, classificacao }: { resultado: Result
 
 function EstagioCard({ label, estagio }: { label: string; estagio: ResultadoEstagio | ResultadoDominio }) {
   const aprovado = estagio.aprovado;
+  const referenciasParaVerificar = 'referencias_para_verificar' in estagio ? estagio.referencias_para_verificar ?? [] : [];
+  const temVerificacaoPendente = referenciasParaVerificar.length > 0;
+
+  // Etapa 6 (Auditor de Atualização) nunca reprova — usa estilo âmbar quando
+  // há referências para verificar, nunca vermelho/"itens reprovados".
+  const cor = !aprovado ? '#FC8181' : temVerificacaoPendente ? '#F6AD55' : '#9AE6B4';
+  const bg = !aprovado ? '#FFF5F5' : temVerificacaoPendente ? '#FFFBEB' : '#F0FFF4';
+  const corTexto = !aprovado ? '#C53030' : temVerificacaoPendente ? '#744210' : '#276749';
+  const icone = !aprovado ? '✗' : temVerificacaoPendente ? '🟡' : '✓';
+
   return (
-    <div style={{ border: `1px solid ${aprovado ? '#9AE6B4' : '#FC8181'}`, borderRadius: 8, padding: '10px 14px', background: aprovado ? '#F0FFF4' : '#FFF5F5' }}>
+    <div style={{ border: `1px solid ${cor}`, borderRadius: 8, padding: '10px 14px', background: bg }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: '1rem' }}>{aprovado ? '✓' : '✗'}</span>
-        <span style={{ fontWeight: 600, fontSize: '0.82rem', color: aprovado ? '#276749' : '#C53030' }}>{label}</span>
+        <span style={{ fontSize: '1rem' }}>{icone}</span>
+        <span style={{ fontWeight: 600, fontSize: '0.82rem', color: corTexto }}>{label}</span>
       </div>
       {estagio.observacoes?.length > 0 && (
         <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: '0.78rem', color: '#4A5568' }}>
@@ -856,6 +866,16 @@ function EstagioCard({ label, estagio }: { label: string; estagio: ResultadoEsta
           <strong>Itens reprovados:</strong>
           <ul style={{ margin: '4px 0 0', paddingLeft: 16 }}>
             {estagio.itens_reprovados.map((item, i) => <li key={i}><em>"{item}"</em></li>)}
+          </ul>
+        </div>
+      )}
+      {temVerificacaoPendente && (
+        <div style={{ marginTop: 6, padding: '6px 8px', background: '#FEEBC8', borderRadius: 4, fontSize: '0.78rem', color: '#744210' }}>
+          <strong>Referências que necessitam verificação:</strong>
+          <ul style={{ margin: '4px 0 0', paddingLeft: 16 }}>
+            {referenciasParaVerificar.map((r, i) => (
+              <li key={i}><em>{r.referencia}</em> — {r.motivo}</li>
+            ))}
           </ul>
         </div>
       )}

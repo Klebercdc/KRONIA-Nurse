@@ -29,11 +29,19 @@ export interface ReferenciaOficial {
   data_atualizacao?: string;
 }
 
+/** Referência sinalizada pelo Auditor de Atualização para verificação humana pontual (nunca reprovação). */
+export interface ReferenciaParaVerificar {
+  referencia: string;
+  motivo: string;
+}
+
 /** Resultado de um auditor binário (Etapas 3–6). */
 export interface ResultadoEstagio {
   aprovado: boolean;
   observacoes: string[];
   itens_reprovados: string[];
+  /** Somente preenchido pelo Auditor de Atualização (Etapa 6) — nunca é motivo de reprovação. */
+  referencias_para_verificar?: ReferenciaParaVerificar[];
 }
 
 /** Resultado do Auditor de Domínio e Variabilidade (Etapa 7). */
