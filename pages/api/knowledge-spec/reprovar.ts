@@ -6,13 +6,14 @@
  */
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSupabase } from '../../../lib/supabase-client';
-import { getUsuarioAutenticado } from '../../../lib/auth-server';
+import { getUsuarioAutenticado, usuarioEhAdmin } from '../../../lib/auth-server';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ erro: 'Método não permitido.' });
 
   const usuario = await getUsuarioAutenticado(req);
   if (!usuario) return res.status(401).json({ erro: 'Não autenticado.' });
+  if (!(await usuarioEhAdmin(usuario.id))) return res.status(403).json({ erro: 'Acesso restrito a administradores.' });
 
   const { id, motivo } = req.body as { id?: string; motivo?: string };
   if (!id) return res.status(400).json({ erro: 'Campo "id" obrigatório.' });

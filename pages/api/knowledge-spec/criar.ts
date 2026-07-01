@@ -6,7 +6,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createHash } from 'crypto';
 import { getSupabase } from '../../../lib/supabase-client';
-import { getUsuarioAutenticado } from '../../../lib/auth-server';
+import { getUsuarioAutenticado, usuarioEhAdmin } from '../../../lib/auth-server';
 import type { KnowledgeSpec, ReferenciaOficial } from '../../../lib/knowledge-spec';
 
 function computarHash(spec: Partial<KnowledgeSpec>): string {
@@ -24,6 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const usuario = await getUsuarioAutenticado(req);
   if (!usuario) return res.status(401).json({ erro: 'Não autenticado.' });
+  if (!(await usuarioEhAdmin(usuario.id))) return res.status(403).json({ erro: 'Acesso restrito a administradores.' });
 
   const {
     titulo, categoria, subcategoria, resumo, objetivo, escopo,
