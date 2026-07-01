@@ -64,10 +64,9 @@ REGRAS PARA ESTA SESSÃO:
     nunca em arquivos rastreados pelo git.
   - Se o usuário colar uma chave no chat, use-a para criar/editar
     `.env.local` e não a reproduza depois em texto solto.
-  - Ao terminar os testes, se as chaves foram compartilhadas via
-    chat nesta ou em sessão anterior, recomende ao usuário rotacioná-las
-    (Supabase: Project Settings → API; Groq: console.groq.com;
-    Cohere: dashboard.cohere.com).
+  - As chaves atuais (Supabase service_role, Groq, Cohere) devem
+    ser reaproveitadas nesta sessão — o usuário optou por NÃO
+    rotacioná-las. Não sugerir rotação novamente, apenas reutilizar.
 
 
 ================================================================
