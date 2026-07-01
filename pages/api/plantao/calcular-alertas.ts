@@ -11,6 +11,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { chamarGroq, extrairJson } from '../../../lib/groq-client';
 import { PROMPT_ALERTAS } from '../../../lib/prompts';
 import { calcularNews2FromRaw, calcularQsofa, ChaveNews2, ResultadoEscala } from '../../../lib/scales';
+import { getUsuarioAutenticado } from '../../../lib/auth-server';
 
 interface TermoQualitativo {
   termo: string;
@@ -45,6 +46,9 @@ export interface TermoSemValor {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ erro: 'Método não permitido' });
+
+  const usuario = await getUsuarioAutenticado(req);
+  if (!usuario) return res.status(401).json({ erro: 'Não autenticado.' });
 
   const { dados } = req.body as { dados: string };
   if (!dados) return res.status(400).json({ erro: 'dados é obrigatório' });

@@ -10,6 +10,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { chamarGroq, extrairJson } from '../../../lib/groq-client';
 import { PROMPT_RECLASSIFICACAO } from '../../../lib/prompts';
+import { getUsuarioAutenticado } from '../../../lib/auth-server';
 
 interface ItemReclassificacao {
   indice: number;
@@ -18,6 +19,9 @@ interface ItemReclassificacao {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ erro: 'Método não permitido' });
+
+  const usuario = await getUsuarioAutenticado(req);
+  if (!usuario) return res.status(401).json({ erro: 'Não autenticado.' });
 
   const { listaNumerada } = req.body as { listaNumerada: string };
   if (!listaNumerada) return res.status(400).json({ erro: 'listaNumerada é obrigatória' });
