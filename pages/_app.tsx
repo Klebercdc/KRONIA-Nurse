@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useEffect } from 'react';
 import '../styles/globals.css';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
+import { ThemeProvider } from '../lib/theme-context';
 
 const ROTAS_PUBLICAS = ['/', '/login', '/cadastro'];
 
@@ -17,19 +18,20 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     }
   }, [loading, user, rotaPublica, router]);
 
-  // Enquanto verifica sessão, não renderiza nada para evitar flash de conteúdo protegido
   if (loading) return (
     <div style={{
       minHeight: '100dvh',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'var(--cinza-100)',
+      background: 'var(--color-bg)',
       flexDirection: 'column',
       gap: 12,
     }}>
-      <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--azul)' }}>KRONIA Nurse</div>
-      <div className="spinner" style={{ borderColor: 'rgba(0,85,255,0.2)', borderTopColor: 'var(--azul)' }} />
+      <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-clinical)', fontFamily: 'var(--font-display)' }}>
+        KRONIA Nurse
+      </div>
+      <div className="spinner spinner-clinical" />
     </div>
   );
 
@@ -40,10 +42,12 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
-    <AuthProvider>
-      <AuthGate>
-        <Component {...pageProps} />
-      </AuthGate>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AuthGate>
+          <Component {...pageProps} />
+        </AuthGate>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

@@ -1,59 +1,38 @@
 import { useRouter } from 'next/router';
-import { useAuth } from '../contexts/AuthContext';
+import ShiftPulseBar from './ShiftPulseBar';
+
+const ROTAS_SEM_PULSE = ['/login', '/cadastro', '/'];
 
 interface Props {
   children: React.ReactNode;
+  showPulseBar?: boolean;
 }
 
-export default function Layout({ children }: Props) {
+export default function Layout({ children, showPulseBar = true }: Props) {
   const router = useRouter();
   const rota = router.pathname;
-  const { signOut, user } = useAuth();
 
   function navegar(href: string) {
     router.push(href);
   }
 
-  async function sair() {
-    await signOut();
-    router.replace('/login');
-  }
-
-  const nomeUsuario = user?.user_metadata?.nome || user?.email?.split('@')[0] || '';
-
   return (
     <div className="app-shell">
-      {/* Barra de usuário */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '8px 16px',
-        borderBottom: '1px solid var(--cinza-200)',
-        background: '#fff',
-        fontSize: '0.72rem',
-        color: 'var(--cinza-400)',
-        minHeight: 36,
-      }}>
-        <span style={{ fontWeight: 500 }}>{nomeUsuario}</span>
-        <button
-          onClick={sair}
-          style={{ background: 'none', border: 'none', fontSize: '0.72rem', color: 'var(--cinza-400)', cursor: 'pointer', padding: '2px 6px', borderRadius: 4 }}
-        >
-          Sair
-        </button>
-      </div>
+      {showPulseBar && !ROTAS_SEM_PULSE.includes(rota) && <ShiftPulseBar />}
+
       <main className="main-content">{children}</main>
 
       <nav className="bottom-nav">
+        {/* Home */}
         <button
           className={`nav-item${rota === '/plantao' ? ' ativo' : ''}`}
           onClick={() => navegar('/plantao')}
         >
-          <IconPlantao />
-          Plantão
+          <IconHome />
+          Home
         </button>
 
+        {/* Pacientes */}
         <button
           className={`nav-item${rota === '/pacientes' ? ' ativo' : ''}`}
           onClick={() => navegar('/pacientes')}
@@ -62,49 +41,42 @@ export default function Layout({ children }: Props) {
           Pacientes
         </button>
 
+        {/* FAB */}
         <button
-          className="nav-registrar"
+          className="nav-fab"
           onClick={() => navegar('/registrar')}
           aria-label="Registrar"
         >
           <IconMais />
         </button>
 
+        {/* KRONOS */}
         <button
-          className={`nav-item${rota === '/escalas' ? ' ativo' : ''}`}
-          onClick={() => navegar('/escalas')}
-        >
-          <IconEscalas />
-          Escalas
-        </button>
-
-        <button
-          className={`nav-item${rota === '/kronos' ? ' ativo' : ''}`}
+          className={`nav-item${rota === '/kronos' || rota === '/escalas' ? ' ativo' : ''}`}
           onClick={() => navegar('/kronos')}
         >
           <IconKronos />
           KRONOS
         </button>
 
+        {/* Perfil */}
         <button
-          className={`nav-item${rota === '/encerramento' ? ' ativo' : ''}`}
-          onClick={() => navegar('/encerramento')}
+          className={`nav-item${rota === '/perfil' || rota === '/encerramento' ? ' ativo' : ''}`}
+          onClick={() => navegar('/perfil')}
         >
-          <IconEncerramento />
-          Encerrar
+          <IconPerfil />
+          Perfil
         </button>
       </nav>
     </div>
   );
 }
 
-function IconPlantao() {
+function IconHome() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="7" height="7" rx="1" />
-      <rect x="14" y="3" width="7" height="7" rx="1" />
-      <rect x="3" y="14" width="7" height="7" rx="1" />
-      <rect x="14" y="14" width="7" height="7" rx="1" />
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
     </svg>
   );
 }
@@ -129,15 +101,6 @@ function IconMais() {
   );
 }
 
-function IconEscalas() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="9" />
-      <polyline points="12 7 12 12 15 15" />
-    </svg>
-  );
-}
-
 function IconKronos() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -147,11 +110,11 @@ function IconKronos() {
   );
 }
 
-function IconEncerramento() {
+function IconPerfil() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="9 11 12 14 22 4" />
-      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
     </svg>
   );
 }
