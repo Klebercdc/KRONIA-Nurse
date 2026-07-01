@@ -1,116 +1,156 @@
 ================================================================
 KRONIA NURSE — PROMPT MASTER DE TESTES (SESSÃO COM REDE)
 Execute os Blocos 0–9 da Biblioteca Técnica
-Gerado em: 2026-07-01
+Atualizado em: 2026-07-01 (3ª geração — lições da sessão anterior)
 ================================================================
 
 CONTEXTO
 --------
 O pipeline completo da Biblioteca Técnica está implementado e
 mergeado em main (klebercdc/kronia-nurse). TypeScript: 0 erros.
-Schema Supabase: verificado (Bloco 0 PASS). Bloco 7A (401): PASS.
+Schema Supabase: verificado (Bloco 0 PASS, via MCP, 2026-07-01).
 
-Esta sessão foi criada com egress habilitado para:
+Duas tentativas anteriores de rodar os Blocos 1–9 falharam, ambas
+por FALTA DE ACESSO DE REDE da sessão do Claude Code aos domínios:
   uguxeoftfnljrxhwvdkj.supabase.co
   api.groq.com
   api.cohere.com
 
-Sua única tarefa: executar Blocos 1–9 em ordem e reportar
-a tabela RESULTADO CONSOLIDADO ao final.
+Esta sessão só serve para executar os Blocos 1–9 SE, e somente se,
+o ambiente (environment) tiver sido criado com Network Access =
+"Custom" (ou "Full") incluindo esses 3 domínios. Isso é configurado
+na TELA DE CRIAÇÃO/EDIÇÃO DO AMBIENTE (ícone de nuvem → editar
+ambiente → Network access), e só tem efeito em sessões criadas
+DEPOIS da mudança ser salva. Se você está lendo isto numa sessão
+já em andamento e os testes de rede abaixo (PASSO 0) falharem,
+PARE — não adianta insistir, é preciso abrir uma sessão nova.
 
 
 ================================================================
-PARTE 1 — PREPARAÇÃO (executar antes de qualquer bloco)
+PASSO 0 — TESTE DE REDE (fazer ANTES de qualquer outra coisa)
+================================================================
+
+  for host in api.groq.com api.cohere.com uguxeoftfnljrxhwvdkj.supabase.co; do
+    echo "=== $host ==="
+    curl -s -o /dev/null -w "HTTP_CODE:%{http_code}\n" -m 8 "https://$host"
+  done
+
+  ESPERADO: HTTP_CODE diferente de 000 e diferente de 403 para os 3.
+  (000 ou "CONNECT tunnel failed" = proxy da sessão está bloqueando.
+   Nesse caso, rode: curl -sS "$HTTPS_PROXY/__agentproxy/status"
+   e confira "recentRelayFailures" — se aparecer "connect_rejected"
+   para esses hosts, PARE e reporte ao usuário. Não adianta trocar
+   a config do ambiente numa sessão já iniciada.)
+
+  Se os 3 hosts responderem (mesmo que com erro HTTP tipo 401, 404),
+  a rede está OK — prossiga para o Passo 1.
+
+
+================================================================
+REGRA DE OURO — NUNCA COMMITAR SEGREDOS
+================================================================
+
+Um erro grave já aconteceu numa sessão anterior: as chaves reais
+(SUPABASE_SERVICE_ROLE_KEY, GROQ_API_KEY, COHERE_API_KEY) foram
+escritas em texto plano neste mesmo arquivo e comitadas em
+main + na branch de testes. Foram corrigidas (redigidas) depois,
+mas o vazamento ficou no histórico do git.
+
+REGRAS PARA ESTA SESSÃO:
+  - NUNCA escrever valores reais de chave/token em qualquer arquivo
+    dentro do repositório (nem .txt, nem .md, nem comentário de código).
+  - As chaves só devem existir em `.env.local` (que está no
+    .gitignore) e/ou em variáveis de shell (export TOKEN=...),
+    nunca em arquivos rastreados pelo git.
+  - Se o usuário colar uma chave no chat, use-a para criar/editar
+    `.env.local` e não a reproduza depois em texto solto.
+  - Ao terminar os testes, se as chaves foram compartilhadas via
+    chat nesta ou em sessão anterior, recomende ao usuário rotacioná-las
+    (Supabase: Project Settings → API; Groq: console.groq.com;
+    Cohere: dashboard.cohere.com).
+
+
+================================================================
+PARTE 1 — PREPARAÇÃO
 ================================================================
 
 PASSO 1 — Branch e instalação
-  git checkout main
+  git checkout claude/kronia-nurse-library-tests-yreho1
   npm install
-  (ou: git checkout claude/kronia-knowledge-system-lduov9)
 
-PASSO 2 — Verificar .env.local na raiz do projeto
-  Deve conter exatamente estas 6 variáveis (obter os valores reais com o
-  usuário — NUNCA commitar valores reais neste arquivo):
+PASSO 2 — Criar .env.local na raiz do projeto
+  Precisa de 6 variáveis. Para obter os valores:
 
-  NEXT_PUBLIC_SUPABASE_URL=https://uguxeoftfnljrxhwvdkj.supabase.co
-  NEXT_PUBLIC_SUPABASE_ANON_KEY=<obter via MCP Supabase get_publishable_keys ou com o usuário>
-  SUPABASE_URL=https://uguxeoftfnljrxhwvdkj.supabase.co
-  SUPABASE_SERVICE_ROLE_KEY=<obter com o usuário — NUNCA commitar>
-  GROQ_API_KEY=<obter com o usuário — NUNCA commitar>
-  COHERE_API_KEY=<obter com o usuário — NUNCA commitar>
+  NEXT_PUBLIC_SUPABASE_URL       → mcp Supabase get_project_url (project_id: uguxeoftfnljrxhwvdkj)
+  NEXT_PUBLIC_SUPABASE_ANON_KEY  → mcp Supabase get_publishable_keys (usar a key "anon"/legacy, tipo JWT)
+  SUPABASE_URL                   → igual à NEXT_PUBLIC_SUPABASE_URL
+  SUPABASE_SERVICE_ROLE_KEY      → pedir ao usuário (MCP não expõe service_role por segurança)
+  GROQ_API_KEY                   → pedir ao usuário
+  COHERE_API_KEY                 → pedir ao usuário
 
+  Escrever esses 6 valores em .env.local (arquivo, não commitar).
   Se qualquer variável estiver ausente → PARAR e reportar quais faltam.
 
 PASSO 3 — Criar usuário de teste e obter TOKEN
+  (usar as variáveis do .env.local via shell, nunca hardcoded em arquivo)
 
-  SUPABASE_SERVICE_ROLE_KEY="<preencher em memória/shell, nunca em arquivo commitado>"
-  ANON_KEY="<preencher em memória/shell, nunca em arquivo commitado>"
+  set -a; source .env.local; set +a
+  TESTEMAIL="teste.biblioteca.$(date +%s)@kronianurse.test"
+  TESTPASS="<gerar senha aleatória forte em memória>"
 
-  # Criar usuário (ignorar erro se já existe)
-  curl -s -X POST "https://uguxeoftfnljrxhwvdkj.supabase.co/auth/v1/admin/users" \
+  curl -s -X POST "$SUPABASE_URL/auth/v1/admin/users" \
     -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
     -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
     -H "Content-Type: application/json" \
-    -d '{"email":"teste@kronia.nurse","password":"Kronia2026!Teste","email_confirm":true}' | jq .
+    -d "{\"email\":\"$TESTEMAIL\",\"password\":\"$TESTPASS\",\"email_confirm\":true}"
 
-  # Obter TOKEN
-  TOKEN=$(curl -s -X POST \
-    "https://uguxeoftfnljrxhwvdkj.supabase.co/auth/v1/token?grant_type=password" \
-    -H "apikey: $ANON_KEY" \
+  TOKEN=$(curl -s -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
+    -H "apikey: $NEXT_PUBLIC_SUPABASE_ANON_KEY" \
     -H "Content-Type: application/json" \
-    -d '{"email":"teste@kronia.nurse","password":"Kronia2026!Teste"}' | jq -r '.access_token')
-  echo "TOKEN=$TOKEN"
+    -d "{\"email\":\"$TESTEMAIL\",\"password\":\"$TESTPASS\"}" | jq -r '.access_token')
 
-  Se TOKEN for null ou vazio → PARAR e reportar erro completo.
+  echo "TOKEN obtido: $([ -n "$TOKEN" ] && echo OK || echo FALHOU)"
+  Se TOKEN for null/vazio → PARAR e reportar erro completo (sem vazar a senha gerada).
 
 PASSO 4 — Subir servidor
-
   npm run dev &
-  # Aguardar linha "✓ Ready in Xs" antes de continuar
+  sleep 6
+  curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000
+  ESPERADO: 200. Se não vier 200 → PARAR e reportar log do servidor.
 
 
 ================================================================
-PARTE 2 — BLOCO 0: Schema (confirmar via SQL direto ou MCP)
+PARTE 2 — BLOCO 0 (já validado, apenas reconfirmar rápido)
 ================================================================
 
-CRITÉRIO: 5 tabelas presentes, 16 colunas em knowledge_base,
-  RLS ativo em knowledge_specs e knowledge_spec_audit,
-  função buscar_conhecimento presente.
+Via MCP Supabase execute_sql (project_id: uguxeoftfnljrxhwvdkj):
+  SELECT table_name FROM information_schema.tables
+  WHERE table_schema='public' AND table_name LIKE 'knowledge%' ORDER BY table_name;
+  → esperado 5 tabelas.
 
-SQL de verificação:
-  SELECT 'knowledge_base' as t, COUNT(*) FROM information_schema.columns WHERE table_name='knowledge_base' AND table_schema='public'
-  UNION ALL SELECT 'knowledge_specs', COUNT(*) FROM information_schema.columns WHERE table_name='knowledge_specs' AND table_schema='public'
-  UNION ALL SELECT 'knowledge_spec_audit', COUNT(*) FROM information_schema.columns WHERE table_name='knowledge_spec_audit' AND table_schema='public';
-
-  SELECT tablename, rowsecurity FROM pg_tables
-  WHERE tablename IN ('knowledge_specs','knowledge_spec_audit') AND schemaname='public';
-
-  SELECT proname FROM pg_proc WHERE proname='buscar_conhecimento';
-
-RESULTADO ESPERADO: knowledge_base=31 colunas, RLS=true, proname presente.
-BLOCO 0 já validado via MCP em sessão anterior — confirmar e marcar PASS.
+Se passar, marcar Bloco 0 = PASS e seguir para Bloco 1.
 
 
 ================================================================
 PARTE 3 — BLOCO 1: Pipeline para 3 temas (~3–6 min)
 ================================================================
 
-COMANDO:
-  curl -s -X POST http://localhost:3000/api/kronos/biblioteca/processar \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer $TOKEN" \
-    -d '{"temas":["sonda vesical de demora","oxigenoterapia por cateter nasal","coleta de hemocultura"]}' \
-    | jq .
+curl --max-time 600 -s -X POST http://localhost:3000/api/kronos/biblioteca/processar \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"temas":["sonda vesical de demora","oxigenoterapia por cateter nasal","coleta de hemocultura"]}' \
+  | jq . | tee /tmp/bloco1_resultado.json
 
 CRITÉRIO DE PARADA:
-  ok = true
-  sucessos = 3
-  erros = 0
-  todos spec_id devem ser UUIDs não-nulos
-  todos status devem ser "aguardando_aprovacao" ou "reprovado"
+  "ok" = true
+  "sucessos" = 3
+  "erros" = 0
+  todos "spec_id" são UUIDs não-nulos
+  todos "status" são "aguardando_aprovacao" ou "reprovado" (nunca "rascunho")
+  todos têm "classificacao" preenchida (verde/amarelo/vermelho)
 
-Se qualquer critério falhar → PARAR e reportar o JSON completo.
-Não avançar para o Bloco 2 se o Bloco 1 falhar.
+Se qualquer critério falhar → PARAR e reportar o JSON completo de
+/tmp/bloco1_resultado.json. Não avançar para o Bloco 2.
 
 Guardar:
   SPEC_ID_1 = spec_id do tema "sonda vesical de demora"
@@ -119,245 +159,60 @@ Guardar:
 
 
 ================================================================
-PARTE 4 — BLOCO 2: SQL pós-pipeline
+PARTE 4 — BLOCOS 2–9
 ================================================================
 
-  -- 2A: 3 specs no banco
-  SELECT id, titulo, status, pipeline_classificacao, score
-  FROM knowledge_specs ORDER BY created_at DESC LIMIT 5;
+Seguir na íntegra o arquivo supabase/KRONIA_NURSE_TESTES_BIBLIOTECA.txt
+a partir do Bloco 2, usando $TOKEN, $SPEC_ID_1, $SPEC_ID_2, $SPEC_ID_3
+obtidos acima. Esse arquivo tem o detalhamento completo de SQL,
+curl e critérios PASS/FAIL para cada bloco — não resumir nem pular
+etapas.
 
-  -- 2B: 6 entradas de auditoria (2 por spec)
-  SELECT spec_id, acao, created_at FROM knowledge_spec_audit ORDER BY created_at DESC LIMIT 10;
-
-  -- 2C: knowledge_base ainda vazio
-  SELECT COUNT(*) FROM knowledge_base;
-
-  -- 2D: referências presentes (>= 2 por spec)
-  SELECT id, titulo, jsonb_array_length(referencias_oficiais) as refs
-  FROM knowledge_specs ORDER BY created_at DESC LIMIT 3;
-
-  -- 2E: hash preenchido
-  SELECT id, LEFT(hash,16) as hash_prefix FROM knowledge_specs ORDER BY created_at DESC LIMIT 3;
-
-CRITÉRIO:
-  3 specs presentes, 6 audits, knowledge_base COUNT=0,
-  refs >= 2 em cada spec, hash não-nulo.
+Resumo executivo dos critérios (não substitui o arquivo completo):
+  Bloco 2 — 3 specs no banco, 6 audit entries, knowledge_base vazio, refs >= 2
+  Bloco 3 — UI mostra 3 grupos (verde/amarelo/vermelho), checkbox funciona
+  Bloco 4 — SPEC_1 aprovada (→knowledge_base), SPEC_2 reprovada, SPEC_3 pendente
+  Bloco 5 — knowledge_base tem 1 linha com embedding não-nulo e spec_id correto
+  Bloco 6 — KRONOS responde sobre SPEC_1 com citação; não vaza SPEC_2 rejeitada
+  Bloco 7 — 401 sem token, 404 uuid inválido, 400 status errado, 400 >10 temas, 0 linhas vazadas
+  Bloco 8 — 2 temas extras aprovados em lote; embedding gerado para ambos
+  Bloco 9 — plantão/escalas/auth/legado funcionam; npx tsc --noEmit = 0 erros
 
 
 ================================================================
-PARTE 5 — BLOCO 3: UI (verificação via código + inspeção manual)
+PARTE 5 — RESTRIÇÕES ABSOLUTAS (Constitution)
 ================================================================
 
-Verificável via código (fazer com Playwright ou inspeção manual):
-  GET http://localhost:3000/biblioteca-tecnica
-  Deve carregar sem erro 500.
-  Deve mostrar botão "✅ Tela de Aprovação".
-  Ao clicar, deve exibir specs agrupadas por classificação:
-    - verde: checkbox + botão "Aprovar Selecionados"
-    - amarelo: badge amarelo + trechos de atenção
-    - vermelho: badge vermelho + campo etapa_falha
+Durante toda a execução dos testes, NUNCA:
+  1. Criar caminho que escreva em knowledge_base sem /api/knowledge-spec/aprovar
+  2. Gerar embedding fora de aprovar.ts
+  3. Aprovar spec com pipeline_classificacao='vermelho'
+  4. Aprovar spec com status != 'aguardando_aprovacao'
+  5. Fazer KRONOS ler de knowledge_specs diretamente
+  6. Commitar qualquer valor real de chave/token/senha no repositório
 
-Sinalizar ao usuário o que requer confirmação visual humana.
-
-
-================================================================
-PARTE 6 — BLOCO 4: Aprovar / reprovar
-================================================================
-
-# Aprovar SPEC_ID_1
-curl -s -X POST http://localhost:3000/api/knowledge-spec/aprovar \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d "{\"spec_id\":\"$SPEC_ID_1\"}" | jq .
-
-# Guardar KB_ID_1 do campo kb_id na resposta acima
-
-# Reprovar SPEC_ID_2
-curl -s -X POST http://localhost:3000/api/knowledge-spec/reprovar \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d "{\"spec_id\":\"$SPEC_ID_2\",\"motivo\":\"Fontes insuficientes para validação clínica.\"}" | jq .
-
-# SPEC_ID_3: não fazer nada — deve permanecer aguardando_aprovacao
-
-CRITÉRIO:
-  Aprovação de SPEC_ID_1 retorna kb_id não-nulo.
-  Reprovação de SPEC_ID_2 retorna ok=true.
-  SPEC_ID_3 permanece com status aguardando_aprovacao.
-
-ATENÇÃO: Se SPEC_ID_1 tiver pipeline_classificacao='vermelho',
-  a aprovação deve retornar erro 400. Nesse caso, usar o spec
-  com classificacao='verde' ou 'amarelo' para aprovar.
+Se qualquer teste exigir violar uma dessas regras → é FAIL do teste,
+não uma exceção a ser implementada.
 
 
 ================================================================
-PARTE 7 — BLOCO 5: SQL pós-decisão
+PARTE 6 — RESULTADO CONSOLIDADO (preencher ao final)
 ================================================================
 
-  -- 5A: 1 linha em knowledge_base
-  SELECT id, titulo, spec_id, LEFT(hash,16) as hash FROM knowledge_base;
-
-  -- 5B: embedding não-nulo e com 1024 dimensões
-  SELECT id, array_length(embedding::real[], 1) as dims FROM knowledge_base;
-
-  -- 5C: spec aprovada tem status='aprovado'
-  SELECT id, status FROM knowledge_specs WHERE id = '$SPEC_ID_1';
-
-  -- 5D: spec reprovada tem status='reprovado'
-  SELECT id, status FROM knowledge_specs WHERE id = '$SPEC_ID_2';
-
-CRITÉRIO:
-  knowledge_base COUNT=1, embedding dims=1024,
-  SPEC_ID_1 status=aprovado, SPEC_ID_2 status=reprovado.
-
-
-================================================================
-PARTE 8 — BLOCO 6: KRONOS RAG
-================================================================
-
-# Pergunta sobre o tema aprovado
-curl -s -X POST http://localhost:3000/api/kronos/professor \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"pergunta":"Quais são os cuidados de enfermagem na sonda vesical de demora?"}' \
-  | jq .
-
-CRITÉRIO:
-  Resposta deve citar o tema aprovado (sonda vesical).
-  Campo "fontes" ou referências na resposta devem aparecer.
-
-# Verificar que tema rejeitado não vaza
-curl -s -X POST http://localhost:3000/api/kronos/professor \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"pergunta":"Explique oxigenoterapia por cateter nasal"}' \
-  | jq .
-
-CRITÉRIO:
-  Resposta não deve conter dados específicos da spec reprovada
-  (KRONOS lê apenas knowledge_base, que tem 1 item).
-
-
-================================================================
-PARTE 9 — BLOCO 7: Negative tests (todos obrigatórios)
-================================================================
-
-# 7A — 401 sem token (JÁ PASSOU em sessão anterior)
-curl -s -o /dev/null -w "%{http_code}" -X POST \
-  http://localhost:3000/api/kronos/biblioteca/processar \
-  -H "Content-Type: application/json" \
-  -d '{"temas":["teste"]}'
-ESPERADO: 401
-
-# 7B — 404 com UUID inválido em aprovar
-curl -s -X POST http://localhost:3000/api/knowledge-spec/aprovar \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"spec_id":"00000000-0000-0000-0000-000000000000"}' | jq .
-ESPERADO: 404
-
-# 7C — 400 ao tentar aprovar spec já aprovada (SPEC_ID_1)
-curl -s -X POST http://localhost:3000/api/knowledge-spec/aprovar \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d "{\"spec_id\":\"$SPEC_ID_1\"}" | jq .
-ESPERADO: 400 (status diferente de aguardando_aprovacao)
-
-# 7D — 400 ao enviar >10 temas
-curl -s -X POST http://localhost:3000/api/kronos/biblioteca/processar \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"temas":["a","b","c","d","e","f","g","h","i","j","k"]}' | jq .
-ESPERADO: 400 "Máximo de 10 temas"
-
-# 7E — 0 linhas vazadas: spec reprovada não aparece em knowledge_base
-SQL: SELECT COUNT(*) FROM knowledge_base WHERE spec_id = '$SPEC_ID_2';
-ESPERADO: 0
-
-
-================================================================
-PARTE 10 — BLOCO 8: Aprovação em lote (2 temas extras)
-================================================================
-
-# Processar 2 temas extras
-curl -s -X POST http://localhost:3000/api/kronos/biblioteca/processar \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"temas":["higienização das mãos em serviços de saúde","punção venosa periférica"]}' \
-  | jq .
-
-Guardar SPEC_ID_4 e SPEC_ID_5.
-
-# Aprovar em lote (chamadas sequenciais via API)
-curl -s -X POST http://localhost:3000/api/knowledge-spec/aprovar \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d "{\"spec_id\":\"$SPEC_ID_4\"}" | jq .
-
-curl -s -X POST http://localhost:3000/api/knowledge-spec/aprovar \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d "{\"spec_id\":\"$SPEC_ID_5\"}" | jq .
-
-SQL de verificação:
-  SELECT COUNT(*), array_length(embedding::real[], 1) as dims
-  FROM knowledge_base;
-
-CRITÉRIO:
-  knowledge_base COUNT = 3 (1 original + 2 novos).
-  Embedding dims = 1024 em todos.
-  ATENÇÃO: só aprovar specs com classificacao != 'vermelho'.
-
-
-================================================================
-PARTE 11 — BLOCO 9: Não-regressão
-================================================================
-
-# TypeScript
-npx tsc --noEmit
-ESPERADO: 0 erros
-
-# Plantão ainda carrega
-curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/plantao
-ESPERADO: 200
-
-# Escalas (NEWS2 etc.)
-curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/escalas
-ESPERADO: 200
-
-# Login
-curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/login
-ESPERADO: 200
-
-# KRONOS original
-curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/kronos
-ESPERADO: 200
-
-# API KRONOS professor com token
-curl -s -X POST http://localhost:3000/api/kronos/professor \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{"pergunta":"Como calcular NEWS2?"}' | jq .status
-ESPERADO: resposta com conteúdo (não erro 500)
-
-
-================================================================
-PARTE 12 — RESULTADO CONSOLIDADO (preencher ao final)
-================================================================
-
-| Bloco     | Descrição                              | Status      |
-|-----------|----------------------------------------|-------------|
-| TypeScript| npx tsc --noEmit                       | [ ] PASS/FAIL |
-| Bloco 0   | Schema: 5 tabelas, 16 cols, RLS, RPC   | [PASS]      |
-| Bloco 1   | Pipeline 3 temas → specs criadas       | [ ] PASS/FAIL |
-| Bloco 2   | SQL pós-pipeline                       | [ ] PASS/FAIL |
-| Bloco 3   | UI /biblioteca-tecnica                 | [ ] PASS/FAIL |
-| Bloco 4   | Aprovar SPEC_1, reprovar SPEC_2        | [ ] PASS/FAIL |
-| Bloco 5   | SQL pós-decisão (KB + embedding)       | [ ] PASS/FAIL |
-| Bloco 6   | KRONOS RAG + não-vazamento             | [ ] PASS/FAIL |
-| Bloco 7   | 5 negative tests (7A–7E)               | [7A=PASS] [ ] |
-| Bloco 8   | 2 temas extras aprovados em lote       | [ ] PASS/FAIL |
-| Bloco 9   | Não-regressão + tsc=0 erros            | [ ] PASS/FAIL |
+| Bloco      | Descrição                              | Status        |
+|------------|-----------------------------------------|---------------|
+| Passo 0    | Teste de rede (3 hosts)                | [ ] PASS/FAIL |
+| TypeScript | npx tsc --noEmit                       | [ ] PASS/FAIL |
+| Bloco 0    | Schema: 5 tabelas, 16 cols, RLS, RPC   | [PASS]        |
+| Bloco 1    | Pipeline 3 temas → specs criadas       | [ ] PASS/FAIL |
+| Bloco 2    | SQL pós-pipeline                       | [ ] PASS/FAIL |
+| Bloco 3    | UI /biblioteca-tecnica                 | [ ] PASS/FAIL |
+| Bloco 4    | Aprovar SPEC_1, reprovar SPEC_2        | [ ] PASS/FAIL |
+| Bloco 5    | SQL pós-decisão (KB + embedding)       | [ ] PASS/FAIL |
+| Bloco 6    | KRONOS RAG + não-vazamento             | [ ] PASS/FAIL |
+| Bloco 7    | 5 negative tests (7A–7E)               | [ ] PASS/FAIL |
+| Bloco 8    | 2 temas extras aprovados em lote       | [ ] PASS/FAIL |
+| Bloco 9    | Não-regressão + tsc=0 erros            | [ ] PASS/FAIL |
 
 Observações / bugs encontrados:
   [preencher aqui com erros reais, spec_ids, KB_IDs, JSONs de falha]
@@ -366,36 +221,24 @@ Declarar "entregue e funcional" somente quando todos marcarem PASS.
 
 
 ================================================================
-PARTE 13 — RESTRIÇÕES ABSOLUTAS (Constitution)
-================================================================
-
-Durante toda a execução dos testes, NUNCA:
-
-1. Criar caminho que escreva em knowledge_base sem /api/knowledge-spec/aprovar
-2. Gerar embedding fora de aprovar.ts
-3. Aprovar spec com pipeline_classificacao='vermelho'
-4. Aprovar spec com status != 'aguardando_aprovacao'
-5. Fazer KRONOS ler de knowledge_specs diretamente
-
-Se qualquer teste exigir violar uma dessas regras → é FAIL do teste,
-não uma exceção a ser implementada.
-
-
-================================================================
-PARTE 14 — ARQUIVOS DE REFERÊNCIA
+PARTE 7 — ARQUIVOS DE REFERÊNCIA
 ================================================================
 
 Implementação:
-  lib/knowledge-pipeline.ts              Etapas 1–8 (pesquisar + redigir + auditores)
+  lib/knowledge-pipeline.ts                 Etapas 1–8 (pesquisar + redigir + auditores)
+  lib/auth-server.ts                        valida Bearer token via supabase.auth.getUser
   pages/api/kronos/biblioteca/processar.ts  pipeline por tema (NUNCA escreve em KB)
-  pages/api/knowledge-spec/aprovar.ts    ÚNICA rota que publica em knowledge_base
-  pages/biblioteca-tecnica.tsx           UI completa
+  pages/api/knowledge-spec/aprovar.ts       ÚNICA rota que publica em knowledge_base
+  pages/biblioteca-tecnica.tsx              UI completa
 
 Banco:
   supabase/KRONIA_NURSE_SQL_COMPLETO.txt    SQL para aplicar no Supabase (se precisar recriar)
 
 Testes detalhados:
   supabase/KRONIA_NURSE_TESTES_BIBLIOTECA.txt   protocolo completo com todos os critérios
+
+Handoff anterior (histórico, contexto adicional):
+  supabase/KRONIA_NURSE_PROMPT_CONCLUSAO.txt
 
 ================================================================
 FIM DO PROMPT MASTER DE TESTES — SESSÃO COM REDE HABILITADA
