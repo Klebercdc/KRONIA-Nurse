@@ -73,11 +73,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (error) return res.status(500).json({ erro: error.message });
 
     await supabase.from('knowledge_audit').insert({
-      knowledge_id: id,
-      usuario: usuario.email,
+      knowledge_base_id: id,
+      realizado_por: usuario.email,
       acao: 'editar',
-      valor_anterior: JSON.stringify({ titulo: atual.titulo, resumo: atual.resumo, conteudo: atual.conteudo }),
-      valor_novo: JSON.stringify({ titulo, resumo, conteudo }),
+      detalhes: {
+        anterior: { titulo: atual.titulo, resumo: atual.resumo, conteudo: atual.conteudo },
+        novo: { titulo, resumo, conteudo },
+      },
     });
 
     return res.status(200).json({ ok: true, id });
@@ -92,10 +94,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (error) return res.status(500).json({ erro: error.message });
 
   await supabase.from('knowledge_audit').insert({
-    knowledge_id: data.id,
-    usuario: usuario.email,
+    knowledge_base_id: data.id,
+    realizado_por: usuario.email,
     acao: 'criar',
-    valor_novo: JSON.stringify({ titulo, resumo, conteudo }),
+    detalhes: { titulo, resumo, conteudo },
   });
 
   return res.status(201).json({ ok: true, id: data.id });

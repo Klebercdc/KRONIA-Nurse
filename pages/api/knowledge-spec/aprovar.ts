@@ -153,10 +153,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   });
 
   await supabase.from('knowledge_audit').insert({
-    knowledge_id: kbEntry.id,
-    usuario: usuario.email,
+    knowledge_base_id: kbEntry.id,
+    realizado_por: usuario.email,
     acao: 'criar',
-    valor_novo: JSON.stringify({ titulo: specTyped.titulo, spec_id: id }),
+    detalhes: { titulo: specTyped.titulo, spec_id: id },
   });
 
   return res.status(200).json({ ok: true, id, knowledge_base_id: kbEntry.id });
