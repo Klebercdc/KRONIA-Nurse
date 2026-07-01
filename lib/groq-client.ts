@@ -15,9 +15,15 @@ function esperar(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function chamarGroq(system: string, content: string): Promise<string> {
+export async function chamarGroq(
+  system: string,
+  content: string,
+  opcoes?: { json?: boolean }
+): Promise<string> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error('GROQ_API_KEY não configurada no ambiente do servidor.');
+
+  const usarJson = opcoes?.json ?? true;
 
   for (let tentativa = 1; tentativa <= MAX_TENTATIVAS_429; tentativa++) {
     const resp = await fetch(GROQ_URL, {
@@ -34,7 +40,7 @@ export async function chamarGroq(system: string, content: string): Promise<strin
         ],
         temperature: 0.2,
         max_tokens: 4096,
-        response_format: { type: 'json_object' },
+        ...(usarJson ? { response_format: { type: 'json_object' } } : {}),
       }),
     });
 

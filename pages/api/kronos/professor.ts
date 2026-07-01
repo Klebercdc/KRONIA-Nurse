@@ -92,7 +92,7 @@ Responda com base exclusivamente nas referências acima. Use formatação Markdo
 
   let resposta: string;
   try {
-    resposta = await chamarGroq(system, promptUsuario);
+    resposta = await chamarGroq(system, promptUsuario, { json: false });
   } catch (err) {
     console.error('[kronos/professor] groq error:', err);
     return res.status(500).json({ erro: 'Falha ao gerar resposta.' });

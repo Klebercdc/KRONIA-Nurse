@@ -25,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!formato || !dados) return res.status(400).json({ erro: 'formato e dados são obrigatórios' });
 
   try {
-    const texto = await chamarGroq(promptDocumento(formato), dados);
+    const texto = await chamarGroq(promptDocumento(formato), dados, { json: false });
     res.status(200).json({ texto });
   } catch (e) {
     res.status(500).json({ erro: 'Não foi possível gerar o documento agora.' });
