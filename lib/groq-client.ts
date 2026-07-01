@@ -1,14 +1,18 @@
 /**
- * Cliente fino para a Groq API (Llama 3.3 70B). No protótipo (artifact da
- * Claude) as chamadas iam para a Anthropic; aqui usam a stack que o KRONIA
- * já tem em produção. Mesmo contrato: system + conteúdo do usuário -> texto.
+ * Cliente fino para a Groq API. No protótipo (artifact da Claude) as
+ * chamadas iam para a Anthropic; aqui usam a stack que o KRONIA já tem
+ * em produção. Mesmo contrato: system + conteúdo do usuário -> texto.
+ *
+ * O modelo é configurável via GROQ_MODEL (documentado no README). O default
+ * é 'openai/gpt-oss-120b' — substituto indicado pela Groq para o
+ * 'llama-3.3-70b-versatile', descontinuado em 16/08/2026.
  *
  * IMPORTANTE: GROQ_API_KEY só existe no servidor. Este módulo só deve ser
  * importado por código que roda em pages/api/** (nunca em componente client).
  */
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const MODELO = 'llama-3.3-70b-versatile';
+const MODELO = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
 const MAX_TENTATIVAS_429 = 4;
 
 function esperar(ms: number): Promise<void> {
@@ -39,7 +43,9 @@ export async function chamarGroq(
           { role: 'user', content },
         ],
         temperature: 0.2,
-        max_tokens: 4096,
+        // gpt-oss-120b raciocina antes de responder e os tokens de raciocínio
+        // contam neste limite; 4096 (valor da era Llama 3.3) truncava respostas.
+        max_tokens: 8192,
         ...(usarJson ? { response_format: { type: 'json_object' } } : {}),
       }),
     });
