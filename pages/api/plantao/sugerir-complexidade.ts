@@ -10,6 +10,8 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { chamarGroq, extrairJson } from '../../../lib/groq-client';
 import { promptSugestaoComplexidade } from '../../../lib/prompts';
 import { Complexidade } from '../../../lib/types';
+import { getUsuarioAutenticado } from '../../../lib/auth-server';
+import { dentroDoRateLimit, LIMITE_PLANTAO, MSG_RATE_LIMIT } from '../../../lib/rate-limit';
 
 const COMPLEXIDADES_VALIDAS: Complexidade[] = [
   'minimos', 'intermediarios', 'alta_dependencia', 'semi_intensivos', 'intensivos',
@@ -23,6 +25,12 @@ export interface SugestaoComplexidade {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ erro: 'Método não permitido' });
+
+  const usuario = await getUsuarioAutenticado(req);
+  if (!usuario) return res.status(401).json({ erro: 'Não autenticado.' });
+  if (!(await dentroDoRateLimit(usuario.id, 'plantao/sugerir-complexidade', LIMITE_PLANTAO))) {
+    return res.status(429).json({ erro: MSG_RATE_LIMIT });
+  }
 
   const { dados } = req.body as { dados: string };
   if (!dados) return res.status(400).json({ erro: 'dados é obrigatório' });

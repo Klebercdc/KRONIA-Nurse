@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import { useTurno, montarDadosPaciente, montarDadosRelatorioFinal, montarListaParaReclassificacao } from '../components/useTurno';
+import { getSupabaseBrowser } from '../lib/supabase-browser';
 
 type Fase = 'inicial' | 'processando' | 'pronto' | 'encerrado';
 
@@ -30,11 +31,17 @@ export default function Encerramento() {
     setErro('');
 
     try {
+      const { data: sessao } = await getSupabaseBrowser().auth.getSession();
+      const headersAuth = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sessao.session?.access_token ?? ''}`,
+      };
+
       addLog('Reclassificando leitos por contexto...');
       const listaNumerada = montarListaParaReclassificacao(turno.eventos, turno.pacientes);
       const respRecl = await fetch('/api/plantao/reclassificar', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headersAuth,
         body: JSON.stringify({ listaNumerada }),
       });
       const jsonRecl = await respRecl.json();
@@ -63,7 +70,7 @@ export default function Encerramento() {
         const dados = montarDadosPaciente(p, turno.eventos);
         const resp = await fetch('/api/plantao/gerar-documento', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: headersAuth,
           body: JSON.stringify({ formato: 'evolucao', dados }),
         });
         const json = await resp.json();
@@ -76,7 +83,7 @@ export default function Encerramento() {
       const dadosRel = montarDadosRelatorioFinal(turno.pacientes, turno.eventos);
       const respRel = await fetch('/api/plantao/relatorio-final', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headersAuth,
         body: JSON.stringify({ dados: dadosRel }),
       });
       const jsonRel = await respRel.json();

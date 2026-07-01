@@ -9,7 +9,7 @@
  */
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSupabase } from '../../../lib/supabase-client';
-import { getUsuarioAutenticado } from '../../../lib/auth-server';
+import { getUsuarioAutenticado, usuarioEhAdmin } from '../../../lib/auth-server';
 import { executarPipeline } from '../../../lib/knowledge-pipeline';
 import type { KnowledgeSpec } from '../../../lib/knowledge-spec';
 
@@ -18,6 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const usuario = await getUsuarioAutenticado(req);
   if (!usuario) return res.status(401).json({ erro: 'Não autenticado.' });
+  if (!(await usuarioEhAdmin(usuario.id))) return res.status(403).json({ erro: 'Acesso restrito a administradores.' });
 
   const { id } = req.body as { id?: string };
   if (!id) return res.status(400).json({ erro: 'Campo "id" obrigatório.' });

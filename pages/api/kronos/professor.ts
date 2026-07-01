@@ -3,6 +3,7 @@ import { chamarGroq } from '../../../lib/groq-client';
 import { gerarEmbedding } from '../../../lib/embeddings';
 import { getSupabase } from '../../../lib/supabase-client';
 import { getUsuarioAutenticado } from '../../../lib/auth-server';
+import { dentroDoRateLimit, LIMITE_PROFESSOR, MSG_RATE_LIMIT } from '../../../lib/rate-limit';
 
 // Palavras que indicam referência a paciente/leito específico
 const REGEX_CASO_ESPECIFICO = /\b(leito|leit[oa]|paciente|p[oa]cient[eo]|meu paciente|minha paciente|caso|turno|plantão|este paciente|essa paciente)\b/i;
@@ -20,6 +21,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
   const usuario = await getUsuarioAutenticado(req);
   if (!usuario) return res.status(401).json({ erro: 'Não autenticado.' });
+  if (!(await dentroDoRateLimit(usuario.id, 'kronos/professor', LIMITE_PROFESSOR))) {
+    return res.status(429).json({ erro: MSG_RATE_LIMIT });
+  }
 
   const { pergunta } = req.body as { pergunta?: string };
   if (!pergunta || typeof pergunta !== 'string' || !pergunta.trim()) {
