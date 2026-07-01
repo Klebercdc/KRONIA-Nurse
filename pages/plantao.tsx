@@ -163,6 +163,50 @@ export default function Home() {
         </button>
       </div>
 
+      {/* Evolução avulsa card */}
+      <div
+        onClick={() => router.push('/evolucao-avulsa')}
+        style={{
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-line)',
+          borderRadius: 14,
+          padding: '14px 16px',
+          marginBottom: 16,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          cursor: 'pointer',
+          gap: 12,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: 'var(--color-clinical-tint)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--color-clinical)',
+            flexShrink: 0,
+          }}>
+            <IconEvolucao />
+          </div>
+          <div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.9rem', color: 'var(--color-ink)', marginBottom: 2 }}>
+              Evolução avulsa
+            </div>
+            <div style={{ fontFamily: 'var(--font-body)', fontSize: '0.75rem', color: 'var(--color-ink-muted)' }}>
+              35 tipos · admissão, alta, transferência, HD e mais
+            </div>
+          </div>
+        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-ink-faint)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </div>
+
       {/* Encerrar turno card */}
       <div
         style={{
@@ -319,6 +363,18 @@ function IconKronos() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
       <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+    </svg>
+  );
+}
+
+function IconEvolucao() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="16" y1="13" x2="8" y2="13" />
+      <line x1="16" y1="17" x2="8" y2="17" />
+      <polyline points="10 9 9 9 8 9" />
     </svg>
   );
 }
