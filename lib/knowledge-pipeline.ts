@@ -309,19 +309,18 @@ export async function auditarCoerencia(spec: KnowledgeSpec): Promise<ResultadoEs
 
 const PROMPT_AUDITOR_ATUALIZACAO = `Você é o Auditor de Atualização da Biblioteca Técnica KRONIA Nurse.
 
-Analise as referências listadas e identifique possíveis problemas de atualidade:
-1. DOCUMENTOS ANTIGOS: referências com ano de publicação muito antigo sem indicação de reedição ou validade atual
-2. RDCs E PORTARIAS: resolução da ANVISA ou portaria do Ministério da Saúde que possam ter sido substituídas por versão mais recente (baseie-se nas datas informadas)
-3. GUIDELINES: guidelines internacionais de organizações como CDC, OMS que tipicamente são atualizados a cada 3–5 anos
-4. REFERÊNCIAS SEM DATA: qualquer referência sem data de publicação ou atualização deve ser flagueada
-5. NOTAS TÉCNICAS: notas técnicas têm prazo de validade — verifique se há indicação de expiração
+Seu objetivo é identificar referências que merecem revisão humana pontual — nunca invalidar automaticamente um documento antigo.
 
-LIMITAÇÃO IMPORTANTE: você não tem acesso à internet. Baseie sua análise exclusivamente nos dados fornecidos (datas, números de documento, tipo de documento). Em caso de dúvida, flag para revisão humana.
+REGRA ABSOLUTA: a idade de uma norma NÃO é, por si só, motivo de reprovação. É PROIBIDO sinalizar uma referência com base apenas em "é antiga", "possivelmente substituída", "provavelmente desatualizada" ou qualquer especulação sobre o que pode ter mudado. Você não tem acesso à internet e não pode confirmar revogação, substituição ou perda de vigência — portanto NUNCA afirme isso como fato.
 
-Se houver documento que necessite verificação de atualidade pelo revisor humano, reprove e registre.
+Para cada referência, decida entre:
+- "mantida": nenhuma indicação de problema. Não incluir na lista de verificação.
+- "verificar": não há como confirmar, a partir dos dados fornecidos, se a referência permanece vigente, foi revogada, substituída ou tornou-se incompatível com regulamentação mais recente. Incluir na lista com um motivo objetivo (ex.: "confirmar vigência e normas complementares", "verificar guideline oficial mais recente") — sem especular sobre o que pode ter acontecido.
+
+Esta etapa NUNCA reprova a spec. Ela apenas informa pontos que um revisor humano deve checar antes da aprovação final.
 
 Responda SOMENTE com JSON válido, sem markdown:
-{"aprovado":true|false,"observacoes":["..."],"itens_reprovados":["documento que requer verificação — somente se aprovado=false"]}`;
+{"observacoes":["resumo geral da análise, sem especulação"],"referencias_para_verificar":[{"referencia":"nome da instituição + documento, como aparece na referência","motivo":"motivo objetivo de verificação, sem especular sobre revogação"}]}`;
 
 export async function auditarAtualizacao(spec: KnowledgeSpec): Promise<ResultadoEstagio> {
   const contexto = montarContextoSpec(spec);
@@ -329,11 +328,17 @@ export async function auditarAtualizacao(spec: KnowledgeSpec): Promise<Resultado
     PROMPT_AUDITOR_ATUALIZACAO,
     `Analise o seguinte material:\n\n${contexto}`
   );
-  const resultado = extrairJson<{ aprovado: boolean; observacoes: string[]; itens_reprovados?: string[] }>(resposta);
+  const resultado = extrairJson<{
+    observacoes?: string[];
+    referencias_para_verificar?: { referencia: string; motivo: string }[];
+  }>(resposta);
+
+  // Esta etapa nunca reprova — idade de norma não é motivo de bloqueio (ver prompt acima).
   return {
-    aprovado: !!resultado.aprovado,
+    aprovado: true,
     observacoes: resultado.observacoes ?? [],
-    itens_reprovados: resultado.itens_reprovados ?? [],
+    itens_reprovados: [],
+    referencias_para_verificar: resultado.referencias_para_verificar ?? [],
   };
 }
 
@@ -426,17 +431,18 @@ function classificar(
     return { score, classificacao: 'vermelho', resumo: 'Uma ou mais auditorias reprovaram. Revisar itens sinalizados antes de reenviar.' };
   }
 
-  // Atualização reprovada não bloqueia — só sinaliza necessidade de revisão
-  // humana pontual (o próprio auditor não avalia conteúdo, só atualidade).
-  const atualizacaoReprovada = estagio_atualizacao !== undefined && !estagio_atualizacao.aprovado;
+  // Atualização nunca reprova — apenas sinaliza referências que merecem
+  // verificação humana pontual (idade de norma não é motivo de bloqueio).
+  const referenciasParaVerificar = estagio_atualizacao?.referencias_para_verificar ?? [];
+  const temReferenciasParaVerificar = referenciasParaVerificar.length > 0;
   const dominioDistante = estagio_dominio?.dominio === 'distante';
   const riscoAlto = estagio_dominio?.risco_tecnico === 'alto';
   const variabilidadeRelevante = estagio_dominio && estagio_dominio.variabilidade !== 'nenhuma';
   const divergencias = (estagio_dominio?.divergencias ?? []).length > 0;
 
-  if (atualizacaoReprovada || dominioDistante || riscoAlto || variabilidadeRelevante || divergencias) {
+  if (temReferenciasParaVerificar || dominioDistante || riscoAlto || variabilidadeRelevante || divergencias) {
     const motivos: string[] = [];
-    if (atualizacaoReprovada) motivos.push('referências pendentes de verificação de atualidade');
+    if (temReferenciasParaVerificar) motivos.push(`${referenciasParaVerificar.length} referência(s) pendente(s) de verificação de vigência`);
     if (dominioDistante) motivos.push('domínio distante');
     if (riscoAlto) motivos.push('risco técnico alto');
     if (variabilidadeRelevante) motivos.push(`variabilidade institucional ${estagio_dominio!.variabilidade}`);
