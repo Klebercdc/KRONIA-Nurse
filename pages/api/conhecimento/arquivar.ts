@@ -23,10 +23,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (error) return res.status(500).json({ erro: error.message });
 
   await supabase.from('knowledge_audit').insert({
-    knowledge_id: id,
-    usuario: usuario.email,
+    knowledge_base_id: id,
+    realizado_por: usuario.email,
     acao: 'arquivar',
-    valor_novo: agora,
+    detalhes: { arquivado_em: agora },
   });
 
   return res.status(200).json({ ok: true });

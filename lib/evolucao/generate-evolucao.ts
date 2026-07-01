@@ -48,7 +48,7 @@ ${tabelaCampos}
 
 Redija o documento de enfermagem completo e profissional baseado exclusivamente nos dados acima.`;
 
-  const texto = await chamarGroq(system, userMsg);
+  const texto = await chamarGroq(system, userMsg, { json: false });
 
   return { documento: texto };
 }

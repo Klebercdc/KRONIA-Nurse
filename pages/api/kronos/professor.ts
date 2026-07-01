@@ -45,7 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   const supabase = getSupabase();
   const { data: resultados, error } = await supabase.rpc('buscar_conhecimento', {
     query_embedding: embedding,
-    similarity_threshold: 0.82,
+    similarity_threshold: 0.5,
     match_count: 3,
   });
 
@@ -92,7 +92,7 @@ Responda com base exclusivamente nas referências acima. Use formatação Markdo
 
   let resposta: string;
   try {
-    resposta = await chamarGroq(system, promptUsuario);
+    resposta = await chamarGroq(system, promptUsuario, { json: false });
   } catch (err) {
     console.error('[kronos/professor] groq error:', err);
     return res.status(500).json({ erro: 'Falha ao gerar resposta.' });
