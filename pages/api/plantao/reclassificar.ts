@@ -11,6 +11,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { chamarGroq, extrairJson } from '../../../lib/groq-client';
 import { PROMPT_RECLASSIFICACAO } from '../../../lib/prompts';
 import { getUsuarioAutenticado } from '../../../lib/auth-server';
+import { dentroDoRateLimit, LIMITE_PLANTAO, MSG_RATE_LIMIT } from '../../../lib/rate-limit';
 
 interface ItemReclassificacao {
   indice: number;
@@ -22,6 +23,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const usuario = await getUsuarioAutenticado(req);
   if (!usuario) return res.status(401).json({ erro: 'Não autenticado.' });
+  if (!(await dentroDoRateLimit(usuario.id, 'plantao/reclassificar', LIMITE_PLANTAO))) {
+    return res.status(429).json({ erro: MSG_RATE_LIMIT });
+  }
 
   const { listaNumerada } = req.body as { listaNumerada: string };
   if (!listaNumerada) return res.status(400).json({ erro: 'listaNumerada é obrigatória' });

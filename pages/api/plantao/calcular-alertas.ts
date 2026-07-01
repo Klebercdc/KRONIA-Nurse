@@ -12,6 +12,7 @@ import { chamarGroq, extrairJson } from '../../../lib/groq-client';
 import { PROMPT_ALERTAS } from '../../../lib/prompts';
 import { calcularNews2FromRaw, calcularQsofa, ChaveNews2, ResultadoEscala } from '../../../lib/scales';
 import { getUsuarioAutenticado } from '../../../lib/auth-server';
+import { dentroDoRateLimit, LIMITE_PLANTAO, MSG_RATE_LIMIT } from '../../../lib/rate-limit';
 
 interface TermoQualitativo {
   termo: string;
@@ -49,6 +50,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const usuario = await getUsuarioAutenticado(req);
   if (!usuario) return res.status(401).json({ erro: 'Não autenticado.' });
+  if (!(await dentroDoRateLimit(usuario.id, 'plantao/calcular-alertas', LIMITE_PLANTAO))) {
+    return res.status(429).json({ erro: MSG_RATE_LIMIT });
+  }
 
   const { dados } = req.body as { dados: string };
   if (!dados) return res.status(400).json({ erro: 'dados é obrigatório' });

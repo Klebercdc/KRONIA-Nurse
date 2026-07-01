@@ -15,6 +15,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { createHash } from 'crypto';
 import { getSupabase } from '../../../../lib/supabase-client';
 import { getUsuarioAutenticado, usuarioEhAdmin } from '../../../../lib/auth-server';
+import { dentroDoRateLimit, LIMITE_PIPELINE, MSG_RATE_LIMIT } from '../../../../lib/rate-limit';
 import {
   pesquisarFontes,
   redigirConteudo,
@@ -45,6 +46,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const usuario = await getUsuarioAutenticado(req);
   if (!usuario) return res.status(401).json({ erro: 'Não autenticado.' });
   if (!(await usuarioEhAdmin(usuario.id))) return res.status(403).json({ erro: 'Acesso restrito a administradores.' });
+  if (!(await dentroDoRateLimit(usuario.id, 'kronos/biblioteca/processar', LIMITE_PIPELINE))) {
+    return res.status(429).json({ erro: MSG_RATE_LIMIT });
+  }
 
   const { temas } = req.body as { temas?: unknown };
 
