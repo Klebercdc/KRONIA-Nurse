@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Layout from '../components/Layout';
 import { useTurno, montarDadosRelatorioFinal } from '../components/useTurno';
-import { COMPLEXIDADE_LABEL } from '../lib/types';
+import { COMPLEXIDADE_LABEL, Complexidade } from '../lib/types';
 
 interface TermoSemValor {
   termo: string;
@@ -16,11 +16,18 @@ interface ResultadoAlerta {
   termosSemValor: TermoSemValor[];
 }
 
+interface SugestaoComplexidade {
+  leito: string;
+  complexidade: Complexidade;
+  justificativa: string;
+}
+
 export default function Plantao() {
-  const { turno, carregado } = useTurno();
+  const { turno, carregado, atualizarComplexidade } = useTurno();
   const [alertas, setAlertas] = useState<ResultadoAlerta[]>([]);
   const [carregandoAlertas, setCarregandoAlertas] = useState(false);
   const [erroAlertas, setErroAlertas] = useState('');
+  const [sugestoes, setSugestoes] = useState<SugestaoComplexidade[]>([]);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   async function verificarAlertas() {
@@ -28,14 +35,25 @@ export default function Plantao() {
     setErroAlertas('');
     try {
       const dados = montarDadosRelatorioFinal(turno.pacientes, turno.eventos);
-      const resp = await fetch('/api/plantao/calcular-alertas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dados }),
-      });
-      const json = await resp.json();
-      if (!resp.ok) throw new Error(json.erro);
-      setAlertas(json.resultado);
+      const [respAlertas, respSugestoes] = await Promise.all([
+        fetch('/api/plantao/calcular-alertas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dados }),
+        }),
+        fetch('/api/plantao/sugerir-complexidade', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dados }),
+        }),
+      ]);
+      const jsonAlertas = await respAlertas.json();
+      if (!respAlertas.ok) throw new Error(jsonAlertas.erro);
+      setAlertas(jsonAlertas.resultado);
+      if (respSugestoes.ok) {
+        const jsonSugestoes = await respSugestoes.json();
+        setSugestoes(jsonSugestoes.sugestoes ?? []);
+      }
     } catch (e: unknown) {
       setErroAlertas(e instanceof Error ? e.message : 'Erro ao calcular alertas.');
     } finally {
@@ -65,6 +83,12 @@ export default function Plantao() {
     },
     {}
   );
+
+  // Suggestions where AI disagrees with current classification — only those need nurse action.
+  const sugestoesAcionar = sugestoes.filter((s) => {
+    const p = pacientes.find((x) => x.leito.toLowerCase() === s.leito.toLowerCase());
+    return p && p.complexidade !== s.complexidade;
+  });
 
   return (
     <Layout>
@@ -96,6 +120,51 @@ export default function Plantao() {
               );
             })}
           </div>
+
+          {/* Sugestões de complexidade — só aparece quando a IA diverge da classificação atual */}
+          {sugestoesAcionar.length > 0 && (
+            <div className="card" style={{ borderLeft: '4px solid var(--azul)' }}>
+              <p className="card-titulo" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>Sugestão de complexidade</span>
+                {carregandoAlertas && (
+                  <span className="spinner" style={{ width: 12, height: 12, borderTopColor: 'var(--azul)', borderColor: 'var(--cinza-200)' }} />
+                )}
+              </p>
+              {sugestoesAcionar.map((s, idx) => {
+                const paciente = pacientes.find((x) => x.leito.toLowerCase() === s.leito.toLowerCase());
+                if (!paciente) return null;
+                const isLast = idx === sugestoesAcionar.length - 1;
+                return (
+                  <div key={s.leito} style={{
+                    borderBottom: isLast ? 'none' : '1px solid var(--cinza-200)',
+                    paddingBottom: isLast ? 0 : 10,
+                    marginBottom: isLast ? 0 : 10,
+                  }}>
+                    <strong style={{ fontSize: '0.875rem' }}>{s.leito}</strong>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, marginBottom: 6 }}>
+                      <span className={`badge badge-${paciente.complexidade}`}>
+                        {COMPLEXIDADE_LABEL[paciente.complexidade]}
+                      </span>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--cinza-400)' }}>→</span>
+                      <span className={`badge badge-${s.complexidade}`}>
+                        {COMPLEXIDADE_LABEL[s.complexidade]}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--cinza-700)', marginBottom: 8 }}>
+                      {s.justificativa}
+                    </p>
+                    <button
+                      className="btn btn-primario"
+                      style={{ padding: '5px 14px', fontSize: '0.8rem' }}
+                      onClick={() => atualizarComplexidade(paciente.id, s.complexidade)}
+                    >
+                      Confirmar
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Últimos registros */}
           {ultimosEventos.length > 0 && (

@@ -1,6 +1,6 @@
 /**
  * useTurno — o hook que junta tudo. As 5 telas (Plantão/Pacientes/Registrar/
- * KRONOS/Encerramento) só leem estado e chamam ações daqui; nenhuma delas
+ * Escalas/Encerramento) só leem estado e chamam ações daqui; nenhuma delas
  * deve falar direto com storage.ts ou com as rotas de API.
  *
  * Port direto da lógica já testada no protótipo (artifact), só reorganizada
@@ -78,6 +78,13 @@ export function useTurno() {
     setTurno((t) => ({ ...t, eventos: t.eventos.filter((e) => e.id !== id) }));
   }, []);
 
+  const atualizarComplexidade = useCallback((id: string, complexidade: Complexidade) => {
+    setTurno((t) => ({
+      ...t,
+      pacientes: t.pacientes.map((p) => p.id === id ? { ...p, complexidade } : p),
+    }));
+  }, []);
+
   // ---- Encerramento ----
   /** Apaga toda a memória local. Chamar só depois que o enfermeiro confirmou
    *  ter copiado os documentos gerados — não há undo. */
@@ -91,6 +98,7 @@ export function useTurno() {
     carregado,
     adicionarPaciente,
     removerPaciente,
+    atualizarComplexidade,
     capturar,
     editarEvento,
     excluirEvento,

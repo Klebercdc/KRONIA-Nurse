@@ -1,0 +1,250 @@
+================================================================
+KRONIA NURSE — PROMPT MASTER DE CONCLUSÃO
+Sistema de Biblioteca Técnica: o que falta para declarar entregue
+Gerado em: 2026-07-01
+Branch: claude/kronia-knowledge-system-lduov9
+================================================================
+
+CONTEXTO PARA QUEM LÊ ESTE DOCUMENTO
+--------------------------------------
+O pipeline completo da Biblioteca Técnica foi implementado e está
+no branch acima. O código passou em TypeScript (0 erros) e em
+verificação de schema via Supabase MCP. Os testes funcionais
+(Blocos 1–9 do arquivo KRONIA_NURSE_TESTES_BIBLIOTECA.txt) não
+puderam ser executados porque a sessão remota do Claude Code não
+tem acesso de rede ao Supabase nem ao Groq (política de egress).
+
+Este documento é o handoff completo: o que foi feito, o estado atual
+do banco, o que falta rodar, e como concluir.
+
+
+================================================================
+PARTE 1 — O QUE FOI IMPLEMENTADO (commits no branch)
+================================================================
+
+COMMIT: feat(knowledge-system) — Biblioteca Técnica completa
+  lib/knowledge-spec.ts          tipos, DOMINIOS_BIBLIOTECA, funções compose
+  lib/knowledge-pipeline.ts      pipeline Etapas 1–8 (pesquisar + redigir + 5 auditores + consolidação)
+  pages/api/knowledge-spec/criar.ts       POST — cria rascunho
+  pages/api/knowledge-spec/atualizar.ts   POST — edita rascunho
+  pages/api/knowledge-spec/pipeline.ts    POST — executa Etapas 3–8 manualmente
+  pages/api/knowledge-spec/aprovar.ts     POST — ÚNICA rota que escreve em knowledge_base
+  pages/api/knowledge-spec/reprovar.ts    POST — rejeita com motivo
+  pages/api/knowledge-spec/listar.ts      GET  — lista por status
+  pages/api/knowledge-spec/obter.ts       GET  — spec completa por id
+  pages/api/kronos/biblioteca/processar.ts POST — pipeline automático Etapas 1–8 por tema
+  pages/biblioteca-tecnica.tsx   UI completa (lista, form, detalhe, aprovação em lote, processador IA)
+
+COMMIT: feat(db) — SQL completo + ALTER TABLE + migrations
+  supabase/KRONIA_NURSE_SQL_COMPLETO.txt                   SQL completo para o Supabase
+  supabase/migrations/20260630_knowledge_specs.sql          tabelas novas + RLS + triggers
+  supabase/migrations/20260630_alter_knowledge_tables.sql   ALTER TABLE nas tabelas existentes
+  supabase/migrations/20260630_schema_completo.sql          schema completo (referência)
+
+COMMIT: docs(testes) — prompt master de testes
+  supabase/KRONIA_NURSE_TESTES_BIBLIOTECA.txt  9 blocos de teste com SQL + curl + critérios
+
+
+================================================================
+PARTE 2 — ESTADO ATUAL DO BANCO (verificado via Supabase MCP)
+================================================================
+
+Projeto Supabase: uguxeoftfnljrxhwvdkj
+
+TABELAS EXISTENTES (confirmadas):
+  knowledge_base         — 0 registros (banco limpo, pronto para teste)
+  knowledge_specs        — 0 registros
+  knowledge_spec_audit   — 0 registros
+  knowledge_audit        — 0 registros
+  knowledge_versions     — 0 registros
+
+COLUNAS CONFIRMADAS EM knowledge_base (16 novas):
+  objetivo, escopo, indicacoes, contraindicacoes, materiais, preparacao,
+  procedimento, cuidados, complicacoes, prevencao_eventos_adversos,
+  pontos_criticos, observacoes, limitacoes, variacoes_institucionais,
+  spec_id (uuid), hash (text)
+
+RLS ATIVO: knowledge_specs e knowledge_spec_audit — rowsecurity = true
+
+FUNÇÃO RPC: buscar_conhecimento — presente e funcional
+
+
+================================================================
+PARTE 3 — O QUE FALTA PARA CONCLUIR
+================================================================
+
+TAREFA ÚNICA: executar KRONIA_NURSE_TESTES_BIBLIOTECA.txt Blocos 0–9
+na íntegra em um ambiente com acesso de rede ao Supabase e ao Groq.
+
+Blocos que precisam de rede:
+  Bloco 1 — disparar pipeline para 3 temas → POST /api/kronos/biblioteca/processar
+  Bloco 2 — verificar SQL pós-pipeline
+  Bloco 3 — verificar UI (inspeção manual ou Playwright)
+  Bloco 4 — aprovar 1, rejeitar 1, manter 1 pendente → curl
+  Bloco 5 — verificar SQL pós-decisão (knowledge_base, embedding, hash)
+  Bloco 6 — testar KRONOS com o item aprovado
+  Bloco 7 — todos os 5 negative tests (401, 404, 400, limite, barreira de escrita)
+  Bloco 8 — aprovação em lote (2 temas extras + UI checkbox)
+  Bloco 9 — checklist de não-regressão (escalas, plantão, KRONOS geral, auth)
+
+Bloco 0 — JÁ PASSOU (schema verificado via Supabase MCP).
+TypeScript — JÁ PASSOU (npx tsc --noEmit → 0 erros).
+Bloco 7C  — JÁ PASSOU (401 sem token → testado no servidor local).
+
+
+================================================================
+PARTE 4 — COMO EXECUTAR LOCALMENTE (passo a passo)
+================================================================
+
+PRÉ-REQUISITO: Node.js 18+, npm, acesso à internet (Supabase + Groq + Cohere)
+
+PASSO 1 — Clonar e instalar
+  git clone <repo>
+  git checkout claude/kronia-knowledge-system-lduov9
+  npm install
+
+PASSO 2 — Criar .env.local na raiz do projeto
+  (o arquivo já existe no branch com as variáveis; se estiver vazio, preencher:)
+
+  NEXT_PUBLIC_SUPABASE_URL=https://uguxeoftfnljrxhwvdkj.supabase.co
+  NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
+  SUPABASE_URL=https://uguxeoftfnljrxhwvdkj.supabase.co
+  SUPABASE_SERVICE_ROLE_KEY=<service role key>
+  GROQ_API_KEY=<groq key>
+  COHERE_API_KEY=<cohere key>
+
+PASSO 3 — Aplicar SQL no Supabase (se ainda não aplicado)
+  Abrir o Supabase SQL Editor
+  Colar o conteúdo de supabase/KRONIA_NURSE_SQL_COMPLETO.txt
+  Executar
+
+PASSO 4 — Subir o servidor
+  npm run dev
+  Aguardar "✓ Ready in Xs"
+
+PASSO 5 — Obter token de autenticação
+  OPÇÃO A (via API admin):
+    curl -s -X POST \
+      "https://uguxeoftfnljrxhwvdkj.supabase.co/auth/v1/admin/users" \
+      -H "apikey: <service_role_key>" \
+      -H "Authorization: Bearer <service_role_key>" \
+      -H "Content-Type: application/json" \
+      -d '{"email":"teste@kronia.nurse","password":"Kronia2026!Teste","email_confirm":true,"user_metadata":{"nome":"Enfermeiro Teste"}}'
+
+    curl -s -X POST \
+      "https://uguxeoftfnljrxhwvdkj.supabase.co/auth/v1/token?grant_type=password" \
+      -H "apikey: <anon_key>" \
+      -H "Content-Type: application/json" \
+      -d '{"email":"teste@kronia.nurse","password":"Kronia2026!Teste"}' | jq -r '.access_token'
+
+  OPÇÃO B (via UI):
+    Abrir http://localhost:3000/cadastro
+    Cadastrar usuário de teste
+    Abrir DevTools → Application → Local Storage
+    Copiar o access_token do objeto supabase.auth.token
+
+  Salvar em variável:
+    TOKEN="eyJ..."
+
+PASSO 6 — Executar os blocos
+  Seguir KRONIA_NURSE_TESTES_BIBLIOTECA.txt do Bloco 1 ao 9.
+  Substituir $TOKEN, $SPEC_ID_1, $SPEC_ID_2, $SPEC_ID_3, $KB_ID_1
+  pelos valores reais obtidos em cada bloco.
+
+  Bloco 1 (disparo do pipeline — ~3–6 minutos):
+    curl -s -X POST http://localhost:3000/api/kronos/biblioteca/processar \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer $TOKEN" \
+      -d '{"temas":["sonda vesical de demora","oxigenoterapia por cateter nasal","coleta de hemocultura"]}' \
+      | jq .
+
+  CRITÉRIO DE PARADA DO BLOCO 1:
+    "ok" deve ser true
+    "sucessos" deve ser 3
+    "erros" deve ser 0
+    todos spec_id devem ser UUIDs não-nulos
+    todos status devem ser "aguardando_aprovacao" ou "reprovado"
+
+  Se qualquer critério falhar: PARAR e reportar o JSON completo.
+  Não avançar para o Bloco 2 se o Bloco 1 falhar.
+
+
+================================================================
+PARTE 5 — O QUE VERIFICAR EM CADA BLOCO (resumo executivo)
+================================================================
+
+Bloco 1 — ok=true, sucessos=3, erros=0, spec_ids válidos
+Bloco 2 — 3 specs no banco, 6 audit entries, knowledge_base vazio, refs >= 2
+Bloco 3 — UI mostra 3 grupos (verde/amarelo/vermelho), checkbox funciona
+Bloco 4 — SPEC_1 aprovada (→knowledge_base), SPEC_2 reprovada, SPEC_3 pendente
+Bloco 5 — knowledge_base tem 1 linha com embedding não-nulo e spec_id correto
+Bloco 6 — KRONOS responde sobre SPEC_1 com citação; não vaza SPEC_2 rejeitada
+Bloco 7 — 401 sem token, 404 uuid inválido, 400 status errado, 400 >10 temas, 0 linhas vazadas
+Bloco 8 — 2 temas extras aprovados em lote; embedding gerado para ambos
+Bloco 9 — plantão/escalas/auth/legado funcionam; npx tsc --noEmit = 0 erros
+
+
+================================================================
+PARTE 6 — RESTRIÇÕES NÃO NEGOCIÁVEIS (Constitution)
+================================================================
+
+Ao executar ou adaptar qualquer parte do pipeline, manter:
+
+1. knowledge_base só recebe dados via /api/knowledge-spec/aprovar
+   — nunca diretamente, nunca automaticamente ao fim do pipeline
+   — nenhum parâmetro, flag ou modo deve criar um atalho
+
+2. Embedding (Cohere) gerado SOMENTE dentro de aprovar.ts
+   — nunca em processar.ts, pipeline.ts, criar.ts ou atualizar.ts
+
+3. Pipeline vermelho (classificacao='vermelho') NÃO PODE ser aprovado
+   — verificação no backend em aprovar.ts linha 55
+
+4. Specs com status diferente de 'aguardando_aprovacao' NÃO PODEM ser aprovadas
+   — verificação no backend em aprovar.ts linha 43
+
+5. KRONOS (/api/kronos/professor) lê SOMENTE de knowledge_base
+   — nunca de knowledge_specs diretamente
+
+Se qualquer um destes pontos for violado em uma correção futura,
+o item pertence à Camada B do roadmap — não implementar.
+
+
+================================================================
+PARTE 7 — ARQUIVOS DE REFERÊNCIA
+================================================================
+
+Implementação:
+  lib/knowledge-spec.ts                  tipos + constantes
+  lib/knowledge-pipeline.ts              Etapas 1–8
+  pages/api/kronos/biblioteca/processar.ts  endpoint principal
+  pages/api/knowledge-spec/aprovar.ts    ÚNICA rota de publicação
+  pages/biblioteca-tecnica.tsx           UI completa
+
+Banco de dados:
+  supabase/KRONIA_NURSE_SQL_COMPLETO.txt  SQL para aplicar no Supabase
+
+Testes:
+  supabase/KRONIA_NURSE_TESTES_BIBLIOTECA.txt  protocolo completo de testes
+
+Constitution (não alterar sem leitura):
+  KRONIA_NURSE_CADERNO_INTELIGENTE.md
+  CHECKLIST_NAO_REGRESSAO.md
+
+
+================================================================
+CRITÉRIO DE CONCLUSÃO
+================================================================
+
+O pipeline da Biblioteca Técnica pode ser declarado "entregue e funcional"
+quando e somente quando todos os 10 blocos do documento
+KRONIA_NURSE_TESTES_BIBLIOTECA.txt estiverem marcados como PASS,
+incluindo os resultados reais (spec_ids, KB_ID, screenshots de UI,
+output do KRONOS) registrados no documento.
+
+Até então: implementado, verificado em schema e TypeScript,
+aguardando execução funcional com rede habilitada.
+
+================================================================
+FIM DO PROMPT MASTER DE CONCLUSÃO
+================================================================

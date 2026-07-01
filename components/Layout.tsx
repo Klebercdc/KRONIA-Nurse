@@ -1,4 +1,5 @@
 import { useRouter } from 'next/router';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Props {
   children: React.ReactNode;
@@ -7,13 +8,41 @@ interface Props {
 export default function Layout({ children }: Props) {
   const router = useRouter();
   const rota = router.pathname;
+  const { signOut, user } = useAuth();
 
   function navegar(href: string) {
     router.push(href);
   }
 
+  async function sair() {
+    await signOut();
+    router.replace('/login');
+  }
+
+  const nomeUsuario = user?.user_metadata?.nome || user?.email?.split('@')[0] || '';
+
   return (
     <div className="app-shell">
+      {/* Barra de usuário */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '8px 16px',
+        borderBottom: '1px solid var(--cinza-200)',
+        background: '#fff',
+        fontSize: '0.72rem',
+        color: 'var(--cinza-400)',
+        minHeight: 36,
+      }}>
+        <span style={{ fontWeight: 500 }}>{nomeUsuario}</span>
+        <button
+          onClick={sair}
+          style={{ background: 'none', border: 'none', fontSize: '0.72rem', color: 'var(--cinza-400)', cursor: 'pointer', padding: '2px 6px', borderRadius: 4 }}
+        >
+          Sair
+        </button>
+      </div>
       <main className="main-content">{children}</main>
 
       <nav className="bottom-nav">
@@ -39,6 +68,14 @@ export default function Layout({ children }: Props) {
           aria-label="Registrar"
         >
           <IconMais />
+        </button>
+
+        <button
+          className={`nav-item${rota === '/escalas' ? ' ativo' : ''}`}
+          onClick={() => navegar('/escalas')}
+        >
+          <IconEscalas />
+          Escalas
         </button>
 
         <button
@@ -92,11 +129,20 @@ function IconMais() {
   );
 }
 
-function IconKronos() {
+function IconEscalas() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="9" />
       <polyline points="12 7 12 12 15 15" />
+    </svg>
+  );
+}
+
+function IconKronos() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
     </svg>
   );
 }
