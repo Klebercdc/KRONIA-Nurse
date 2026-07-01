@@ -404,7 +404,8 @@ function classificar(
   estagio_dominio?: ResultadoDominio,
   parado_em?: string
 ): { score: number; classificacao: ClassificacaoPipeline; resumo: string } {
-  // Se o pipeline foi interrompido, é vermelho
+  // Se o pipeline foi interrompido nos auditores de conteúdo (Origem/Escopo/
+  // Coerência), é vermelho — são gates de conformidade, não de atualidade.
   if (parado_em) {
     return {
       score: 0,
@@ -413,25 +414,29 @@ function classificar(
     };
   }
 
-  const estagios = [estagio_origem, estagio_escopo, estagio_coerencia, estagio_atualizacao];
-  const aprovados = estagios.filter((e) => e?.aprovado === true).length;
-  const total = estagios.filter((e) => e !== undefined).length;
+  const estagiosCriticos = [estagio_origem, estagio_escopo, estagio_coerencia];
+  const estagiosTodos = [estagio_origem, estagio_escopo, estagio_coerencia, estagio_atualizacao];
+  const aprovados = estagiosTodos.filter((e) => e?.aprovado === true).length;
+  const total = estagiosTodos.filter((e) => e !== undefined).length;
   const score = total > 0 ? Math.round((aprovados / total) * 100) : 0;
 
-  // Algum auditor binário reprovou?
-  const algumReprovado = estagios.some((e) => e !== undefined && !e.aprovado);
-  if (algumReprovado) {
+  // Origem/Escopo/Coerência reprovados são hard-fail (vermelho).
+  const algumCriticoReprovado = estagiosCriticos.some((e) => e !== undefined && !e.aprovado);
+  if (algumCriticoReprovado) {
     return { score, classificacao: 'vermelho', resumo: 'Uma ou mais auditorias reprovaram. Revisar itens sinalizados antes de reenviar.' };
   }
 
-  // Todos aprovados — verificar classificação pelo Domínio
+  // Atualização reprovada não bloqueia — só sinaliza necessidade de revisão
+  // humana pontual (o próprio auditor não avalia conteúdo, só atualidade).
+  const atualizacaoReprovada = estagio_atualizacao !== undefined && !estagio_atualizacao.aprovado;
   const dominioDistante = estagio_dominio?.dominio === 'distante';
   const riscoAlto = estagio_dominio?.risco_tecnico === 'alto';
   const variabilidadeRelevante = estagio_dominio && estagio_dominio.variabilidade !== 'nenhuma';
   const divergencias = (estagio_dominio?.divergencias ?? []).length > 0;
 
-  if (dominioDistante || riscoAlto || variabilidadeRelevante || divergencias) {
+  if (atualizacaoReprovada || dominioDistante || riscoAlto || variabilidadeRelevante || divergencias) {
     const motivos: string[] = [];
+    if (atualizacaoReprovada) motivos.push('referências pendentes de verificação de atualidade');
     if (dominioDistante) motivos.push('domínio distante');
     if (riscoAlto) motivos.push('risco técnico alto');
     if (variabilidadeRelevante) motivos.push(`variabilidade institucional ${estagio_dominio!.variabilidade}`);
@@ -439,7 +444,7 @@ function classificar(
     return {
       score,
       classificacao: 'amarelo',
-      resumo: `Todas as auditorias aprovadas. Revisão humana pontual necessária: ${motivos.join(', ')}.`,
+      resumo: `Auditorias de conteúdo aprovadas. Revisão humana pontual necessária: ${motivos.join(', ')}.`,
     };
   }
 
@@ -464,8 +469,9 @@ function nomearEstagio(estagio: string): string {
 
 /**
  * Executa o pipeline completo de auditoria de forma sequencial.
- * Qualquer reprovação nas Etapas 3–6 interrompe a execução imediatamente.
- * Etapa 7 (Domínio) só é executada se as Etapas 3–6 todas aprovarem.
+ * Reprovação nas Etapas 3–5 (Origem/Escopo/Coerência) interrompe a execução
+ * imediatamente (vermelho). A Etapa 6 (Atualização) nunca interrompe — sua
+ * reprovação só sinaliza revisão humana pontual (amarelo) na Etapa 8.
  */
 export async function executarPipeline(spec: KnowledgeSpec): Promise<ResultadoPipeline> {
   const resultado: Partial<ResultadoPipeline> = {};
@@ -494,13 +500,10 @@ export async function executarPipeline(spec: KnowledgeSpec): Promise<ResultadoPi
     return { ...resultado, parado_em: 'coerencia', score, classificacao, resumo_consolidacao: resumo, executado_em: new Date().toISOString() } as ResultadoPipeline;
   }
 
-  // Etapa 6 — Auditor de Atualização
+  // Etapa 6 — Auditor de Atualização (reprovação não interrompe o pipeline;
+  // vira sinalização de revisão humana pontual na Etapa 8)
   const atualizacao = await auditarAtualizacao(spec);
   resultado.auditor_atualizacao = atualizacao;
-  if (!atualizacao.aprovado) {
-    const { score, classificacao, resumo } = classificar(origem, escopo, coerencia, atualizacao, undefined, 'atualizacao');
-    return { ...resultado, parado_em: 'atualizacao', score, classificacao, resumo_consolidacao: resumo, executado_em: new Date().toISOString() } as ResultadoPipeline;
-  }
 
   // Etapa 7 — Auditor de Domínio e Variabilidade (sempre classifica)
   const dominio = await auditarDominio(spec);
