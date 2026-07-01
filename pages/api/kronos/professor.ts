@@ -45,7 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   const supabase = getSupabase();
   const { data: resultados, error } = await supabase.rpc('buscar_conhecimento', {
     query_embedding: embedding,
-    similarity_threshold: 0.82,
+    similarity_threshold: 0.5,
     match_count: 3,
   });
 
