@@ -28,6 +28,7 @@ Segredos ficam apenas em `.env.local` (local) e nas variáveis de ambiente da Ve
 | --- | --- | --- |
 | `GROQ_API_KEY` | sim | Chave da Groq API (só no servidor). |
 | `GROQ_MODEL` | não | ID do modelo Groq usado em toda geração (plantão, pipeline, KRONOS). Default: `openai/gpt-oss-120b` — substituto indicado pela Groq para o `llama-3.3-70b-versatile`, descontinuado em 16/08/2026. Alternativa sugerida pela Groq: o Qwen 3.x vigente (conferir ID exato em console.groq.com/docs/models). |
+| `GROQ_MAX_TOKENS` | não | Limite de tokens de saída por chamada. Default: 4096. Atenção: no tier on_demand da Groq, prompt + max_tokens acima do TPM do modelo (8000 no gpt-oss-120b) é rejeitado com 413. |
 | `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | sim | Cliente Supabase server-side (só em `pages/api/**`). |
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | sim | Cliente Supabase do browser (sessão de autenticação). |
 | `COHERE_API_KEY` | sim | Geração de embeddings (só no servidor). |
