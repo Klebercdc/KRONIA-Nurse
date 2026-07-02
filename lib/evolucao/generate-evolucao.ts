@@ -19,9 +19,14 @@ export async function generateEvolucao(
   const tipo = getDocType(tipoId);
   if (!tipo) throw new Error(`Tipo de documento desconhecido: ${tipoId}`);
 
+  // Descarta campos que não pertencem ao schema do tipo — nada de campo
+  // desconhecido virar conteúdo no prompt.
   const schema = getFieldSchema(tipoId);
+  const camposValidos = schema
+    ? campos.filter((c) => schema.campos.some((f) => f.id === c.id))
+    : campos;
 
-  const camposPreenchidos = campos.filter((c) => c.valor && c.valor.trim() !== '');
+  const camposPreenchidos = camposValidos.filter((c) => c.valor && c.valor.trim() !== '');
   if (camposPreenchidos.length === 0) throw new Error('Nenhum campo preenchido.');
 
   const tabelaCampos = camposPreenchidos
@@ -34,11 +39,14 @@ Sua função é redigir documentos de enfermagem profissionais, claros e objetiv
 Regras absolutas:
 1. NUNCA inclua nomes reais de pacientes, CPF, endereços ou quaisquer dados pessoais identificáveis.
 2. Use apenas os dados fornecidos nos campos — NÃO invente informações clínicas.
-3. Escreva em linguagem técnica de enfermagem, conforme padrões COFEN.
-4. O documento deve ser pronto para copiar e colar no prontuário.
-5. Não inclua títulos como "Documento:", "Resposta:", apenas o texto do documento.
-6. Use parágrafos separados para cada sistema/seção avaliada.
-7. Sempre conclua com a assinatura no formato: "Enfermeiro(a) Responsável — [data/hora]".`;
+3. Estruture APENAS o que foi fornecido nos campos. Se um campo estiver vazio ou uma seção não tiver dado correspondente, escreva "Sem registro para esta seção".
+4. É PROIBIDO criar diagnósticos de enfermagem, rótulos NANDA, julgamentos clínicos, condutas ou recomendações que não estejam literalmente nos dados fornecidos. Valores numéricos (temperatura, PA, FC) NUNCA podem virar rótulo clínico (ex: 38,7°C não pode virar "hipertermia" nem gerar diagnóstico).
+5. Números decimais sempre com vírgula (padrão brasileiro): 38,7°C, nunca 38.7.
+6. Escreva em linguagem técnica de enfermagem, conforme padrões COFEN.
+7. O documento deve ser pronto para copiar e colar no prontuário.
+8. Não inclua títulos como "Documento:", "Resposta:", apenas o texto do documento.
+9. Use parágrafos separados para cada sistema/seção avaliada.
+10. Sempre conclua com a assinatura no formato: "Enfermeiro(a) Responsável — [data/hora]", mantendo o marcador [data/hora] literal para o enfermeiro preencher — NUNCA invente data ou horário.`;
 
   const userMsg = `Tipo de documento: ${tipo.nome}
 Contexto: ${tipo.contexto}

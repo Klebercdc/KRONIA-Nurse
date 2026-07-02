@@ -30,25 +30,25 @@ export const DOC_TYPES: DocType[] = [
     id: 'admissao_hospitalar',
     nome: 'Admissão Hospitalar',
     grupo: 'admissao',
-    contexto: 'Registro de admissão em enfermaria hospitalar geral, contendo anamnese de enfermagem, avaliação inicial e plano de cuidados.',
+    contexto: 'Registro de admissão em enfermaria hospitalar geral (anamnese de enfermagem, avaliação inicial, plano de cuidados). Estruturar APENAS o conteúdo fornecido nos campos nas seções correspondentes.',
   },
   {
     id: 'admissao_uti',
     nome: 'Admissão UTI',
     grupo: 'admissao',
-    contexto: 'Admissão em Unidade de Terapia Intensiva com avaliação completa de sistemas, suporte ventilatório e hemodinâmico.',
+    contexto: 'Admissão em Unidade de Terapia Intensiva (avaliação de sistemas, suporte ventilatório e hemodinâmico). Registrar APENAS o que foi informado nos campos.',
   },
   {
     id: 'admissao_semi_intensiva',
     nome: 'Admissão Semi-Intensiva',
     grupo: 'admissao',
-    contexto: 'Admissão em unidade semi-intensiva com monitorização contínua e avaliação de instabilidade clínica moderada.',
+    contexto: 'Admissão em unidade semi-intensiva com monitorização contínua. Registrar a condição clínica APENAS conforme informada nos campos.',
   },
   {
     id: 'admissao_pronto_socorro',
     nome: 'Admissão Pronto-Socorro',
     grupo: 'admissao',
-    contexto: 'Acolhimento e classificação de risco em pronto-socorro com avaliação inicial de urgência/emergência.',
+    contexto: 'Registro de acolhimento em pronto-socorro. Registrar classificação de risco e achados iniciais APENAS conforme informados nos campos — não classificar nem estimar risco por conta própria.',
   },
 
   // ── Evolução ──────────────────────────────────────────────────────────────
@@ -100,25 +100,25 @@ export const DOC_TYPES: DocType[] = [
     id: 'alta_hospitalar',
     nome: 'Alta Hospitalar',
     grupo: 'alta',
-    contexto: 'Registro de alta hospitalar com sumário de internação, orientações ao paciente/familiar e encaminhamentos.',
+    contexto: 'Registro de alta hospitalar (sumário de internação, orientações ao paciente/familiar, encaminhamentos). Estruturar APENAS o conteúdo fornecido nos campos — não criar orientações ou encaminhamentos não informados.',
   },
   {
     id: 'alta_uti',
     nome: 'Alta da UTI',
     grupo: 'alta',
-    contexto: 'Registro de alta de UTI com condição clínica estabilizada, critérios de alta e passagem de caso.',
+    contexto: 'Registro de alta de UTI com passagem de caso. Registrar condição clínica e critérios de alta APENAS conforme informados nos campos.',
   },
   {
     id: 'alta_semi_intensiva',
     nome: 'Alta Semi-Intensiva',
     grupo: 'alta',
-    contexto: 'Registro de alta de unidade semi-intensiva com avaliação de estabilidade e encaminhamento para enfermaria.',
+    contexto: 'Registro de alta de unidade semi-intensiva com encaminhamento para enfermaria. Registrar a condição clínica APENAS conforme informada nos campos.',
   },
   {
     id: 'alta_a_pedido',
     nome: 'Alta a Pedido',
     grupo: 'alta',
-    contexto: 'Registro de alta hospitalar a pedido do paciente ou responsável, com ciência dos riscos e orientações de segurança.',
+    contexto: 'Registro de alta hospitalar a pedido do paciente ou responsável. Registrar ciência dos riscos e orientações APENAS conforme informadas nos campos — não criar riscos ou orientações novas.',
   },
 
   // ── Transferência ─────────────────────────────────────────────────────────
@@ -132,13 +132,13 @@ export const DOC_TYPES: DocType[] = [
     id: 'transferencia_externa',
     nome: 'Transferência Externa',
     grupo: 'transferencia',
-    contexto: 'Transferência para outro serviço de saúde (SAMU, UTI móvel) com sumário clínico e justificativa da transferência.',
+    contexto: 'Transferência para outro serviço de saúde (SAMU, UTI móvel) com sumário clínico. Registrar a justificativa da transferência APENAS conforme informada nos campos.',
   },
   {
     id: 'transferencia_uti_enfermaria',
     nome: 'Alta UTI → Enfermaria',
     grupo: 'transferencia',
-    contexto: 'Transferência de paciente de UTI para enfermaria com critérios de estabilidade, continuidade de cuidados e orientações.',
+    contexto: 'Transferência de paciente de UTI para enfermaria. Registrar critérios de estabilidade, continuidade de cuidados e orientações APENAS conforme informados nos campos.',
   },
 
   // ── Procedimentos ─────────────────────────────────────────────────────────
@@ -190,7 +190,7 @@ export const DOC_TYPES: DocType[] = [
     id: 'intercorrencia_lpp',
     nome: 'Lesão por Pressão (LPP)',
     grupo: 'intercorrencia',
-    contexto: 'Registro de identificação ou evolução de lesão por pressão com estadiamento, localização e plano de cuidados.',
+    contexto: 'Registro de identificação ou evolução de lesão por pressão. Registrar estadiamento, localização e cuidados APENAS conforme informados nos campos — não estadiar a lesão nem criar plano por conta própria.',
   },
   {
     id: 'intercorrencia_extubacao',
@@ -228,25 +228,25 @@ export const DOC_TYPES: DocType[] = [
     id: 'avaliacao_dor',
     nome: 'Avaliação de Dor',
     grupo: 'especifico',
-    contexto: 'Avaliação sistematizada da dor com escala numérica/comportamental, localização, qualidade e resposta a intervenções.',
+    contexto: 'Registro de avaliação de dor (escala numérica/comportamental, localização, qualidade, resposta a intervenções). Estruturar APENAS o conteúdo fornecido nos campos.',
   },
   {
     id: 'escala_braden',
     nome: 'Avaliação Braden / LPP',
     grupo: 'especifico',
-    contexto: 'Aplicação da Escala de Braden com pontuação por subescalas e plano preventivo para lesão por pressão.',
+    contexto: 'Registro de aplicação da Escala de Braden. Registrar pontuações e medidas preventivas APENAS conforme informadas nos campos — não calcular pontuação nem criar plano preventivo por conta própria.',
   },
   {
     id: 'sae_sistematizacao',
     nome: 'SAE — Sistematização',
     grupo: 'especifico',
-    contexto: 'Sistematização da Assistência de Enfermagem (SAE) conforme COFEN com diagnóstico, planejamento e avaliação.',
+    contexto: 'Sistematização da Assistência de Enfermagem (SAE) conforme COFEN. Estruturar APENAS o conteúdo fornecido nos campos nas seções correspondentes.',
   },
   {
     id: 'contra_referencia',
     nome: 'Contra-referência / Resumo',
     grupo: 'especifico',
-    contexto: 'Documento de contra-referência para UBS/APS com resumo da internação, condição de alta e recomendações de continuidade.',
+    contexto: 'Documento de contra-referência para UBS/APS com resumo da internação. Registrar condição de alta e recomendações de continuidade APENAS conforme informadas nos campos.',
   },
 ];
 
