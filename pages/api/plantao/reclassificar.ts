@@ -32,7 +32,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const texto = await chamarGroq(PROMPT_RECLASSIFICACAO, listaNumerada);
-    const mapeamento = extrairJson<ItemReclassificacao[]>(texto);
+    // O modo JSON da Groq exige objeto na raiz ({"mapeamento":[...]}); array
+    // puro é aceito por tolerância a variação do modelo.
+    const raw = extrairJson<ItemReclassificacao[] | { mapeamento?: ItemReclassificacao[] }>(texto);
+    const mapeamento = Array.isArray(raw) ? raw : raw.mapeamento ?? [];
     res.status(200).json({ mapeamento });
   } catch (e) {
     console.error('[plantao/reclassificar] erro:', e);

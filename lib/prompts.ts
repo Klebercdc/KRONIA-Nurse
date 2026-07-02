@@ -78,7 +78,7 @@ Recomendação
 ${REGRAS_COMUNS}`;
 }
 
-export const PROMPT_RECLASSIFICACAO = `Você recebe uma lista numerada de registros de um plantão de enfermagem. Cada um tem uma marcação local de paciente que PODE ESTAR ERRADA por falha de reconhecimento de voz (ex: "leito" pode ter virado "eleito" ou outra coisa parecida) — use o CONTEXTO da frase, não a marcação local, para decidir a que paciente cada registro pertence. Responda APENAS com JSON válido, sem markdown, sem texto antes ou depois, neste formato exato: [{"indice":0,"leito":"Leito 5 JM"}]. Inclua todos os índices que conseguir identificar com confiança razoável pelo contexto. Omita o índice se não houver nenhuma pista de paciente na frase.`;
+export const PROMPT_RECLASSIFICACAO = `Você recebe uma lista numerada de registros de um plantão de enfermagem. Cada um tem uma marcação local de paciente que PODE ESTAR ERRADA por falha de reconhecimento de voz (ex: "leito" pode ter virado "eleito" ou outra coisa parecida) — use o CONTEXTO da frase, não a marcação local, para decidir a que paciente cada registro pertence. Responda APENAS com um objeto JSON válido, sem markdown, sem texto antes ou depois, neste formato exato: {"mapeamento":[{"indice":0,"leito":"Leito 5 JM"}]}. Inclua em "mapeamento" todos os índices que conseguir identificar com confiança razoável pelo contexto. Omita o índice se não houver nenhuma pista de paciente na frase; se nenhum índice tiver pista, retorne {"mapeamento":[]}.`;
 
 export function promptRelatorioFinal(): string {
   return `Você é um assistente de redação clínica para enfermagem brasileira. Monte o RELATÓRIO FINAL DE PASSAGEM DE PLANTÃO consolidando todos os pacientes.
@@ -118,8 +118,8 @@ REGRAS OBRIGATÓRIAS:
 1. Cite na justificativa APENAS termos ou valores que aparecem EXPLICITAMENTE nos dados fornecidos — nunca infira.
 2. A justificativa deve ser curta (máximo 2 itens separados por vírgula) e específica. Exemplos corretos: "noradrenalina em infusão, qSOFA 3 pts" / "sinais vitais estáveis, sem dispositivo invasivo". NUNCA escreva apenas "paciente grave" ou "paciente estável" sem citar o dado de origem.
 3. Se não houver dado suficiente para classificar, use "intermediarios" e escreva: "dados insuficientes para classificação precisa".
-4. Responda APENAS com JSON válido, sem markdown, sem texto antes ou depois, exatamente neste formato:
-[{"leito":"Leito X","complexidade":"intensivos","justificativa":"noradrenalina em infusão, qSOFA 3 pts"}]`;
+4. Responda APENAS com um objeto JSON válido, sem markdown, sem texto antes ou depois, exatamente neste formato:
+{"sugestoes":[{"leito":"Leito X","complexidade":"intensivos","justificativa":"noradrenalina em infusão, qSOFA 3 pts"}]}`;
 }
 
 export const PROMPT_ALERTAS = `Você é um assistente de extração clínica. Para cada paciente nos dados abaixo, identifique SOMENTE valores numéricos ou descrições EXPLICITAMENTE mencionados no texto (frequência respiratória, SpO2, uso de oxigênio, PA sistólica, frequência cardíaca, nível de consciência, temperatura). NÃO infira, NÃO estime, NÃO conclua a partir de descrição vaga.
@@ -137,6 +137,6 @@ Inclua o termo no campo "termosQualitativos" APENAS SE não houver valor numéri
 REGRAS OBRIGATÓRIAS:
 1. Se não houver dado explícito suficiente para um parâmetro numérico, NÃO o inclua em "valores" — nunca estime ou arredonde.
 2. Cite o horário [HH:MM] de cada valor numérico usado no campo "fontes".
-3. Responda APENAS com JSON válido, sem markdown, sem texto antes ou depois, exatamente neste formato:
-[{"leito":"Leito X","valores":{"fr":N,"spo2":N,"o2":N,"pas":N,"fc":N,"consc":N,"temp":N},"fontes":"...","termosQualitativos":[{"termo":"hipotenso","parametro":"PA sistólica (mmHg)","chaveNews2":"pas"}]}]
+3. Responda APENAS com um objeto JSON válido, sem markdown, sem texto antes ou depois, exatamente neste formato:
+{"pacientes":[{"leito":"Leito X","valores":{"fr":N,"spo2":N,"o2":N,"pas":N,"fc":N,"consc":N,"temp":N},"fontes":"...","termosQualitativos":[{"termo":"hipotenso","parametro":"PA sistólica (mmHg)","chaveNews2":"pas"}]}]}
 Omita do objeto "valores" qualquer parâmetro sem dado explícito. Omita "termosQualitativos" se não houver nenhum termo qualitativo detectado. O cálculo da pontuação final (NEWS2 e qSOFA) é feito inteiramente por código a partir destes valores — você só extrai valores brutos, nunca soma, nunca classifica risco, nunca conta critérios.`;

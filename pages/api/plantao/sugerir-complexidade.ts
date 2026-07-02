@@ -37,7 +37,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const texto = await chamarGroq(promptSugestaoComplexidade(), dados);
-    const raw = extrairJson<SugestaoComplexidade[]>(texto);
+    // O modo JSON da Groq exige objeto na raiz ({"sugestoes":[...]}); array
+    // puro é aceito por tolerância a variação do modelo.
+    const raw0 = extrairJson<SugestaoComplexidade[] | { sugestoes?: SugestaoComplexidade[] }>(texto);
+    const raw = Array.isArray(raw0) ? raw0 : raw0.sugestoes ?? [];
     const sugestoes = raw.filter(
       (s) => s.leito && COMPLEXIDADES_VALIDAS.includes(s.complexidade) && s.justificativa?.trim()
     );

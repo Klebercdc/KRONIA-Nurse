@@ -59,7 +59,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const texto = await chamarGroq(PROMPT_ALERTAS, dados);
-    const extracoes = extrairJson<ExtracaoPaciente[]>(texto);
+    // O modo JSON da Groq exige objeto na raiz ({"pacientes":[...]}); array
+    // puro é aceito por tolerância a variação do modelo.
+    const raw = extrairJson<ExtracaoPaciente[] | { pacientes?: ExtracaoPaciente[] }>(texto);
+    const extracoes = Array.isArray(raw) ? raw : raw.pacientes ?? [];
 
     const resultado = extracoes.map((e) => {
       // NEWS2 só é calculado se houver pelo menos os parâmetros mínimos
