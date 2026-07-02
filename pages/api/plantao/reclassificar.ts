@@ -35,6 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const mapeamento = extrairJson<ItemReclassificacao[]>(texto);
     res.status(200).json({ mapeamento });
   } catch (e) {
+    console.error('[plantao/reclassificar] erro:', e);
     res.status(500).json({ erro: 'Não foi possível reclassificar agora.' });
   }
 }

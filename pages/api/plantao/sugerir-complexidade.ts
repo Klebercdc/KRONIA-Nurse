@@ -42,7 +42,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       (s) => s.leito && COMPLEXIDADES_VALIDAS.includes(s.complexidade) && s.justificativa?.trim()
     );
     res.status(200).json({ sugestoes });
-  } catch {
+  } catch (e) {
+    console.error('[plantao/sugerir-complexidade] erro:', e);
     res.status(500).json({ erro: 'Não foi possível gerar sugestões de complexidade agora.' });
   }
 }
