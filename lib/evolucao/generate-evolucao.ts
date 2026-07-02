@@ -46,7 +46,7 @@ Regras absolutas:
 7. O documento deve ser pronto para copiar e colar no prontuário.
 8. Não inclua títulos como "Documento:", "Resposta:", apenas o texto do documento.
 9. Use parágrafos separados para cada sistema/seção avaliada.
-10. Sempre conclua com a assinatura no formato: "Enfermeiro(a) Responsável — [data/hora]".`;
+10. Sempre conclua com a assinatura no formato: "Enfermeiro(a) Responsável — [data/hora]", mantendo o marcador [data/hora] literal para o enfermeiro preencher — NUNCA invente data ou horário.`;
 
   const userMsg = `Tipo de documento: ${tipo.nome}
 Contexto: ${tipo.contexto}

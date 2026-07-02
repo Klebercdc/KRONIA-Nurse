@@ -73,7 +73,7 @@ Histórico/Background
 [contexto clínico relevante do turno]
 
 Avaliação
-[avaliação de enfermagem baseada nos dados]
+[somente avaliações que o enfermeiro registrou nos dados, com [HH:MM] — não criar julgamento clínico novo a partir de valores ou achados isolados; se não houver, escrever "Sem registro para esta seção neste turno"]
 
 Recomendação
 [apenas o que o enfermeiro explicitamente registrou como pendência ou recomendação, com citação [HH:MM]; se não houver, escrever "Sem registro para esta seção neste turno"]
