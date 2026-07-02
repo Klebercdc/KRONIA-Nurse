@@ -6,7 +6,7 @@ import { detectarLeito } from '../lib/leito-parser';
 import { COMPLEXIDADE_LABEL } from '../lib/types';
 
 export default function Registrar() {
-  const { turno, carregado, capturar, editarEvento, excluirEvento } = useTurno();
+  const { turno, carregado, organizandoIds, capturar, editarEvento, excluirEvento } = useTurno();
 
   const [texto, setTexto] = useState('');
   const [focado, setFocado] = useState(false);
@@ -15,6 +15,15 @@ export default function Registrar() {
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [editTexto, setEditTexto] = useState('');
   const [editPatientId, setEditPatientId] = useState<string | null>(null);
+
+  // Cards com o texto original (pré-organização) expandido
+  const [originalAbertoIds, setOriginalAbertoIds] = useState<string[]>([]);
+
+  function alternarOriginal(id: string) {
+    setOriginalAbertoIds((ids) =>
+      ids.includes(id) ? ids.filter((i) => i !== id) : [...ids, id]
+    );
+  }
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -167,9 +176,16 @@ export default function Registrar() {
           {eventosOrdenados.map((ev) => {
             const paciente = turno.pacientes.find((p) => p.id === ev.patientId);
             const estaEditando = editandoId === ev.id;
+            const estaOrganizando = organizandoIds.includes(ev.id);
+            const temConferir = ev.texto.includes('(CONFERIR');
+            const originalAberto = originalAbertoIds.includes(ev.id);
 
             return (
-              <div key={ev.id} className={`sessao-card${estaEditando ? ' editando' : ''}`}>
+              <div
+                key={ev.id}
+                className={`sessao-card${estaEditando ? ' editando' : ''}`}
+                style={temConferir && !estaEditando ? { borderColor: 'var(--color-warn)' } : undefined}
+              >
                 {estaEditando ? (
                   /* ── Modo edição inline ────────────────────────── */
                   <>
@@ -223,6 +239,12 @@ export default function Registrar() {
 
                       <span className="sessao-tipo-pill">{ev.tipo}</span>
 
+                      {temConferir && (
+                        <span className="sessao-sem-leito-pill" title="Contém trecho ambíguo do ditado — conferir antes de usar">
+                          ⚠ conferir
+                        </span>
+                      )}
+
                       <div className="sessao-acoes">
                         <button
                           className="btn-icone"
@@ -241,7 +263,32 @@ export default function Registrar() {
                       </div>
                     </div>
 
-                    <p className="sessao-texto">{ev.texto}</p>
+                    <p className="sessao-texto" style={estaOrganizando ? { opacity: 0.55 } : undefined}>
+                      {ev.texto}
+                    </p>
+
+                    {estaOrganizando && (
+                      <div style={{ fontSize: '0.74rem', color: 'var(--cinza-400)', marginTop: 4 }}>
+                        Organizando registro…
+                      </div>
+                    )}
+
+                    {ev.textoOriginal && (
+                      <div style={{ marginTop: 6 }}>
+                        <button
+                          className="btn-icone"
+                          style={{ fontSize: '0.74rem', width: 'auto', padding: '2px 6px' }}
+                          onClick={() => alternarOriginal(ev.id)}
+                        >
+                          {originalAberto ? 'Ocultar original' : 'Ver original'}
+                        </button>
+                        {originalAberto && (
+                          <p className="sessao-texto" style={{ opacity: 0.65, fontStyle: 'italic', marginTop: 4 }}>
+                            {ev.textoOriginal}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </>
                 )}
               </div>

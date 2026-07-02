@@ -14,10 +14,39 @@ import {
 } from '../lib/types';
 import { carregarTurno, salvarTurno, encerrarTurno as apagarStorage } from '../lib/storage';
 import { detectarLeito } from '../lib/leito-parser';
+import { getSupabaseBrowser } from '../lib/supabase-browser';
+
+/**
+ * Aplica o texto organizado que voltou da rota /api/plantao/organizar-registro
+ * a um evento do turno. Pura e exportada para ser testável.
+ * Regra "edição humana vence máquina": só aplica se o evento ainda existe E
+ * seu texto continua sendo exatamente o texto cru enviado — se o enfermeiro
+ * editou (ou excluiu) o registro enquanto a organização rodava, a resposta
+ * async é descartada e o turno volta inalterado.
+ */
+export function aplicarTextoOrganizado(
+  t: Turno,
+  eventoId: string,
+  textoCru: string,
+  textoOrganizado: string
+): Turno {
+  const organizado = textoOrganizado.trim();
+  if (!organizado || organizado === textoCru) return t;
+  return {
+    ...t,
+    eventos: t.eventos.map((e) =>
+      e.id === eventoId && e.texto === textoCru
+        ? { ...e, texto: organizado, textoOriginal: textoCru }
+        : e
+    ),
+  };
+}
 
 export function useTurno() {
   const [turno, setTurno] = useState<Turno>(turnoVazio());
   const [carregado, setCarregado] = useState(false);
+  /** Ids de eventos com organização automática em andamento (indicador na UI). */
+  const [organizandoIds, setOrganizandoIds] = useState<string[]>([]);
 
   // Carrega o turno em andamento (se houver) ao montar — é o que resolve
   // "perdi tudo ao recarregar a página", problema real visto no protótipo.
@@ -43,17 +72,46 @@ export function useTurno() {
     }));
   }, []);
 
+  // ---- Organização automática do registro (async, melhor esforço) ----
+  // Chamada DEPOIS que o evento cru já está salvo. Qualquer falha (rede,
+  // timeout, 4xx/5xx) é silenciosa: o registro permanece cru, sem erro
+  // visível — a captura nunca depende disto.
+  const organizarRegistro = useCallback(async (eventoId: string, textoCru: string) => {
+    setOrganizandoIds((ids) => [...ids, eventoId]);
+    try {
+      const { data: sessao } = await getSupabaseBrowser().auth.getSession();
+      const resp = await fetch('/api/plantao/organizar-registro', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${sessao.session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({ texto: textoCru }),
+      });
+      if (!resp.ok) return;
+      const json = await resp.json();
+      if (typeof json?.textoOrganizado !== 'string') return;
+      setTurno((t) => aplicarTextoOrganizado(t, eventoId, textoCru, json.textoOrganizado));
+    } catch {
+      // silencioso de propósito — ver comentário acima
+    } finally {
+      setOrganizandoIds((ids) => ids.filter((id) => id !== eventoId));
+    }
+  }, []);
+
   // ---- Captura rápida: detecta leito localmente e cria/associa paciente ----
   const capturar = useCallback((textoFalado: string) => {
     const texto = textoFalado.trim();
     if (!texto) return;
 
+    // Detecção de leito roda sobre o texto CRU, antes de qualquer organização.
     const deteccao = detectarLeito(texto);
-    let patientId: string | null = null;
-    let textoFinal = texto;
+    const textoCru = deteccao ? deteccao.resto : texto;
+    const eventoId = uid();
 
     setTurno((t) => {
       let pacientes = t.pacientes;
+      let patientId: string | null = null;
       if (deteccao) {
         let p = pacientes.find((x) => x.leito.toLowerCase() === deteccao.leito.toLowerCase());
         if (!p) {
@@ -61,14 +119,15 @@ export function useTurno() {
           pacientes = [...pacientes, p];
         }
         patientId = p.id;
-        textoFinal = deteccao.resto;
       }
       const novoEvento: EventoTurno = {
-        id: uid(), patientId, tipo: 'Nota', texto: textoFinal, hora: horaAgora(), ts: Date.now(),
+        id: eventoId, patientId, tipo: 'Nota', texto: textoCru, hora: horaAgora(), ts: Date.now(),
       };
       return { ...t, pacientes, eventos: [...t.eventos, novoEvento] };
     });
-  }, []);
+
+    if (textoCru.trim()) void organizarRegistro(eventoId, textoCru);
+  }, [organizarRegistro]);
 
   const editarEvento = useCallback((id: string, texto: string, patientId: string | null) => {
     setTurno((t) => ({ ...t, eventos: t.eventos.map((e) => (e.id === id ? { ...e, texto, patientId } : e)) }));
@@ -96,6 +155,7 @@ export function useTurno() {
   return {
     turno,
     carregado,
+    organizandoIds,
     adicionarPaciente,
     removerPaciente,
     atualizarComplexidade,
