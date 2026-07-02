@@ -41,6 +41,9 @@ export interface EventoTurno {
   patientId: string | null;
   tipo: TipoEvento;
   texto: string;
+  /** Texto cru do ditado, preservado quando a organização automática
+   *  reescreve `texto`. Ausente = registro nunca foi reorganizado. */
+  textoOriginal?: string;
   /** Exibição, formato HH:MM. */
   hora: string;
   /** Epoch ms — usado para ordenação e nunca exibido ao usuário. */
