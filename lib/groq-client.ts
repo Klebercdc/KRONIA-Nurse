@@ -13,6 +13,11 @@
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const MODELO = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
+// O tier on_demand da Groq limita TPM por modelo e conta max_tokens no
+// tamanho da requisição: prompt + max_tokens acima do limite (8000 para o
+// gpt-oss-120b) é rejeitado com 413 antes de gerar qualquer coisa. 4096
+// deixa folga para o prompt; ajustável sem deploy via GROQ_MAX_TOKENS.
+const MAX_TOKENS = Number(process.env.GROQ_MAX_TOKENS) || 4096;
 const MAX_TENTATIVAS_429 = 4;
 
 function esperar(ms: number): Promise<void> {
@@ -43,9 +48,7 @@ export async function chamarGroq(
           { role: 'user', content },
         ],
         temperature: 0.2,
-        // gpt-oss-120b raciocina antes de responder e os tokens de raciocínio
-        // contam neste limite; 4096 (valor da era Llama 3.3) truncava respostas.
-        max_tokens: 8192,
+        max_tokens: MAX_TOKENS,
         ...(usarJson ? { response_format: { type: 'json_object' } } : {}),
       }),
     });
