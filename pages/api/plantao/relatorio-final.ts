@@ -28,6 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const texto = await chamarGroq(promptRelatorioFinal(), dados, { json: false });
     res.status(200).json({ texto });
   } catch (e) {
+    console.error('[plantao/relatorio-final] erro:', e);
     res.status(500).json({ erro: 'Não foi possível gerar o relatório final agora.' });
   }
 }

@@ -29,6 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const texto = await chamarGroq(promptDocumento(formato), dados, { json: false });
     res.status(200).json({ texto });
   } catch (e) {
+    console.error('[plantao/gerar-documento] erro:', e);
     res.status(500).json({ erro: 'Não foi possível gerar o documento agora.' });
   }
 }

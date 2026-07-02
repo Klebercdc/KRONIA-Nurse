@@ -85,6 +85,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     res.status(200).json({ resultado });
   } catch (e) {
+    console.error('[plantao/calcular-alertas] erro:', e);
     res.status(500).json({ erro: 'Não foi possível calcular os alertas agora.' });
   }
 }
