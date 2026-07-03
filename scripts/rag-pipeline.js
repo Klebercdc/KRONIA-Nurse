@@ -271,19 +271,29 @@ function chunkText(text, maxChars = 500) {
 async function generateEmbeddings(texts) {
   if (!texts || texts.length === 0) return [];
 
-  const resp = await fetch(COHERE_EMBED_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${cohereApiKey}`,
-    },
-    body: JSON.stringify({
-      model: EMBED_MODEL,
-      texts,
-      input_type: 'search_document',
-      embedding_types: ['float'],
-    }),
-  });
+  // Chave trial da Cohere limita 100k tokens/min — em 429, esperar a janela
+  // de 1 minuto virar e tentar de novo. Chave paga nunca entra neste caminho.
+  const MAX_TENTATIVAS_429 = 6;
+  let resp;
+  for (let tentativa = 1; ; tentativa++) {
+    resp = await fetch(COHERE_EMBED_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${cohereApiKey}`,
+      },
+      body: JSON.stringify({
+        model: EMBED_MODEL,
+        texts,
+        input_type: 'search_document',
+        embedding_types: ['float'],
+      }),
+    });
+
+    if (resp.status !== 429 || tentativa >= MAX_TENTATIVAS_429) break;
+    console.warn(`  ⏳ Rate limit da Cohere (429) — aguardando 65s (tentativa ${tentativa}/${MAX_TENTATIVAS_429})...`);
+    await new Promise((resolve) => setTimeout(resolve, 65000));
+  }
 
   if (!resp.ok) {
     const corpo = await resp.text().catch(() => '');
