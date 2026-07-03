@@ -3,3 +3,8 @@ node_modules/
 .env
 .env.local
 tsconfig.tsbuildinfo
+
+# Pipeline RAG (scripts/rag-pipeline.js) — credenciais e PDFs baixados
+credentials.json
+google-drive-token.json
+public/pdfs-conhecimento/

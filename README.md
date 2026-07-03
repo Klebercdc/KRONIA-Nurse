@@ -33,6 +33,23 @@ Segredos ficam apenas em `.env.local` (local) e nas variáveis de ambiente da Ve
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | sim | Cliente Supabase do browser (sessão de autenticação). |
 | `COHERE_API_KEY` | sim | Geração de embeddings (só no servidor). |
 
+## Pipeline RAG de documentos oficiais
+
+O script `scripts/rag-pipeline.js` indexa PDFs oficiais (ANVISA, COFEN, COREN, Ministério da Saúde) na base de conhecimento documental:
+
+1. Baixa os PDFs da pasta `kronia-nurse-pdfs` do Google Drive (opcional — exige `credentials.json` OAuth na raiz; sem ele, usa os PDFs já presentes em `public/pdfs-conhecimento/`).
+2. Extrai o texto, divide em fragmentos (~500 caracteres, quebrando por sentença).
+3. Gera embeddings com Cohere `embed-multilingual-v3.0` (o mesmo modelo de `lib/embeddings.ts` — indexação e consulta precisam compartilhar o espaço vetorial).
+4. Grava em `conhecimento_documentos` / `conhecimento_fragmentos` (migration `20260703_conhecimento_rag.sql`), com deduplicação por hash SHA-256 do conteúdo.
+
+Execução (local, nunca na Vercel — exige `.env.local`):
+
+```bash
+npm run rag:pipeline
+```
+
+A busca semântica sobre os fragmentos é exposta em `POST /api/conhecimento/buscar-rag` (body: `{ "consulta": "...", "match_count": 5 }`), que usa a função RPC `buscar_fragmentos_conhecimento`.
+
 ## Status
 
 🚧 Projeto em desenvolvimento.

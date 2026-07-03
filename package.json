@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest",
+    "rag:pipeline": "node --env-file=.env.local scripts/rag-pipeline.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
@@ -16,11 +17,14 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@google-cloud/local-auth": "^3.0.1",
     "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "googleapis": "^173.0.0",
     "jest": "^30.4.2",
+    "pdf-parse": "^2.4.5",
     "ts-jest": "^29.4.11",
     "typescript": "^5"
   }
