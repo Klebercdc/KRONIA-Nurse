@@ -125,6 +125,13 @@ const PDF_METADATA = {
     ano: 2020,
     descricao: 'Modelo Padrão de Normas, Rotinas e POP',
   },
+  'Protocolo-web.pdf': {
+    tipo: 'Guia',
+    instituicao: 'COREN-SP',
+    versao: 'Edição revista / 2017',
+    ano: 2017,
+    descricao: 'Guia para Construção de Protocolos Assistenciais de Enfermagem',
+  },
 };
 
 let _supabase = null;
