@@ -16,6 +16,21 @@ type Resultado = {
   fontes?: { titulo: string; categoria: string }[];
 };
 
+// Retorno da RPC buscar_fragmentos_conhecimento (migration 20260703)
+type FragmentoDocumento = {
+  fragmento_id: string;
+  documento_id: string;
+  nome_arquivo: string;
+  tipo_documento: string;
+  instituicao: string;
+  versao: string | null;
+  ano_publicacao: number | null;
+  descricao: string | null;
+  numero_sequencia: number;
+  conteudo: string;
+  similarity: number;
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse<Resultado | { erro: string }>) {
   if (req.method !== 'POST') return res.status(405).json({ erro: 'Método não permitido.' });
 
@@ -47,18 +62,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   }
 
   const supabase = getSupabase();
-  const { data: resultados, error } = await supabase.rpc('buscar_conhecimento', {
-    query_embedding: embedding,
-    similarity_threshold: 0.5,
-    match_count: 3,
-  });
+  const [kb, frag] = await Promise.all([
+    supabase.rpc('buscar_conhecimento', {
+      query_embedding: embedding,
+      similarity_threshold: 0.5,
+      match_count: 3,
+    }),
+    supabase.rpc('buscar_fragmentos_conhecimento', {
+      query_embedding: embedding,
+      similarity_threshold: 0.5,
+      match_count: 4,
+    }),
+  ]);
 
-  if (error) {
-    console.error('[kronos/professor] supabase error:', error);
+  if (kb.error) {
+    console.error('[kronos/professor] supabase error:', kb.error);
     return res.status(500).json({ erro: 'Erro ao buscar no banco de conhecimento.' });
   }
+  // Documentos oficiais são fonte complementar: falha na busca de fragmentos
+  // não derruba o KRONOS — segue só com a knowledge_base.
+  if (frag.error) {
+    console.error('[kronos/professor] fragmentos error:', frag.error);
+  }
 
-  if (!resultados || resultados.length === 0) {
+  const resultados = kb.data ?? [];
+  const fragmentos: FragmentoDocumento[] = frag.error ? [] : (frag.data ?? []);
+
+  if (resultados.length === 0 && fragmentos.length === 0) {
     return res.status(200).json({ resposta: SEM_REFERENCIA });
   }
 
@@ -77,6 +107,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     })
     .join('\n\n');
 
+  // Trechos literais de documentos oficiais (ANVISA, COFEN, COREN, MS)
+  // indexados pelo pipeline RAG — sempre com a fonte para citação.
+  const contextoDocumentos = fragmentos
+    .map((f, i) => {
+      const fonte = `${f.instituicao} — ${f.descricao || f.nome_arquivo}${f.ano_publicacao ? ` (${f.ano_publicacao})` : ''}`;
+      return [`--- Documento oficial ${i + 1} ---`, `Fonte: ${fonte}`, `Trecho: ${f.conteudo}`].join('\n');
+    })
+    .join('\n\n');
+
   const system = `Você é o KRONOS, assistente de aprendizado da KRONIA Nurse. Responde APENAS com base nas referências fornecidas — nunca acrescenta conhecimento externo, nunca raciocina sobre casos clínicos e nunca recomenda condutas.
 
 REGRAS ABSOLUTAS:
@@ -86,9 +125,13 @@ REGRAS ABSOLUTAS:
 - Se a referência for de categoria "procedimento", preserve os subtítulos "Material necessário" e "Como fazer" em negrito.
 - Se a referência for de categoria "aprazamento", responda em bloco único de texto sem subdivisões.
 - Para qualquer outra categoria, use sempre 4 seções: **Título**, **Resumo**, **Conteúdo Técnico**, **Referências**.
+- Trechos de documentos oficiais são excertos literais de normas e guias (ANVISA, COFEN, COREN, Ministério da Saúde): use-os como base técnica e SEMPRE cite a fonte indicada (instituição, documento, ano) na seção Referências.
 
 Referências disponíveis:
-${contexto}`;
+${contexto || '(nenhuma entrada da biblioteca técnica para esta pergunta)'}
+
+Trechos de documentos oficiais:
+${contextoDocumentos || '(nenhum trecho de documento oficial para esta pergunta)'}`;
 
   const promptUsuario = `Pergunta do enfermeiro: ${texto}
 
@@ -103,5 +146,17 @@ Responda com base exclusivamente nas referências acima. Use formatação Markdo
   }
 
   const fontes = resultados.map((r: { titulo: string; categoria: string }) => ({ titulo: r.titulo, categoria: r.categoria }));
+
+  // Documentos oficiais entram nas fontes uma vez cada (sem repetir por fragmento)
+  const docsVistos = new Set<string>();
+  for (const f of fragmentos) {
+    if (docsVistos.has(f.documento_id)) continue;
+    docsVistos.add(f.documento_id);
+    fontes.push({
+      titulo: f.descricao || f.nome_arquivo,
+      categoria: `${f.instituicao}${f.ano_publicacao ? ` · ${f.ano_publicacao}` : ''}`,
+    });
+  }
+
   return res.status(200).json({ resposta, fontes });
 }
