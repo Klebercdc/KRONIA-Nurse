@@ -11,9 +11,10 @@
 -- guardam o texto integral das fontes oficiais para consulta via RAG.
 --
 -- Seguro para rodar em banco vazio ou já existente (IF NOT EXISTS).
+--
+-- Pré-requisito: extensão vector já instalada no schema public
+-- (verificado em 03/07: vector 0.8.0 presente — não recriar aqui).
 -- ================================================================
-
-CREATE EXTENSION IF NOT EXISTS vector;
 
 -- ================================================================
 -- 1. TABELAS
@@ -75,10 +76,11 @@ CREATE INDEX IF NOT EXISTS idx_conhecimento_documentos_ativo
 CREATE INDEX IF NOT EXISTS idx_conhecimento_fragmentos_documento_id
   ON conhecimento_fragmentos(documento_id);
 
--- Índice vetorial (cosine). lists = 100 segue o padrão da knowledge_base.
+-- Índice vetorial (cosine). HNSW em vez de ivfflat: ivfflat constrói os
+-- clusters a partir dos dados existentes — criado em tabela vazia, o recall
+-- degrada. HNSW não depende de dados pré-existentes.
 CREATE INDEX IF NOT EXISTS idx_conhecimento_fragmentos_embedding
-  ON conhecimento_fragmentos USING ivfflat (embedding vector_cosine_ops)
-  WITH (lists = 100);
+  ON conhecimento_fragmentos USING hnsw (embedding vector_cosine_ops);
 
 -- ================================================================
 -- 3. FUNÇÃO RPC — busca semântica nos fragmentos
