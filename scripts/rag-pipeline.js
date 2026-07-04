@@ -19,6 +19,12 @@
  * O embedding usa embed-multilingual-v3.0 (1024 dims) — o MESMO modelo de
  * lib/embeddings.ts, que gera o embedding das consultas. Indexação e busca
  * precisam compartilhar o espaço vetorial; não trocar só de um lado.
+ *
+ * Chunking (CHUNKING_VERSION): divisão por sentenças ciente de abreviações
+ * do português jurídico/clínico, alvo ~350 tokens (teto duro 480 — a Cohere
+ * trunca em 512), overlap de 1–2 sentenças entre chunks consecutivos e
+ * remoção de cabeçalhos/rodapés repetidos por página. A versão entra no
+ * hash do documento: mudar a estratégia reindexa tudo automaticamente.
  */
 
 const fs = require('fs');
@@ -241,27 +247,242 @@ async function downloadPDFsFromGoogleDrive(authClient) {
 // 3. DIVIDIR TEXTO EM CHUNKS
 // ═════════════════════════════════════════════════════════════
 
-function chunkText(text, maxChars = 500) {
-  const chunks = [];
-  let currentChunk = '';
+// Versão da estratégia de chunking. Entra no hash do documento: mudar a
+// estratégia invalida o dedup e força a reindexação de todos os documentos
+// na próxima execução, sem flag manual.
+const CHUNKING_VERSION = 'chunker-v2';
 
-  // Dividir por períodos, respeitando o tamanho máximo
-  const sentences = text.split(/(?<=[.!?])\s+/);
+// A Cohere trunca silenciosamente em 512 tokens — tudo além disso fica
+// invisível para a busca. A contagem aqui é estimada por caracteres com
+// fator conservador para pt-BR (~3,5 chars/token), e o teto de 480 deixa
+// margem para a diferença entre a estimativa e o tokenizador real.
+const CHARS_POR_TOKEN = 3.5;
+const ALVO_TOKENS = 350; // alvo por chunk (aceitável 250–450)
+const MAX_ACUMULO_TOKENS = 380; // fechar o chunk ao passar disso
+const ESTICA_TOKENS = 460; // chunk pequeno pode esticar até aqui p/ não ficar <250
+const TETO_TOKENS = 480; // limite duro — nunca gerar chunk acima disso
+const MIN_TOKENS_FRAGMENTO = 20; // resto final menor que isso é fundido ao anterior
+const OVERLAP_TOKENS = 55; // ~15% do alvo, nas últimas 1–2 sentenças
+const OVERLAP_MAX_SENTENCAS = 2;
 
-  for (const sentence of sentences) {
-    if ((currentChunk + ' ' + sentence).length > maxChars && currentChunk) {
-      chunks.push(currentChunk.trim());
-      currentChunk = sentence;
-    } else {
-      currentChunk += (currentChunk ? ' ' : '') + sentence;
+function estimarTokens(texto) {
+  return Math.ceil(texto.length / CHARS_POR_TOKEN);
+}
+
+// Abreviações do português jurídico/clínico após as quais um ponto NÃO
+// encerra sentença (comparadas sem pontos, em minúsculas).
+const ABREVIACOES = new Set([
+  'art', 'arts', 'inc', 'incs', 'n', 'nº', 'no', 'num',
+  'dr', 'dra', 'drs', 'sr', 'sra', 'srs', 'sras',
+  'prof', 'profa', 'enf', 'exmo', 'exma', 'ilmo', 'ilma',
+  'obs', 'ref', 'refs', 'p', 'pp', 'pag', 'pág', 'pags', 'págs',
+  'cap', 'caps', 'vol', 'vols', 'ed', 'al', 'fl', 'fls', 'cf',
+  'tel', 'seç', 'sec', 'res', 'port', 'par', 'parag', 'etc',
+]);
+
+// Decide se o ponto em `anterior` (texto até a pontuação) é fim de
+// abreviação/numeral/sigla — e portanto não é quebra de sentença.
+function terminaEmAbreviacao(anterior) {
+  const m = anterior.match(/([\p{L}\p{N}º°ª§.]+)$/u);
+  if (!m) return false;
+  const palavra = m[1];
+  if (/^\d+(\.\d+)*\.?$/.test(palavra)) return true; // "1." / "5.1.3.6."
+  if (/^[IVXLCDM]+$/i.test(palavra)) return true; // "VII." / "iv."
+  if (/^(\p{Lu}\.)+\p{Lu}?\.?$/u.test(palavra)) return true; // siglas: "E.U.A."
+  if (/^\p{L}$/u.test(palavra)) return true; // letra única: alínea "a." / inicial
+  const base = palavra.replace(/\./g, '').toLowerCase();
+  return ABREVIACOES.has(base);
+}
+
+// Detecta cabeçalhos/rodapés repetidos entre páginas. Diagnóstico de
+// 04/07/2026: Registros tem título corrido no topo de 111/114 páginas,
+// caderno-4 tem cabeçalho ANVISA (53×), MODELO tem rodapé de endereço em
+// 35/35 páginas e a apresentação repete o header de slide ~100×. A regra é
+// POSICIONAL (primeiras/últimas linhas de cada página) e exige que a linha
+// seja quase exclusiva dessa janela — linhas de conteúdo legítimo que se
+// repetem (bullets de checklist, assinaturas de exemplo "COREN-SP-000.000")
+// aparecem no meio da página e ficam de fora.
+const JANELA_CABECALHO = 3; // linhas no início/fim da página consideradas
+const MIN_FRACAO_PAGINAS = 0.3; // presente na janela em ≥30% das páginas
+const MIN_FRACAO_POSICIONAL = 0.7; // ≥70% das ocorrências dentro da janela
+
+function detectarCabecalhosRodapes(paginas) {
+  if (paginas.length < 8) return new Set(); // poucas páginas p/ estatística
+  const paginasComLinhaNaJanela = new Map();
+  const ocorrenciasTotais = new Map();
+
+  for (const pagina of paginas) {
+    const linhas = pagina
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
+    for (const l of linhas) {
+      ocorrenciasTotais.set(l, (ocorrenciasTotais.get(l) || 0) + 1);
+    }
+    const janela = new Set([
+      ...linhas.slice(0, JANELA_CABECALHO),
+      ...linhas.slice(-JANELA_CABECALHO),
+    ]);
+    for (const l of janela) {
+      paginasComLinhaNaJanela.set(l, (paginasComLinhaNaJanela.get(l) || 0) + 1);
     }
   }
 
-  if (currentChunk.trim()) {
-    chunks.push(currentChunk.trim());
+  const minPaginas = Math.max(5, Math.ceil(paginas.length * MIN_FRACAO_PAGINAS));
+  const detectadas = new Set();
+  for (const [linha, qtdPaginas] of paginasComLinhaNaJanela) {
+    if (qtdPaginas < minPaginas) continue;
+    if (linha.length < 4 || /^\d+$/.test(linha)) continue; // nº de página tem regra própria
+    if (qtdPaginas / ocorrenciasTotais.get(linha) < MIN_FRACAO_POSICIONAL) continue;
+    detectadas.add(linha);
+  }
+  return detectadas;
+}
+
+// Junta as páginas removendo cabeçalhos/rodapés detectados. O texto bruto
+// (conteudo_completo e hash) continua vindo da extração inteira; a limpeza
+// vale só para a fragmentação.
+function prepararTextoDePaginas(paginas) {
+  const cabecalhos = detectarCabecalhosRodapes(paginas);
+  return paginas
+    .map((pagina) =>
+      pagina
+        .split('\n')
+        .filter((l) => !cabecalhos.has(l.trim()))
+        .join('\n')
+    )
+    .join('\n');
+}
+
+// Remove artefatos de extração que vazam para os chunks. Diagnóstico de
+// 04/07/2026: número de página como linha isolada (250 ocorrências em
+// processo_de_enfermagem, 117 em Registros, 111 no caderno-4).
+function limparTextoParaChunks(texto) {
+  return texto
+    .replace(/\r/g, '')
+    .split('\n')
+    .filter((linha) => !/^\s*\d{1,3}\s*$/.test(linha))
+    .join('\n')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\s*\n\s*/g, '\n')
+    .replace(/\n{2,}/g, '\n');
+}
+
+function dividirEmSentencas(texto) {
+  const sentencas = [];
+  let inicio = 0;
+  // Pontuação final seguida de espaço, ou quebra de linha (parágrafo).
+  const re = /[.!?…]+["')\]]?(?=\s)|\n/g;
+  let m;
+  while ((m = re.exec(texto)) !== null) {
+    const fim = m.index + m[0].length;
+    if (m[0] !== '\n') {
+      if (terminaEmAbreviacao(texto.slice(inicio, m.index))) continue;
+      // Se o que vem depois começa em minúscula, a sentença continua
+      // (ex.: "etc. e suas atualizações", citações abreviadas).
+      const seguinte = texto.slice(fim).match(/\S/);
+      if (seguinte && /\p{Ll}/u.test(seguinte[0])) continue;
+    }
+    const sentenca = texto.slice(inicio, fim).trim();
+    if (sentenca) sentencas.push(sentenca);
+    inicio = fim;
+  }
+  const resto = texto.slice(inicio).trim();
+  if (resto) sentencas.push(resto);
+  return sentencas;
+}
+
+// Sentenças-gigante (tabelas/listas sem pontuação) são partidas em pedaços
+// de ~ALVO_TOKENS em limite de palavra — nunca no meio de uma palavra.
+function partirSentencaGigante(sentenca) {
+  const limiteChars = Math.floor(ALVO_TOKENS * CHARS_POR_TOKEN);
+  const pedacos = [];
+  let atual = '';
+  for (const palavra of sentenca.split(' ')) {
+    if (atual && atual.length + 1 + palavra.length > limiteChars) {
+      pedacos.push(atual);
+      atual = '';
+    }
+    if (palavra.length > limiteChars) {
+      // palavra sem espaços maior que o limite (URL longa): fatiar por chars
+      for (let i = 0; i < palavra.length; i += limiteChars) {
+        const fatia = palavra.slice(i, i + limiteChars);
+        if (i + limiteChars < palavra.length) pedacos.push(fatia);
+        else atual = fatia;
+      }
+    } else {
+      atual = atual ? `${atual} ${palavra}` : palavra;
+    }
+  }
+  if (atual) pedacos.push(atual);
+  return pedacos;
+}
+
+function chunkText(texto) {
+  const sentencas = [];
+  for (const s of dividirEmSentencas(limparTextoParaChunks(texto))) {
+    if (estimarTokens(s) > MAX_ACUMULO_TOKENS) sentencas.push(...partirSentencaGigante(s));
+    else sentencas.push(s);
   }
 
-  return chunks.filter((chunk) => chunk.length > 0);
+  const chunks = [];
+  let atual = []; // sentenças do chunk corrente
+  let qtdOverlap = 0; // quantas sentenças no início de `atual` vieram do chunk anterior
+
+  const tokensDe = (arr) => estimarTokens(arr.join(' '));
+
+  const fecharChunk = () => {
+    chunks.push(atual.join(' '));
+    // Overlap: últimas 1–2 sentenças abrem o próximo chunk.
+    const overlap = [];
+    for (let i = atual.length - 1; i >= 0 && overlap.length < OVERLAP_MAX_SENTENCAS; i--) {
+      if (tokensDe([atual[i], ...overlap]) > OVERLAP_TOKENS) break;
+      overlap.unshift(atual[i]);
+    }
+    atual = overlap;
+    qtdOverlap = overlap.length;
+  };
+
+  for (const sentenca of sentencas) {
+    if (atual.length && tokensDe([...atual, sentenca]) > MAX_ACUMULO_TOKENS) {
+      // Chunk ainda pequeno demais? Esticar até ESTICA_TOKENS antes de fechar,
+      // para não deixar um fragmento curto para trás.
+      if (tokensDe(atual) < 250 && tokensDe([...atual, sentenca]) <= ESTICA_TOKENS) {
+        atual.push(sentenca);
+        fecharChunk();
+        continue;
+      }
+      fecharChunk();
+      // Se o overlap somado à sentença nova estourar, reduzir o overlap.
+      while (atual.length && tokensDe([...atual, sentenca]) > MAX_ACUMULO_TOKENS) {
+        atual.shift();
+        qtdOverlap -= 1;
+      }
+    }
+    atual.push(sentenca);
+  }
+
+  // Resto final: se for curto demais, fundir a parte NOVA ao chunk anterior
+  // (o overlap já está lá) — nunca descartar nem indexar sozinho.
+  if (atual.length > qtdOverlap) {
+    const restante = atual.join(' ');
+    const novas = atual.slice(qtdOverlap).join(' ');
+    if (chunks.length && estimarTokens(restante) < MIN_TOKENS_FRAGMENTO) {
+      chunks[chunks.length - 1] = `${chunks[chunks.length - 1]} ${novas}`;
+    } else {
+      chunks.push(restante);
+    }
+  }
+
+  const resultado = chunks.map((c) => c.trim()).filter((c) => c.length > 0);
+  for (const c of resultado) {
+    if (estimarTokens(c) > TETO_TOKENS) {
+      throw new Error(
+        `chunkText gerou chunk de ${estimarTokens(c)} tokens (teto ${TETO_TOKENS}): "${c.slice(0, 80)}..."`
+      );
+    }
+  }
+  return resultado;
 }
 
 // ═════════════════════════════════════════════════════════════
@@ -326,22 +547,31 @@ async function processPDF(filePath) {
   const parser = new PDFParse({ data: fs.readFileSync(filePath) });
   let fullText;
   let totalPaginas;
+  let textoParaChunks;
   try {
     // pageJoiner vazio: sem marcador "-- N of M --" no meio do texto,
     // que sujaria os fragmentos e mudaria o hash do conteúdo
     const pdfData = await parser.getText({ pageJoiner: '' });
     fullText = pdfData.text;
     totalPaginas = pdfData.total;
+    // Para os chunks, usar o texto página a página com cabeçalhos/rodapés
+    // repetidos removidos (conteudo_completo continua sendo o texto bruto).
+    textoParaChunks = prepararTextoDePaginas(pdfData.pages.map((p) => p.text || ''));
   } finally {
     await parser.destroy();
   }
 
   console.log(`✓ PDF lido: ${fullText.length} caracteres, ${totalPaginas} páginas`);
 
-  // 2. Hash do conteúdo
-  const contentHash = crypto.createHash('sha256').update(fullText).digest('hex');
+  // 2. Hash do conteúdo + versão do chunking: mudar a estratégia de
+  // fragmentação muda o hash e força a reindexação mesmo com o PDF idêntico.
+  const contentHash = crypto
+    .createHash('sha256')
+    .update(fullText)
+    .update(`\n[chunking:${CHUNKING_VERSION}]`)
+    .digest('hex');
 
-  // 3. Verificar se já foi indexado
+  // 3. Verificar se já foi indexado com ESTA versão de chunking
   const { data: existingDoc, error: existError } = await getSupabase()
     .from('conhecimento_documentos')
     .select('id')
@@ -378,7 +608,7 @@ async function processPDF(filePath) {
 
   try {
     // 5. Dividir em chunks
-    const chunks = chunkText(fullText, 500);
+    const chunks = chunkText(textoParaChunks);
     console.log(`✓ Dividido em ${chunks.length} fragmentos`);
 
     // 6. Gerar embeddings em batch
@@ -401,7 +631,7 @@ async function processPDF(filePath) {
       numero_sequencia: idx + 1,
       conteudo,
       embedding: embeddings[idx],
-      tamanho_tokens: Math.ceil(conteudo.length / 4),
+      tamanho_tokens: estimarTokens(conteudo),
     }));
 
     for (let i = 0; i < fragmentsToInsert.length; i += 100) {
@@ -416,8 +646,24 @@ async function processPDF(filePath) {
   } catch (err) {
     // Sem os fragmentos o documento é inútil e o hash bloquearia a
     // reindexação — remover para a próxima execução recomeçar do zero.
+    // A versão antiga do documento (se houver) fica intacta e continua
+    // atendendo às buscas até uma reindexação bem-sucedida.
     await getSupabase().from('conhecimento_documentos').delete().eq('id', documentoId);
     throw err;
+  }
+
+  // 8. Reindexação concluída: remover versões antigas do mesmo arquivo
+  // (hash de chunking anterior). O ON DELETE CASCADE apaga os fragmentos.
+  const { data: versoesAntigas, error: deleteError } = await getSupabase()
+    .from('conhecimento_documentos')
+    .delete()
+    .eq('nome_arquivo', fileName)
+    .neq('id', documentoId)
+    .select('id');
+
+  if (deleteError) throw deleteError;
+  if (versoesAntigas && versoesAntigas.length > 0) {
+    console.log(`  ♻️  Removida(s) ${versoesAntigas.length} versão(ões) antiga(s) do documento`);
   }
 
   console.log(`✅ ${fileName} indexado com sucesso`);
@@ -491,7 +737,19 @@ async function runPipeline() {
   }
 }
 
-runPipeline().catch((error) => {
-  console.error('\n❌ ERRO NO PIPELINE:', error.message);
-  process.exit(1);
-});
+if (require.main === module) {
+  runPipeline().catch((error) => {
+    console.error('\n❌ ERRO NO PIPELINE:', error.message);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  CHUNKING_VERSION,
+  chunkText,
+  estimarTokens,
+  limparTextoParaChunks,
+  dividirEmSentencas,
+  detectarCabecalhosRodapes,
+  prepararTextoDePaginas,
+};
