@@ -10,6 +10,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { chamarGroq } from '../../../lib/groq-client';
 import { promptDocumento, FormatoDocumento } from '../../../lib/prompts';
+import { aplicarGuardsClinicos } from '../../../lib/conferir-guard';
 import { getUsuarioAutenticado } from '../../../lib/auth-server';
 import { dentroDoRateLimit, LIMITE_PLANTAO, MSG_RATE_LIMIT } from '../../../lib/rate-limit';
 
@@ -25,11 +26,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { formato, dados } = req.body as { formato: FormatoDocumento; dados: string };
   if (!formato || !dados) return res.status(400).json({ erro: 'formato e dados são obrigatórios' });
 
+  // Só o identificador do leito no log — nunca conteúdo clínico.
+  const leito = /^Leito:\s*(.+)$/m.exec(dados)?.[1]?.trim() ?? '(sem leito)';
+  const t0 = Date.now();
   try {
-    const texto = await chamarGroq(promptDocumento(formato), dados, { json: false });
-    res.status(200).json({ texto });
+    const bruto = await chamarGroq(promptDocumento(formato), dados, {
+      json: false,
+      reasoningEffort: 'medium',
+    });
+    // Invariante de segurança clínica (código, não prompt): (CONFERIR) da
+    // entrada sobrevive na saída e conflito de dose força (CONFERIR).
+    const guards = aplicarGuardsClinicos(dados, bruto);
+    console.log(
+      `[plantao/gerar-documento] ${leito}: ${Date.now() - t0}ms ` +
+        `(reinjetados=${guards.reinjetados} anexados=${guards.anexados} conflitosDose=${guards.conflitosDose})`
+    );
+    res.status(200).json({ texto: guards.texto });
   } catch (e) {
-    console.error('[plantao/gerar-documento] erro:', e);
+    console.error(`[plantao/gerar-documento] ${leito}: erro após ${Date.now() - t0}ms:`, e);
     res.status(500).json({ erro: 'Não foi possível gerar o documento agora.' });
   }
 }

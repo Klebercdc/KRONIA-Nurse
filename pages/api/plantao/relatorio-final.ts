@@ -9,6 +9,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { chamarGroq } from '../../../lib/groq-client';
 import { promptRelatorioFinal } from '../../../lib/prompts';
+import { aplicarGuardsClinicos } from '../../../lib/conferir-guard';
 import { getUsuarioAutenticado } from '../../../lib/auth-server';
 import { dentroDoRateLimit, LIMITE_PLANTAO, MSG_RATE_LIMIT } from '../../../lib/rate-limit';
 
@@ -24,11 +25,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { dados } = req.body as { dados: string };
   if (!dados) return res.status(400).json({ erro: 'dados é obrigatório' });
 
+  const t0 = Date.now();
   try {
-    const texto = await chamarGroq(promptRelatorioFinal(), dados, { json: false });
-    res.status(200).json({ texto });
+    const bruto = await chamarGroq(promptRelatorioFinal(), dados, {
+      json: false,
+      reasoningEffort: 'medium',
+    });
+    // Invariante de segurança clínica (código, não prompt): (CONFERIR) da
+    // entrada sobrevive na saída e conflito de dose força (CONFERIR).
+    const guards = aplicarGuardsClinicos(dados, bruto);
+    console.log(
+      `[plantao/relatorio-final] ${Date.now() - t0}ms ` +
+        `(reinjetados=${guards.reinjetados} anexados=${guards.anexados} conflitosDose=${guards.conflitosDose})`
+    );
+    res.status(200).json({ texto: guards.texto });
   } catch (e) {
-    console.error('[plantao/relatorio-final] erro:', e);
+    console.error(`[plantao/relatorio-final] erro após ${Date.now() - t0}ms:`, e);
     res.status(500).json({ erro: 'Não foi possível gerar o relatório final agora.' });
   }
 }

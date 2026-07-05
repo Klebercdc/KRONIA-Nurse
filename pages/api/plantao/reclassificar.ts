@@ -30,15 +30,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { listaNumerada } = req.body as { listaNumerada: string };
   if (!listaNumerada) return res.status(400).json({ erro: 'listaNumerada é obrigatória' });
 
+  const t0 = Date.now();
   try {
-    const texto = await chamarGroq(PROMPT_RECLASSIFICACAO, listaNumerada);
+    const texto = await chamarGroq(PROMPT_RECLASSIFICACAO, listaNumerada, {
+      reasoningEffort: 'low',
+    });
     // O modo JSON da Groq exige objeto na raiz ({"mapeamento":[...]}); array
     // puro é aceito por tolerância a variação do modelo.
     const raw = extrairJson<ItemReclassificacao[] | { mapeamento?: ItemReclassificacao[] }>(texto);
     const mapeamento = Array.isArray(raw) ? raw : raw.mapeamento ?? [];
+    console.log(`[plantao/reclassificar] ${Date.now() - t0}ms (${mapeamento.length} evento(s) mapeado(s))`);
     res.status(200).json({ mapeamento });
   } catch (e) {
-    console.error('[plantao/reclassificar] erro:', e);
+    console.error(`[plantao/reclassificar] erro após ${Date.now() - t0}ms:`, e);
     res.status(500).json({ erro: 'Não foi possível reclassificar agora.' });
   }
 }

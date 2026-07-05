@@ -1,4 +1,5 @@
 import { chamarGroq } from '../groq-client';
+import { aplicarGuardsClinicos } from '../conferir-guard';
 import { getDocType } from './document-types';
 import { getFieldSchema } from './field-schemas';
 
@@ -46,7 +47,9 @@ Regras absolutas:
 7. O documento deve ser pronto para copiar e colar no prontuário.
 8. Não inclua títulos como "Documento:", "Resposta:", apenas o texto do documento.
 9. Use parágrafos separados para cada sistema/seção avaliada.
-10. Sempre conclua com a assinatura no formato: "Enfermeiro(a) Responsável — [data/hora]", mantendo o marcador [data/hora] literal para o enfermeiro preencher — NUNCA invente data ou horário.`;
+10. Sempre conclua com a assinatura no formato: "Enfermeiro(a) Responsável — [data/hora]", mantendo o marcador [data/hora] literal para o enfermeiro preencher — NUNCA invente data ou horário.
+11. Trechos marcados com (CONFERIR) nos dados são fragmentos ambíguos não validados: copie-os LITERALMENTE, com a marca (CONFERIR) ao lado — é PROIBIDO interpretar, corrigir ou omitir.
+12. NUNCA corrija, normalize ou "adivinhe" nome de medicação. Nome estranho ou foneticamente ambíguo permanece literal, com (CONFERIR) ao lado. Doses conflitantes para o mesmo item (ex: "1 g" e "80 mg") permanecem literais com (CONFERIR) — nunca escolha um valor.`;
 
   const userMsg = `Tipo de documento: ${tipo.nome}
 Contexto: ${tipo.contexto}
@@ -56,7 +59,15 @@ ${tabelaCampos}
 
 Redija o documento de enfermagem completo e profissional baseado exclusivamente nos dados acima.`;
 
-  const texto = await chamarGroq(system, userMsg, { json: false });
+  const t0 = Date.now();
+  const bruto = await chamarGroq(system, userMsg, { json: false, reasoningEffort: 'medium' });
+  // Invariante de segurança clínica (código, não prompt): (CONFERIR) da
+  // entrada sobrevive na saída e conflito de dose força (CONFERIR).
+  const guards = aplicarGuardsClinicos(tabelaCampos, bruto);
+  console.log(
+    `[evolucao/generate] ${tipoId}: ${Date.now() - t0}ms ` +
+      `(reinjetados=${guards.reinjetados} anexados=${guards.anexados} conflitosDose=${guards.conflitosDose})`
+  );
 
-  return { documento: texto };
+  return { documento: guards.texto };
 }

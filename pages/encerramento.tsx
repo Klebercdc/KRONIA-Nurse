@@ -1,15 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import { useTurno, montarDadosPaciente, montarDadosRelatorioFinal, montarListaParaReclassificacao } from '../components/useTurno';
 import { getSupabaseBrowser } from '../lib/supabase-browser';
 
 type Fase = 'inicial' | 'processando' | 'pronto' | 'encerrado';
-
-interface DocPaciente {
-  leito: string;
-  texto: string;
-}
 
 export default function Encerramento() {
   const { turno, carregado, editarEvento, adicionarPaciente, encerrarPlantao } = useTurno();
@@ -20,6 +15,11 @@ export default function Encerramento() {
   const [erro, setErro] = useState('');
   const [confirmandoEncerrar, setConfirmandoEncerrar] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  // Estado de retomada: quando um paciente falha (timeout/524 da Groq), as
+  // evoluções já geradas ficam aqui e "Tentar novamente" continua do ponto
+  // de falha, sem refazer o que já deu certo.
+  const docsGeradosRef = useRef<Record<string, string>>({});
+  const reclassificadoRef = useRef(false);
 
   function addLog(msg: string) {
     setLog((l) => [...l, msg]);
@@ -37,47 +37,77 @@ export default function Encerramento() {
         Authorization: `Bearer ${sessao.session?.access_token ?? ''}`,
       };
 
-      addLog('Reclassificando leitos por contexto...');
-      const listaNumerada = montarListaParaReclassificacao(turno.eventos, turno.pacientes);
-      const respRecl = await fetch('/api/plantao/reclassificar', {
-        method: 'POST',
-        headers: headersAuth,
-        body: JSON.stringify({ listaNumerada }),
-      });
-      const jsonRecl = await respRecl.json();
-      if (!respRecl.ok) throw new Error(jsonRecl.erro);
+      if (reclassificadoRef.current) {
+        addLog('Reclassificação já concluída na tentativa anterior.');
+      } else {
+        addLog('Reclassificando leitos por contexto...');
+        const listaNumerada = montarListaParaReclassificacao(turno.eventos, turno.pacientes);
+        const respRecl = await fetch('/api/plantao/reclassificar', {
+          method: 'POST',
+          headers: headersAuth,
+          body: JSON.stringify({ listaNumerada }),
+        });
+        const jsonRecl = await respRecl.json();
+        if (!respRecl.ok) throw new Error(jsonRecl.erro);
 
-      const mapeamento: { indice: number; leito: string }[] = jsonRecl.mapeamento;
-      const eventosOrdenados = [...turno.eventos].sort((a, b) => a.ts - b.ts);
+        const mapeamento: { indice: number; leito: string }[] = jsonRecl.mapeamento;
+        const eventosOrdenados = [...turno.eventos].sort((a, b) => a.ts - b.ts);
 
-      for (const m of mapeamento) {
-        const ev = eventosOrdenados[m.indice];
-        if (!ev) continue;
-        const paciente = turno.pacientes.find((p) => p.leito.toLowerCase() === m.leito.toLowerCase());
-        if (!paciente) adicionarPaciente(m.leito, '', 'intermediarios');
-        editarEvento(ev.id, ev.texto, paciente?.id ?? null);
+        for (const m of mapeamento) {
+          const ev = eventosOrdenados[m.indice];
+          if (!ev) continue;
+          const paciente = turno.pacientes.find((p) => p.leito.toLowerCase() === m.leito.toLowerCase());
+          if (!paciente) adicionarPaciente(m.leito, '', 'intermediarios');
+          editarEvento(ev.id, ev.texto, paciente?.id ?? null);
+        }
+        reclassificadoRef.current = true;
+        addLog(`Reclassificação: ${mapeamento.length} evento(s) corrigido(s).`);
       }
-      addLog(`Reclassificação: ${mapeamento.length} evento(s) corrigido(s).`);
 
-      addLog('Gerando evoluções por paciente...');
-      const docs: DocPaciente[] = [];
+      const docsGerados = docsGeradosRef.current;
       const pacientesComEventos = turno.pacientes.filter(
         (p) => turno.eventos.some((e) => e.patientId === p.id)
       );
+      const pendentes = pacientesComEventos.filter((p) => !docsGerados[p.leito]);
+      const aproveitados = pacientesComEventos.length - pendentes.length;
+      if (aproveitados > 0) addLog(`${aproveitados} evolução(ões) aproveitada(s) da tentativa anterior.`);
 
-      for (const p of pacientesComEventos) {
-        addLog(`  → ${p.leito}...`);
-        const dados = montarDadosPaciente(p, turno.eventos);
-        const resp = await fetch('/api/plantao/gerar-documento', {
-          method: 'POST',
-          headers: headersAuth,
-          body: JSON.stringify({ formato: 'evolucao', dados }),
-        });
-        const json = await resp.json();
-        if (!resp.ok) throw new Error(json.erro);
-        docs.push({ leito: p.leito, texto: json.texto });
+      // Em paralelo: o gargalo do encerramento era a fila sequencial. O
+      // controle de rajada (TPM 8K do gpt-oss-120b) fica no servidor, que
+      // já retenta 429/524 com backoff por chamada.
+      addLog(`Gerando ${pendentes.length} evolução(ões) em paralelo...`);
+      const resultados = await Promise.all(
+        pendentes.map(async (p) => {
+          try {
+            const dados = montarDadosPaciente(p, turno.eventos);
+            const resp = await fetch('/api/plantao/gerar-documento', {
+              method: 'POST',
+              headers: headersAuth,
+              body: JSON.stringify({ formato: 'evolucao', dados }),
+            });
+            const json = await resp.json();
+            if (!resp.ok) throw new Error(json.erro);
+            addLog(`  ✓ ${p.leito}`);
+            return { leito: p.leito, texto: json.texto as string };
+          } catch {
+            addLog(`  ✗ ${p.leito} falhou`);
+            return { leito: p.leito, texto: null };
+          }
+        })
+      );
+
+      for (const r of resultados) {
+        if (r.texto) docsGerados[r.leito] = r.texto;
       }
-      addLog(`${docs.length} evolução(ões) gerada(s).`);
+      const falhas = resultados.filter((r) => !r.texto).map((r) => r.leito);
+      if (falhas.length > 0) {
+        throw new Error(
+          `Falha ao gerar a evolução de: ${falhas.join(', ')}. ` +
+            'Toque em "Tentar novamente" — as evoluções já geradas serão aproveitadas.'
+        );
+      }
+      addLog(`${pacientesComEventos.length} evolução(ões) gerada(s).`);
+      const docs = pacientesComEventos.map((p) => ({ leito: p.leito, texto: docsGerados[p.leito] }));
 
       addLog('Gerando relatório final...');
       const dadosRel = montarDadosRelatorioFinal(turno.pacientes, turno.eventos);

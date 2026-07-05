@@ -10,6 +10,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { chamarGroq } from '../../../lib/groq-client';
 import { PROMPT_ORGANIZAR_REGISTRO } from '../../../lib/prompts';
+import { aplicarGuardsClinicos } from '../../../lib/conferir-guard';
 import { getUsuarioAutenticado } from '../../../lib/auth-server';
 import { dentroDoRateLimit, LIMITE_PLANTAO, MSG_RATE_LIMIT } from '../../../lib/rate-limit';
 
@@ -40,14 +41,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!texto || !texto.trim()) return res.status(400).json({ erro: 'texto é obrigatório' });
 
   const timeout = timeoutEm(TIMEOUT_MS);
+  const t0 = Date.now();
   try {
-    const textoOrganizado = await Promise.race([
-      chamarGroq(PROMPT_ORGANIZAR_REGISTRO, texto, { json: false }),
+    const bruto = await Promise.race([
+      chamarGroq(PROMPT_ORGANIZAR_REGISTRO, texto, { json: false, reasoningEffort: 'low' }),
       timeout.promessa,
     ]);
-    res.status(200).json({ textoOrganizado });
+    // Guard determinístico: se o LLM deixou passar dose conflitante sem
+    // (CONFERIR) (ou apagou um marcador já presente no texto), corrige aqui.
+    const guards = aplicarGuardsClinicos(texto, bruto);
+    console.log(
+      `[plantao/organizar-registro] ${Date.now() - t0}ms ` +
+        `(reinjetados=${guards.reinjetados} anexados=${guards.anexados} conflitosDose=${guards.conflitosDose})`
+    );
+    res.status(200).json({ textoOrganizado: guards.texto });
   } catch (e) {
-    console.error('[plantao/organizar-registro] erro:', e);
+    console.error(`[plantao/organizar-registro] erro após ${Date.now() - t0}ms:`, e);
     res.status(502).json({ erro: 'Não foi possível organizar o registro agora.' });
   } finally {
     timeout.cancelar();
