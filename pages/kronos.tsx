@@ -66,25 +66,46 @@ export default function KronosPage() {
       {/* Header */}
       <div className="tela-header">
         <h1 className="tela-titulo">KRONOS</h1>
-        <button
-          onClick={() => router.push('/escalas')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            background: 'var(--color-clinical-tint)',
-            border: 'none',
-            borderRadius: 10,
-            padding: '6px 12px',
-            fontSize: '0.8rem',
-            fontWeight: 600,
-            color: 'var(--color-clinical)',
-            cursor: 'pointer',
-          }}
-        >
-          <IconRelogio />
-          Escalas
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => router.push('/biblioteca')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              background: 'var(--color-clinical-tint)',
+              border: 'none',
+              borderRadius: 10,
+              padding: '6px 12px',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              color: 'var(--color-clinical)',
+              cursor: 'pointer',
+            }}
+          >
+            <IconLivro />
+            Biblioteca
+          </button>
+          <button
+            onClick={() => router.push('/escalas')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              background: 'var(--color-clinical-tint)',
+              border: 'none',
+              borderRadius: 10,
+              padding: '6px 12px',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              color: 'var(--color-clinical)',
+              cursor: 'pointer',
+            }}
+          >
+            <IconRelogio />
+            Escalas
+          </button>
+        </div>
       </div>
 
       {/* Disclaimer */}
@@ -245,6 +266,15 @@ function renderInline(texto: string): React.ReactNode {
 }
 
 // ── Icons ────────────────────────────────────────────────────────────────────
+
+function IconLivro() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
+  );
+}
 
 function IconRelogio() {
   return (
