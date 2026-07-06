@@ -23,6 +23,9 @@
      em tema claro (texto pequeno de badge) — variantes de texto mais escuras. */
   --color-ok-ink:        #1B7A45;
   --color-warn-ink:      #8A5A09;
+  /* Sombra sutil (blur curto, não o "ghost card" de blur largo) — dá profundidade
+     a cards/superfícies sem competir com o conteúdo. */
+  --shadow-card: 0 1px 3px rgba(16,24,40,.07), 0 4px 10px rgba(16,24,40,.10);
   --nav-height: 68px;
   --font-display: 'Space Grotesk', 'Segoe UI', sans-serif;
   --font-body:    'Inter', 'Segoe UI', sans-serif;
@@ -48,6 +51,9 @@
   /* Em tema escuro, --color-ok/--color-warn já passam de sobra sobre seus tints. */
   --color-ok-ink:        var(--color-ok);
   --color-warn-ink:      var(--color-warn);
+  /* Sombra preta não separa superfície de fundo já escuro — em vez disso,
+     um realce sutil no topo sugere a mesma elevação. */
+  --shadow-card: inset 0 1px 0 rgba(255,255,255,.05);
 }
 
 /* ── Reset ─────────────────────────────────────── */
@@ -184,6 +190,7 @@ input, textarea, select {
   border-radius: 14px;
   padding: 14px 16px;
   margin-bottom: 10px;
+  box-shadow: var(--shadow-card);
 }
 
 .card-titulo {
@@ -840,6 +847,7 @@ input[type="date"]:focus {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  box-shadow: var(--shadow-card);
 }
 
 .stat-card-label {
@@ -948,7 +956,18 @@ input[type="date"]:focus {
   flex-direction: column;
   gap: 6px;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.15s, background 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+
+@media (hover: hover) {
+  .kronos-grid-item:hover {
+    transform: translateY(-1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kronos-grid-item { transition: border-color 0.15s, background 0.15s; }
 }
 
 .kronos-grid-item:hover {

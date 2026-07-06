@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Head from 'next/head';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
@@ -93,6 +93,18 @@ export default function BibliotecaPage() {
   const [buscaAplicada, setBuscaAplicada] = useState('');
   const { favoritos, alternar, persisteOk } = useFavoritos();
 
+  // O peek do próximo card já sugere "tem mais", mas depende de quantas
+  // categorias existem — o fade garante o mesmo sinal mesmo quando o
+  // conteúdo quase cabe na largura da tela.
+  const carrosselRef = useRef<HTMLDivElement>(null);
+  const [temMaisDireita, setTemMaisDireita] = useState(false);
+
+  const atualizarFadeCarrossel = useCallback(() => {
+    const el = carrosselRef.current;
+    if (!el) return;
+    setTemMaisDireita(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
+
   const carregar = useCallback(async (categoria: string | null, offset: number, substituir: boolean, termoBusca: string) => {
     if (offset === 0) setCarregando(true); else setCarregandoMais(true);
     setErro('');
@@ -136,6 +148,12 @@ export default function BibliotecaPage() {
     carregar(categoriaFiltro, 0, true, buscaAplicada);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoriaFiltro, buscaAplicada]);
+
+  useEffect(() => {
+    atualizarFadeCarrossel();
+    window.addEventListener('resize', atualizarFadeCarrossel);
+    return () => window.removeEventListener('resize', atualizarFadeCarrossel);
+  }, [dados?.categorias, atualizarFadeCarrossel]);
 
   function selecionarCategoria(categoria: string) {
     setCategoriaFiltro((atual) => (atual === categoria ? null : categoria));
@@ -200,36 +218,60 @@ export default function BibliotecaPage() {
 
         {!carregando && !erro && dados && (
           <>
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 6, marginBottom: 18 }}>
-              {dados.categorias.length > 0 && (
-                <>
-                  <button
-                    className={`pill${categoriaFiltro === null ? ' ativo' : ''}`}
-                    onClick={() => setCategoriaFiltro(null)}
-                  >
-                    Todos
-                  </button>
-                  {dados.categorias.map((c) => (
-                    <button
-                      key={c.categoria}
-                      className={`pill${categoriaFiltro === c.categoria ? ' ativo' : ''}`}
-                      onClick={() => selecionarCategoria(c.categoria)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}
-                    >
-                      {ICONE_CATEGORIA[c.categoria] ?? <IconProtocolo />}
-                      {c.categoria} ({c.total})
-                    </button>
-                  ))}
-                </>
-              )}
-              <button
-                className="pill"
-                onClick={() => router.push('/escalas')}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}
+            <div style={{ position: 'relative', marginBottom: 18 }}>
+              <div
+                ref={carrosselRef}
+                onScroll={atualizarFadeCarrossel}
+                style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 6 }}
               >
-                <IconRelogio />
-                Escalas
-              </button>
+                {dados.categorias.length > 0 && (
+                  <>
+                    <CardCategoria
+                      label="Todos"
+                      ativo={categoriaFiltro === null}
+                      onClick={() => setCategoriaFiltro(null)}
+                    />
+                    <CardCategoria
+                      label="Escalas"
+                      icone={<IconRelogio />}
+                      ativo={false}
+                      onClick={() => router.push('/escalas')}
+                    />
+                    {dados.categorias.map((c) => (
+                      <CardCategoria
+                        key={c.categoria}
+                        label={c.categoria}
+                        total={c.total}
+                        icone={ICONE_CATEGORIA[c.categoria] ?? <IconProtocolo />}
+                        ativo={categoriaFiltro === c.categoria}
+                        onClick={() => selecionarCategoria(c.categoria)}
+                      />
+                    ))}
+                  </>
+                )}
+                {/* Espaçador — garante que sempre sobre um pedaço de card cortado
+                    na borda, mesmo quando os itens cabem certinho na largura da tela. */}
+                <div aria-hidden style={{ flexShrink: 0, width: 24 }} />
+              </div>
+              {temMaisDireita && (
+                <div aria-hidden style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: 0,
+                  bottom: 6,
+                  width: 40,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  paddingRight: 4,
+                  background: 'linear-gradient(to left, rgba(0,0,0,.14), transparent)',
+                  pointerEvents: 'none',
+                }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-ink-muted)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </div>
+              )}
             </div>
 
             {!categoriaFiltro && !buscaAplicada && dados.atualizacoes.length > 0 && !atualizacoesRedundantes && (
@@ -313,6 +355,68 @@ export default function BibliotecaPage() {
         )}
       </Layout>
     </>
+  );
+}
+
+function CardCategoria({
+  label, total, icone, ativo, onClick,
+}: {
+  label: string;
+  total?: number;
+  icone?: React.ReactNode;
+  ativo: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        flexShrink: 0,
+        width: icone ? 116 : 88,
+        background: ativo ? 'var(--color-clinical)' : 'var(--color-surface)',
+        border: ativo ? 'none' : '1px solid var(--color-line)',
+        borderRadius: 14,
+        padding: '12px 10px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: icone ? 'flex-start' : 'flex-end',
+        minHeight: 76,
+        boxShadow: 'var(--shadow-card)',
+        gap: 8,
+        textAlign: 'left',
+        cursor: 'pointer',
+      }}
+    >
+      {icone && (
+        <div style={{
+          width: 26,
+          height: 26,
+          borderRadius: 7,
+          background: ativo ? 'rgba(255,255,255,.2)' : 'var(--color-clinical-tint)',
+          color: ativo ? '#fff' : 'var(--color-clinical)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}>
+          {icone}
+        </div>
+      )}
+      <span style={{
+        fontFamily: icone ? 'var(--font-body)' : 'var(--font-display)',
+        fontSize: '0.78rem',
+        fontWeight: icone ? 600 : 700,
+        color: ativo ? '#fff' : 'var(--color-ink)',
+        lineHeight: 1.25,
+      }}>
+        {label}
+      </span>
+      {total !== undefined && (
+        <span style={{ fontSize: '0.68rem', color: ativo ? 'rgba(255,255,255,.75)' : 'var(--color-ink-faint)' }}>
+          {total} {total === 1 ? 'item' : 'itens'}
+        </span>
+      )}
+    </button>
   );
 }
 
