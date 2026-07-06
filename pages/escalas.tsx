@@ -4,7 +4,7 @@ import { useTurno } from '../components/useTurno';
 import {
   NEWS2_CAMPOS, BRADEN_CAMPOS, MORSE_CAMPOS,
   calcularNews2, calcularBraden, calcularMorse, calcularQsofa,
-  CampoEscala, ResultadoEscala,
+  CampoEscala, ResultadoEscala, NivelRisco,
 } from '../lib/scales';
 
 type EscalaId = 'news2' | 'braden' | 'morse' | 'qsofa';
@@ -16,9 +16,11 @@ const ESCALAS: { id: EscalaId; label: string; descricao: string }[] = [
   { id: 'qsofa', label: 'qSOFA', descricao: 'Quick SOFA — critérios de sepse' },
 ];
 
-function riscoStyle(risco: string): { badge: string; bar: string } {
-  if (risco.includes('Alto') || risco.includes('Urgência')) return { badge: 'badge-risco-alto', bar: 'alerta-alto' };
-  if (risco.includes('Médio') || risco.includes('Moderado') || risco.includes('Médio')) return { badge: 'badge-risco-medio', bar: 'alerta-medio' };
+// Nunca inferir cor a partir do texto de `risco` — cada escala tem vocabulário próprio
+// (ex: Braden é invertido) e comparar substring já causou badge verde no pior resultado.
+function riscoStyle(nivel: NivelRisco | undefined): { badge: string; bar: string } {
+  if (nivel === 'alto') return { badge: 'badge-risco-alto', bar: 'alerta-alto' };
+  if (nivel === 'medio') return { badge: 'badge-risco-medio', bar: 'alerta-medio' };
   return { badge: 'badge-risco-baixo', bar: 'alerta-baixo' };
 }
 
@@ -103,10 +105,10 @@ export default function EscalasPage() {
           </p>
           <div>
             {ESCALAS.map((e) => (
-              <div
+              <button
                 key={e.id}
                 className="card"
-                style={{ cursor: 'pointer', transition: 'border-color 0.15s' }}
+                style={{ cursor: 'pointer', transition: 'border-color 0.15s', width: '100%', textAlign: 'left', display: 'block' }}
                 onClick={() => selecionarEscala(e.id)}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -127,27 +129,8 @@ export default function EscalasPage() {
                     <polyline points="9 18 15 12 9 6" />
                   </svg>
                 </div>
-              </div>
+              </button>
             ))}
-          </div>
-
-          {/* Risk scale reference */}
-          <div className="card" style={{ marginTop: 8 }}>
-            <p className="card-titulo">Referência de risco (NEWS2)</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {[
-                { range: '0–4', label: 'Baixo', badge: 'badge-risco-baixo' },
-                { range: '5–6', label: 'Médio', badge: 'badge-risco-medio' },
-                { range: '≥ 7', label: 'Alto', badge: 'badge-risco-alto' },
-              ].map((item) => (
-                <div key={item.range} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ width: 32, fontFamily: 'var(--font-mono)', fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-ink)', textAlign: 'right' }}>
-                    {item.range}
-                  </span>
-                  <span className={`badge ${item.badge}`}>{item.label}</span>
-                </div>
-              ))}
-            </div>
           </div>
         </>
       )}
@@ -203,7 +186,7 @@ export default function EscalasPage() {
           </button>
 
           {resultado && (
-            <div className={`alerta-card ${riscoStyle(resultado.risco).bar}`} style={{ marginBottom: 0 }}>
+            <div className={`alerta-card ${riscoStyle(resultado.nivel).bar}`} style={{ marginBottom: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                 <div>
                   <span style={{
@@ -217,7 +200,7 @@ export default function EscalasPage() {
                   </span>
                   <span style={{ fontSize: '0.82rem', color: 'var(--color-ink-muted)', marginLeft: 6 }}>pts</span>
                 </div>
-                <span className={`badge ${riscoStyle(resultado.risco).badge}`} style={{ fontSize: '0.75rem' }}>
+                <span className={`badge ${riscoStyle(resultado.nivel).badge}`} style={{ fontSize: '0.75rem' }}>
                   {resultado.risco}
                 </span>
               </div>
@@ -236,7 +219,12 @@ export default function EscalasPage() {
                 </div>
               )}
 
-              <button className="btn btn-primario btn-bloco" onClick={salvarEscala} style={{ marginTop: 4 }}>
+              <button
+                className="btn btn-primario btn-bloco"
+                onClick={salvarEscala}
+                disabled={salvandoEvento}
+                style={{ marginTop: 4 }}
+              >
                 {salvandoEvento ? '✓ Salvo!' : 'Salvar escala'}
               </button>
             </div>
