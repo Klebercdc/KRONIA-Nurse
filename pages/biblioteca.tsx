@@ -235,7 +235,6 @@ export default function BibliotecaPage() {
                       label="Escalas"
                       icone={<IconRelogio />}
                       ativo={false}
-                      destaque
                       onClick={() => router.push('/escalas')}
                     />
                     {dados.categorias.map((c) => (
@@ -360,13 +359,12 @@ export default function BibliotecaPage() {
 }
 
 function CardCategoria({
-  label, total, icone, ativo, destaque, onClick,
+  label, total, icone, ativo, onClick,
 }: {
   label: string;
   total?: number;
   icone?: React.ReactNode;
   ativo: boolean;
-  destaque?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -376,11 +374,7 @@ function CardCategoria({
         flexShrink: 0,
         width: icone ? 116 : 88,
         background: ativo ? 'var(--color-clinical)' : 'var(--color-surface)',
-        border: ativo
-          ? 'none'
-          : destaque
-            ? '1.5px solid var(--color-warm-accent)'
-            : '1px solid var(--color-line)',
+        border: ativo ? 'none' : '1px solid var(--color-line)',
         borderRadius: 14,
         padding: '12px 10px',
         display: 'flex',
@@ -398,8 +392,8 @@ function CardCategoria({
           width: 26,
           height: 26,
           borderRadius: 7,
-          background: ativo ? 'rgba(255,255,255,.2)' : destaque ? 'var(--color-warm-tint)' : 'var(--color-clinical-tint)',
-          color: ativo ? '#fff' : destaque ? 'var(--color-warm-accent)' : 'var(--color-clinical)',
+          background: ativo ? 'rgba(255,255,255,.2)' : 'var(--color-clinical-tint)',
+          color: ativo ? '#fff' : 'var(--color-clinical)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
