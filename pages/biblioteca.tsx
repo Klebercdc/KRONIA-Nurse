@@ -42,12 +42,49 @@ const ROTULO_STATUS: Record<Exclude<StatusConhecimento, null>, string> = {
   revisado: 'REVISADO',
 };
 
+const CHAVE_FAVORITOS = 'kronia:conhecimento:favoritos';
+
+/**
+ * Favoritos são só locais (localStorage) — não existe tabela de favoritos
+ * no Supabase. Se precisar sincronizar entre dispositivos, isso vira uma
+ * migration nova (perguntar antes).
+ */
+function useFavoritos() {
+  const [favoritos, setFavoritos] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    try {
+      const bruto = window.localStorage.getItem(CHAVE_FAVORITOS);
+      if (bruto) setFavoritos(new Set(JSON.parse(bruto)));
+    } catch {
+      // localStorage indisponível (modo privado etc.) — segue sem favoritos.
+    }
+  }, []);
+
+  const alternar = useCallback((id: string) => {
+    setFavoritos((atual) => {
+      const novo = new Set(atual);
+      if (novo.has(id)) novo.delete(id); else novo.add(id);
+      try {
+        window.localStorage.setItem(CHAVE_FAVORITOS, JSON.stringify(Array.from(novo)));
+      } catch {
+        // idem
+      }
+      return novo;
+    });
+  }, []);
+
+  return { favoritos, alternar };
+}
+
 export default function BibliotecaPage() {
   const [dados, setDados] = useState<RespostaListar | null>(null);
   const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [carregandoMais, setCarregandoMais] = useState(false);
   const [erro, setErro] = useState('');
+  const [somenteFavoritos, setSomenteFavoritos] = useState(false);
+  const { favoritos, alternar } = useFavoritos();
 
   const carregar = useCallback(async (categoria: string | null, offset: number, substituir: boolean) => {
     if (offset === 0) setCarregando(true); else setCarregandoMais(true);
@@ -84,6 +121,11 @@ export default function BibliotecaPage() {
   }
 
   const temMais = !!dados && dados.itens.length < dados.totalFiltrado;
+  const itensExibidos = !dados
+    ? []
+    : somenteFavoritos
+      ? dados.itens.filter((item) => favoritos.has(item.id))
+      : dados.itens;
 
   return (
     <>
@@ -162,25 +204,42 @@ export default function BibliotecaPage() {
               </>
             )}
 
-            <p className="card-titulo" style={{ marginTop: 20, marginBottom: 8 }}>
-              {categoriaFiltro ? `${categoriaFiltro} (${dados.totalFiltrado})` : `Conhecimentos recentes (${dados.totalFiltrado})`}
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 20, marginBottom: 8 }}>
+              <p className="card-titulo" style={{ margin: 0 }}>
+                {categoriaFiltro ? `${categoriaFiltro} (${dados.totalFiltrado})` : `Conhecimentos recentes (${dados.totalFiltrado})`}
+              </p>
+              <button
+                className={`pill${somenteFavoritos ? ' ativo' : ''}`}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', fontSize: '0.72rem' }}
+                onClick={() => setSomenteFavoritos((v) => !v)}
+              >
+                <IconEstrela preenchida={somenteFavoritos} />
+                Favoritos
+              </button>
+            </div>
 
-            {dados.itens.length > 0 ? (
+            {itensExibidos.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {dados.itens.map((item) => (
-                  <ConhecimentoCard key={item.id} item={item} />
+                {itensExibidos.map((item) => (
+                  <ConhecimentoCard
+                    key={item.id}
+                    item={item}
+                    favorito={favoritos.has(item.id)}
+                    onAlternarFavorito={() => alternar(item.id)}
+                  />
                 ))}
               </div>
             ) : (
               <div className="estado-vazio">
-                {categoriaFiltro
-                  ? `Nenhum conhecimento publicado ainda em "${categoriaFiltro}".`
-                  : 'Nenhum conhecimento publicado ainda.'}
+                {somenteFavoritos
+                  ? 'Você ainda não marcou nenhum conhecimento como favorito.'
+                  : categoriaFiltro
+                    ? `Nenhum conhecimento publicado ainda em "${categoriaFiltro}".`
+                    : 'Nenhum conhecimento publicado ainda.'}
               </div>
             )}
 
-            {temMais && (
+            {!somenteFavoritos && temMais && (
               <button
                 className="btn btn-secundario btn-bloco"
                 style={{ marginTop: 12 }}
@@ -197,7 +256,13 @@ export default function BibliotecaPage() {
   );
 }
 
-function ConhecimentoCard({ item }: { item: GuiaResumo }) {
+function ConhecimentoCard({
+  item, favorito, onAlternarFavorito,
+}: {
+  item: GuiaResumo;
+  favorito: boolean;
+  onAlternarFavorito: () => void;
+}) {
   return (
     <div className="card" style={{ margin: 0, display: 'flex', gap: 12, alignItems: 'center', padding: 10 }}>
       <div style={{ position: 'relative', width: 56, height: 56, borderRadius: 10, overflow: 'hidden', flexShrink: 0 }}>
@@ -227,7 +292,24 @@ function ConhecimentoCard({ item }: { item: GuiaResumo }) {
           </span>
         </div>
       </div>
+      <button
+        className="btn-icone"
+        aria-label={favorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+        aria-pressed={favorito}
+        onClick={onAlternarFavorito}
+        style={{ flexShrink: 0, color: favorito ? 'var(--color-warn)' : 'var(--color-ink-faint)' }}
+      >
+        <IconEstrela preenchida={favorito} />
+      </button>
     </div>
+  );
+}
+
+function IconEstrela({ preenchida }: { preenchida: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill={preenchida ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+      <path d="M12 2.5 15.1 8.8 22 9.8 17 14.7 18.2 21.5 12 18.2 5.8 21.5 7 14.7 2 9.8 8.9 8.8z" />
+    </svg>
   );
 }
 
