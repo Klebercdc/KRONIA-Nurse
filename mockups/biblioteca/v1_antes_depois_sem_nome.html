@@ -1,0 +1,395 @@
+<title>Biblioteca — proposta sem saudação pessoal</title>
+<style>
+  :root{
+    --bg:#eef1f6;
+    --surface:#ffffff;
+    --ink:#10203c;
+    --ink-soft:#5b6b85;
+    --line:#e2e7f0;
+    --accent:#2f7fe0;
+    --accent-ink:#1d5fc0;
+    --green:#3d8a5c;
+    --green-soft:#e3f2e9;
+    --purple:#7a63b8;
+    --purple-soft:#ece7f8;
+    --orange:#d98a33;
+    --orange-soft:#faecdb;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:#dfe4ee;
+    font-family: -apple-system, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+    display:flex;
+    justify-content:center;
+    padding:32px 12px;
+  }
+  .compare{
+    display:flex;
+    gap:28px;
+    flex-wrap:wrap;
+    justify-content:center;
+    align-items:flex-start;
+  }
+  .col{ display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .col .tag{
+    font-size:0.78rem;
+    font-weight:600;
+    color:var(--ink-soft);
+    letter-spacing:0.02em;
+  }
+  .phone{
+    width:375px;
+    max-width:88vw;
+    background:var(--bg);
+    border-radius:36px;
+    border:8px solid #0d1220;
+    overflow:hidden;
+    box-shadow:0 20px 50px -20px rgba(10,20,40,0.45);
+  }
+  .statusbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:10px 20px 2px;
+    font-size:0.85rem;
+    font-weight:600;
+    color:var(--ink);
+  }
+  .screen{ padding:14px 18px 90px; position:relative; }
+
+  /* header */
+  .header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    margin-top:6px;
+  }
+  .header h1{
+    font-size:1.9rem;
+    font-weight:800;
+    color:var(--ink);
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .header p{
+    margin:4px 0 0;
+    color:var(--ink-soft);
+    font-size:0.92rem;
+  }
+  .avatar{
+    width:46px;height:46px;
+    border-radius:50%;
+    background:var(--ink);
+    color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;
+    flex-shrink:0;
+  }
+  .old .header p.greeting{ color: var(--ink-soft); }
+  .old .header p.greeting b{ color:var(--ink); }
+
+  /* stats */
+  .stats{
+    margin-top:16px;
+    background:var(--surface);
+    border-radius:18px;
+    padding:16px 8px;
+    display:flex;
+    box-shadow:0 1px 2px rgba(16,32,60,0.05), 0 8px 20px -14px rgba(16,32,60,0.25);
+  }
+  .stat{ flex:1; text-align:center; padding:0 6px; position:relative; }
+  .stat + .stat::before{
+    content:"";
+    position:absolute; left:0; top:8px; bottom:8px;
+    width:1px; background:var(--line);
+  }
+  .stat .ic{
+    width:34px;height:34px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    margin:0 auto 8px;
+  }
+  .stat .num{ font-size:1.3rem; font-weight:800; color:var(--ink); line-height:1; }
+  .stat .lbl{ font-size:0.74rem; color:var(--ink-soft); margin-top:4px; }
+  .stat.facet .num{ font-size:0.98rem; }
+  .stat.facet .ic{ cursor:pointer; }
+
+  /* search */
+  .search{
+    margin-top:14px;
+    background:var(--surface);
+    border-radius:14px;
+    padding:12px 14px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    box-shadow:0 1px 2px rgba(16,32,60,0.05);
+    color:var(--ink-soft);
+    font-size:0.88rem;
+  }
+  .search svg{ flex-shrink:0; }
+  .search .ph{ flex:1; }
+  .search .filt{ margin-left:auto; }
+
+  /* chips */
+  .chips{
+    display:flex;
+    gap:8px;
+    margin-top:14px;
+    overflow:hidden;
+    position:relative;
+  }
+  .chip{
+    padding:8px 15px;
+    border-radius:99px;
+    font-size:0.82rem;
+    font-weight:600;
+    white-space:nowrap;
+    background:var(--surface);
+    color:var(--ink);
+    border:1px solid var(--line);
+  }
+  .chip.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  .chips::after{
+    content:"";
+    position:absolute; right:0; top:0; bottom:0; width:34px;
+    background:linear-gradient(to right, transparent, var(--bg));
+  }
+
+  /* destaque */
+  .feature{
+    margin-top:16px;
+    background:var(--surface);
+    border-radius:18px;
+    overflow:hidden;
+    box-shadow:0 1px 2px rgba(16,32,60,0.05), 0 8px 20px -14px rgba(16,32,60,0.25);
+  }
+  .feature-inner{ display:flex; }
+  .feature-text{ padding:16px; flex:1.1; }
+  .feature-badge{
+    display:inline-block;
+    font-size:0.68rem;
+    font-weight:700;
+    color:var(--accent-ink);
+    background:#e4eeff;
+    padding:3px 9px;
+    border-radius:5px;
+    margin-bottom:8px;
+  }
+  .feature-text h3{ margin:0 0 6px; font-size:1.15rem; color:var(--ink); font-weight:800; line-height:1.2; }
+  .feature-text p{ margin:0 0 12px; font-size:0.82rem; color:var(--ink-soft); line-height:1.4; }
+  .feature-cta{
+    display:inline-flex; align-items:center; gap:6px;
+    border:1px solid var(--line);
+    border-radius:99px;
+    padding:7px 14px;
+    font-size:0.78rem;
+    font-weight:700;
+    color:var(--ink);
+  }
+  .feature-photo{
+    flex:1;
+    background:
+      radial-gradient(circle at 30% 30%, #cfe0f5, #9fb8dd 70%);
+    display:flex;align-items:center;justify-content:center;
+    color:#4a6browni;
+    font-size:0.68rem;
+    color:rgba(20,40,70,0.55);
+    text-align:center;
+    padding:8px;
+  }
+
+  /* section head */
+  .sect-head{
+    display:flex; justify-content:space-between; align-items:baseline;
+    margin:20px 0 10px;
+  }
+  .sect-head h4{ margin:0; font-size:1.05rem; font-weight:800; color:var(--ink); }
+  .sect-head span{ font-size:0.8rem; color:var(--accent-ink); font-weight:700; }
+
+  .cards{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .card{
+    background:var(--surface);
+    border-radius:14px;
+    overflow:hidden;
+    box-shadow:0 1px 2px rgba(16,32,60,0.05);
+  }
+  .card .thumb{
+    height:64px;
+    background:linear-gradient(135deg,#dbe6f6,#b9c9e6);
+    position:relative;
+  }
+  .card .thumb .badge{
+    position:absolute; left:6px; bottom:6px;
+    font-size:0.6rem; font-weight:800;
+    padding:2px 6px; border-radius:5px;
+  }
+  .card .body{ padding:8px 9px 10px; }
+  .card .body b{ display:block; font-size:0.76rem; color:var(--ink); line-height:1.25; margin-bottom:6px; min-height:2.4em; }
+  .card .meta{ font-size:0.62rem; color:var(--ink-soft); }
+  .card .tagrow{ display:flex; align-items:center; gap:5px; margin-top:6px; font-size:0.62rem; color:var(--ink-soft); font-weight:700; }
+  .dot{ width:6px;height:6px;border-radius:50%; }
+
+  /* nav */
+  .nav{
+    position:absolute; left:10px; right:10px; bottom:10px;
+    background:var(--surface);
+    border-radius:22px;
+    display:flex;
+    justify-content:space-around;
+    align-items:center;
+    padding:10px 4px;
+    box-shadow:0 10px 30px -12px rgba(16,32,60,0.35);
+  }
+  .navitem{ display:flex; flex-direction:column; align-items:center; gap:3px; font-size:0.62rem; color:#9aa5b8; font-weight:600; }
+  .navitem.active{ color:var(--accent); }
+  .navitem .fab{
+    width:44px;height:44px;border-radius:50%;
+    background:var(--accent);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;
+    margin-top:-22px;
+    box-shadow:0 8px 18px -6px rgba(47,127,224,0.6);
+  }
+
+  .callout{
+    max-width:375px;
+    background:#fff;
+    border-radius:14px;
+    padding:14px 16px;
+    margin-top:14px;
+    font-size:0.82rem;
+    color:var(--ink-soft);
+    box-shadow:0 1px 2px rgba(16,32,60,0.06);
+  }
+  .callout b{ color:var(--ink); }
+</style>
+
+<div class="compare">
+
+  <div class="col">
+    <span class="tag">ANTES — lê como Início</span>
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span>●●●●</span></div>
+      <div class="screen old">
+        <div class="header">
+          <div>
+            <p class="greeting" style="font-size:1.7rem;font-weight:800;color:var(--ink);margin:0;">Olá, <b>Kleber</b></p>
+            <p class="greeting">Pronto para mais um dia de cuidado?</p>
+          </div>
+          <div class="avatar">K</div>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><div class="ic" style="background:#e4eeff;color:var(--accent-ink);">📄</div><div class="num">1.200</div><div class="lbl">Guias</div></div>
+          <div class="stat"><div class="ic" style="background:var(--green-soft);color:var(--green);">📖</div><div class="num">24</div><div class="lbl">Protocolos</div></div>
+          <div class="stat"><div class="ic" style="background:var(--purple-soft);color:var(--purple);">🛡</div><div class="num">98%</div><div class="lbl">Confiabilidade</div></div>
+          <div class="stat"><div class="ic" style="background:var(--orange-soft);color:var(--orange);">🕐</div><div class="num">12</div><div class="lbl">Atualizações</div></div>
+        </div>
+
+        <div class="search">
+          <span>🔍</span><span class="ph">Buscar procedimentos...</span><span class="filt">⚙︎</span>
+        </div>
+
+        <div class="chips">
+          <div class="chip active">Todos</div>
+          <div class="chip">Punção Venosa</div>
+          <div class="chip">Curativos</div>
+          <div class="chip">Sinais Vitais</div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-inner">
+            <div class="feature-text">
+              <span class="feature-badge">DESTAQUE</span>
+              <h3>Punção Venosa Periférica</h3>
+              <p>Técnica segura e humanizada para acesso venoso.</p>
+              <span class="feature-cta">Ler guia completo →</span>
+            </div>
+            <div class="feature-photo">[foto]</div>
+          </div>
+        </div>
+
+        <div class="sect-head"><h4>Últimas atualizações</h4><span>Ver todas ›</span></div>
+        <div class="cards">
+          <div class="card"><div class="thumb"><span class="badge" style="background:var(--green-soft);color:var(--green);">NOVO</span></div><div class="body"><b>Curativo com Cobertura Estéril</b><div class="meta">05/07/2026</div><div class="tagrow"><span class="dot" style="background:var(--accent);"></span>GUIA</div></div></div>
+          <div class="card"><div class="thumb"><span class="badge" style="background:var(--purple-soft);color:var(--purple);">REVISADO</span></div><div class="body"><b>Avaliação de Sinais Vitais</b><div class="meta">04/07/2026</div><div class="tagrow"><span class="dot" style="background:var(--purple);"></span>PROTOCOLO</div></div></div>
+          <div class="card"><div class="thumb"><span class="badge" style="background:var(--orange-soft);color:var(--orange);">ATUALIZADO</span></div><div class="body"><b>Administração de Medicamentos</b><div class="meta">03/07/2026</div><div class="tagrow"><span class="dot" style="background:var(--orange);"></span>GUIA</div></div></div>
+        </div>
+      </div>
+      <div class="nav">
+        <div class="navitem active"><span>🏠</span>Início</div>
+        <div class="navitem"><span>👥</span>Pacientes</div>
+        <div class="navitem"><div class="fab">+</div></div>
+        <div class="navitem"><span>📖</span>Biblioteca</div>
+        <div class="navitem"><span>👤</span>Perfil</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col">
+    <span class="tag">DEPOIS — Biblioteca sem saudação pessoal</span>
+    <div class="phone">
+      <div class="statusbar"><span>9:41</span><span>●●●●</span></div>
+      <div class="screen">
+        <div class="header">
+          <div>
+            <h1>Biblioteca</h1>
+            <p>1.200 guias e 24 protocolos, sempre atualizados.</p>
+          </div>
+          <div class="avatar">K</div>
+        </div>
+
+        <div class="stats">
+          <div class="stat facet"><div class="ic" style="background:#e4eeff;color:var(--accent-ink);">📄</div><div class="num">Guias</div><div class="lbl">1.200</div></div>
+          <div class="stat facet"><div class="ic" style="background:var(--green-soft);color:var(--green);">📖</div><div class="num">Protocolos</div><div class="lbl">24</div></div>
+          <div class="stat facet"><div class="ic" style="background:var(--orange-soft);color:var(--orange);">🕐</div><div class="num">Atualizados</div><div class="lbl">12</div></div>
+          <div class="stat facet"><div class="ic" style="background:var(--purple-soft);color:var(--purple);">★</div><div class="num">Favoritos</div><div class="lbl">—</div></div>
+        </div>
+
+        <div class="search">
+          <span>🔍</span><span class="ph">Buscar procedimentos...</span><span class="filt">⚙︎</span>
+        </div>
+
+        <div class="chips">
+          <div class="chip active">Todos</div>
+          <div class="chip">Punção Venosa</div>
+          <div class="chip">Curativos</div>
+          <div class="chip">Sinais Vitais</div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-inner">
+            <div class="feature-text">
+              <span class="feature-badge">RECOMENDADO</span>
+              <h3>Punção Venosa Periférica</h3>
+              <p>Técnica segura e humanizada para acesso venoso.</p>
+              <span class="feature-cta">Ler guia completo →</span>
+            </div>
+            <div class="feature-photo">[foto]</div>
+          </div>
+        </div>
+
+        <div class="sect-head"><h4>Últimas atualizações</h4><span>Ver todas ›</span></div>
+        <div class="cards">
+          <div class="card"><div class="thumb"><span class="badge" style="background:var(--green-soft);color:var(--green);">NOVO</span></div><div class="body"><b>Curativo com Cobertura Estéril</b><div class="meta">05/07/2026</div><div class="tagrow"><span class="dot" style="background:var(--accent);"></span>GUIA</div></div></div>
+          <div class="card"><div class="thumb"><span class="badge" style="background:var(--purple-soft);color:var(--purple);">REVISADO</span></div><div class="body"><b>Avaliação de Sinais Vitais</b><div class="meta">04/07/2026</div><div class="tagrow"><span class="dot" style="background:var(--purple);"></span>PROTOCOLO</div></div></div>
+          <div class="card"><div class="thumb"><span class="badge" style="background:var(--orange-soft);color:var(--orange);">ATUALIZADO</span></div><div class="body"><b>Administração de Medicamentos</b><div class="meta">03/07/2026</div><div class="tagrow"><span class="dot" style="background:var(--orange);"></span>GUIA</div></div></div>
+        </div>
+      </div>
+      <div class="nav">
+        <div class="navitem"><span>🏠</span>Início</div>
+        <div class="navitem"><span>👥</span>Pacientes</div>
+        <div class="navitem"><div class="fab">+</div></div>
+        <div class="navitem active"><span>📖</span>Biblioteca</div>
+        <div class="navitem"><span>👤</span>Perfil</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="display:flex;justify-content:center;">
+  <div class="callout">
+    <b>O que mudou:</b> saudação pessoal → título "Biblioteca" + subtítulo funcional (tamanho do acervo, não humor do dia). Card de estatísticas passou de "resumo do dia" para <b>facetas de navegação</b> (Guias/Protocolos/Atualizados/Favoritos), tocáveis para filtrar a lista. Badge do destaque virou "RECOMENDADO" em vez de "DESTAQUE" (edição continua existindo, mas some do topo de prioridade). Aba ativa corrigida na tab bar: <b>Biblioteca</b>, não Início. Avatar mantido — é atalho de conta, não parte da saudação.
+  </div>
+</div>
