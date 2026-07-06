@@ -14,7 +14,6 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSupabase } from '../../../lib/supabase-client';
 import { getUsuarioAutenticado, usuarioEhAdmin } from '../../../lib/auth-server';
 import { gerarEmbedding, textoParaEmbedding } from '../../../lib/embeddings';
-import { buscarFotoCapa } from '../../../lib/cover-photo';
 import {
   composeConteudoKnowledgeBase,
   composeReferenciasTexto,
@@ -81,13 +80,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ erro: 'Falha ao gerar embedding. Tente novamente.' });
   }
 
-  // Busca automática de foto de capa (Unsplash) — best-effort: falha aqui
-  // não deve impedir a publicação, o front-end já trata cover_url ausente.
-  const foto = await buscarFotoCapa(specTyped.titulo, specTyped.categoria, specTyped.subcategoria).catch((err) => {
-    console.error('[knowledge-spec/aprovar] busca de foto falhou:', err);
-    return null;
-  });
-
   // Inserir no knowledge_base (fonte canônica do KRONOS).
   // conteudo = texto composto de todas as seções (usado para embedding e KRONOS).
   // Colunas estruturadas = cada seção individualmente (requer ALTER TABLE — ver migration).
@@ -121,10 +113,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       observacoes:                specTyped.observacoes                ?? null,
       limitacoes:                 specTyped.limitacoes                 ?? null,
       variacoes_institucionais:   specTyped.variacoes_institucionais   ?? null,
-
-      // Foto de capa (busca automática, best-effort — ver lib/cover-photo.ts)
-      cover_url:     foto?.url ?? null,
-      cover_credito: foto?.credito ?? null,
+      // cover_url/cover_credito ficam null aqui de propósito — a foto é
+      // escolhida por alguém da equipe depois da publicação, entre
+      // candidatas reais (ver /api/conhecimento/buscar-fotos.ts e
+      // /api/conhecimento/definir-foto.ts). Ver lib/cover-photo.ts.
 
       // Rastreabilidade
       spec_id: id,

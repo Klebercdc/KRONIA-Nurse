@@ -17,7 +17,15 @@ type Entrada = {
   subcategoria: string;
   autor: string;
   data_revisao: string;
+  cover_url: string | null;
   updated_at: string;
+};
+
+type CandidataFoto = {
+  thumbUrl: string;
+  url: string;
+  credito: string;
+  downloadLocation: string | null;
 };
 
 type FormState = {
@@ -46,6 +54,12 @@ export default function ConhecimentoAdmin() {
   const [mensagem, setMensagem] = useState('');
   const [entradas, setEntradas] = useState<Entrada[]>([]);
   const [carregandoLista, setCarregandoLista] = useState(true);
+
+  const [entradaEscolhendoFoto, setEntradaEscolhendoFoto] = useState<Entrada | null>(null);
+  const [candidatas, setCandidatas] = useState<CandidataFoto[]>([]);
+  const [buscandoFotos, setBuscandoFotos] = useState(false);
+  const [erroFotos, setErroFotos] = useState('');
+  const [salvandoFoto, setSalvandoFoto] = useState(false);
 
   // Preencher autor automaticamente com o usuário logado
   useEffect(() => {
@@ -138,6 +152,54 @@ export default function ConhecimentoAdmin() {
       await carregarLista();
     } catch {
       alert('Falha ao arquivar. Tente novamente.');
+    }
+  }
+
+  async function abrirEscolhaFoto(entrada: Entrada) {
+    setEntradaEscolhendoFoto(entrada);
+    setCandidatas([]);
+    setErroFotos('');
+    setBuscandoFotos(true);
+    try {
+      const token = await getToken();
+      const resp = await fetch('/api/conhecimento/buscar-fotos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ id: entrada.id }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.erro ?? 'Falha ao buscar fotos.');
+      setCandidatas(data.candidatas ?? []);
+      if (!data.candidatas?.length) setErroFotos('Nenhuma foto encontrada para este tema.');
+    } catch (err) {
+      setErroFotos(err instanceof Error ? err.message : 'Falha ao buscar fotos.');
+    } finally {
+      setBuscandoFotos(false);
+    }
+  }
+
+  async function escolherFoto(candidata: CandidataFoto) {
+    if (!entradaEscolhendoFoto) return;
+    setSalvandoFoto(true);
+    try {
+      const token = await getToken();
+      const resp = await fetch('/api/conhecimento/definir-foto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          id: entradaEscolhendoFoto.id,
+          url: candidata.url,
+          credito: candidata.credito,
+          downloadLocation: candidata.downloadLocation,
+        }),
+      });
+      if (!resp.ok) throw new Error('Falha ao salvar a foto escolhida.');
+      setEntradaEscolhendoFoto(null);
+      await carregarLista();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Falha ao salvar a foto escolhida.');
+    } finally {
+      setSalvandoFoto(false);
     }
   }
 
@@ -302,14 +364,28 @@ export default function ConhecimentoAdmin() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {entradas.map((e) => (
                 <div key={e.id} style={{ background: '#F7FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                  <div>
-                    <p style={{ fontWeight: 600, fontSize: '0.88rem', margin: 0 }}>{e.titulo}</p>
-                    <p style={{ fontSize: '0.75rem', color: '#718096', margin: '2px 0 0' }}>
-                      {[e.categoria, e.subcategoria].filter(Boolean).join(' / ')}
-                      {e.updated_at ? ` · ${new Date(e.updated_at).toLocaleDateString('pt-BR')}` : ''}
-                    </p>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', minWidth: 0 }}>
+                    {e.cover_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={e.cover_url} alt="" width={40} height={40} style={{ borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
+                    ) : (
+                      <div style={{ width: 40, height: 40, borderRadius: 6, background: '#E2E8F0', flexShrink: 0 }} />
+                    )}
+                    <div>
+                      <p style={{ fontWeight: 600, fontSize: '0.88rem', margin: 0 }}>{e.titulo}</p>
+                      <p style={{ fontSize: '0.75rem', color: '#718096', margin: '2px 0 0' }}>
+                        {[e.categoria, e.subcategoria].filter(Boolean).join(' / ')}
+                        {e.updated_at ? ` · ${new Date(e.updated_at).toLocaleDateString('pt-BR')}` : ''}
+                      </p>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                    <button
+                      onClick={() => abrirEscolhaFoto(e)}
+                      style={{ fontSize: '0.75rem', padding: '4px 10px', borderRadius: 6, border: '1px solid #CBD5E0', background: '#fff', cursor: 'pointer' }}
+                    >
+                      {e.cover_url ? 'Trocar foto' : 'Escolher foto'}
+                    </button>
                     <button
                       onClick={() => editar(e)}
                       style={{ fontSize: '0.75rem', padding: '4px 10px', borderRadius: 6, border: '1px solid #CBD5E0', background: '#fff', cursor: 'pointer' }}
@@ -329,6 +405,51 @@ export default function ConhecimentoAdmin() {
           )}
         </div>
       </div>
+
+      {entradaEscolhendoFoto && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Escolher foto de capa"
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 1000 }}
+          onClick={() => !salvandoFoto && setEntradaEscolhendoFoto(null)}
+        >
+          <div
+            style={{ background: '#fff', borderRadius: 12, padding: 20, maxWidth: 420, width: '100%', maxHeight: '80vh', overflowY: 'auto' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 4px' }}>Escolher foto de capa</h3>
+            <p style={{ fontSize: '0.8rem', color: '#718096', margin: '0 0 14px' }}>{entradaEscolhendoFoto.titulo}</p>
+
+            {buscandoFotos && <p style={{ fontSize: '0.85rem', color: '#718096' }}>Buscando fotos...</p>}
+            {!buscandoFotos && erroFotos && <p style={{ fontSize: '0.85rem', color: '#C53030' }}>{erroFotos}</p>}
+
+            {!buscandoFotos && candidatas.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {candidatas.map((c) => (
+                  <button
+                    key={c.url}
+                    onClick={() => escolherFoto(c)}
+                    disabled={salvandoFoto}
+                    style={{ padding: 0, border: '2px solid transparent', borderRadius: 8, overflow: 'hidden', cursor: salvandoFoto ? 'not-allowed' : 'pointer', opacity: salvandoFoto ? 0.6 : 1 }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={c.thumbUrl} alt="" width={180} height={120} style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }} />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <button
+              onClick={() => setEntradaEscolhendoFoto(null)}
+              disabled={salvandoFoto}
+              style={{ marginTop: 16, fontSize: '0.85rem', padding: '8px 14px', borderRadius: 8, border: '1px solid #CBD5E0', background: '#fff', cursor: 'pointer', width: '100%' }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -11,7 +11,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from('knowledge_base')
-    .select('id, titulo, categoria, subcategoria, autor, data_revisao, created_at, updated_at')
+    .select('id, titulo, categoria, subcategoria, autor, data_revisao, cover_url, created_at, updated_at')
     .is('deleted_at', null)
     .order('updated_at', { ascending: false });
 
