@@ -83,8 +83,8 @@ export default function KronosPage() {
               cursor: 'pointer',
             }}
           >
-            <IconLivro />
-            Biblioteca
+            <IconConhecimento />
+            Conhecimento
           </button>
           <button
             onClick={() => router.push('/escalas')}
@@ -267,11 +267,14 @@ function renderInline(texto: string): React.ReactNode {
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 
-function IconLivro() {
+function IconConhecimento() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+      <circle cx="18" cy="5" r="2.8" />
+      <circle cx="6" cy="12" r="2.8" />
+      <circle cx="18" cy="19" r="2.8" />
+      <line x1="8.4" y1="13.4" x2="15.5" y2="17.6" />
+      <line x1="15.5" y1="6.4" x2="8.4" y2="10.6" />
     </svg>
   );
 }
