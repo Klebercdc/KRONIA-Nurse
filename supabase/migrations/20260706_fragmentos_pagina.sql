@@ -27,6 +27,10 @@ ALTER TABLE conhecimento_fragmentos
 -- 2. FUNÇÃO RPC — inclui página de origem no retorno
 -- ================================================================
 
+-- Postgres não permite CREATE OR REPLACE mudar o tipo de retorno (novas
+-- colunas pagina_inicio/pagina_fim) — precisa dropar a assinatura antiga.
+DROP FUNCTION IF EXISTS buscar_fragmentos_conhecimento(vector, float, int);
+
 CREATE OR REPLACE FUNCTION buscar_fragmentos_conhecimento(
   query_embedding      vector(1024),
   similarity_threshold float DEFAULT 0.5,
@@ -76,3 +80,7 @@ BEGIN
   LIMIT match_count;
 END;
 $$;
+
+-- search_path fixo — linter de segurança do Supabase acusa search_path
+-- mutável em funções PL/pgSQL (0011_function_search_path_mutable).
+ALTER FUNCTION buscar_fragmentos_conhecimento(vector, float, int) SET search_path = public;
