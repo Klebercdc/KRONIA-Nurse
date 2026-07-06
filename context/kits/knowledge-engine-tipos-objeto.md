@@ -155,12 +155,13 @@ Diretrizes, Legislação, Guia...) + `instituicao` (ANVISA, COFEN, COREN-SP,
 Ministério da Saúde). É o schema certo pro *documento fonte*, mas ele não
 vira Objeto de Conhecimento navegável — fica só como material de RAG.
 
-**Decisão necessária:** uma Diretriz/RDC deveria também existir como um
-resumo estruturado em `knowledge_base` (o que o enfermeiro vê e navega),
-com o `conhecimento_documento` correspondente citado como fonte. Ou seja,
-não é um tipo de schema novo — é uma composição: normativo em
-`conhecimento_documentos` (já existe) + resumo em `knowledge_base` (falta
-o passo que gera esse resumo a partir do documento indexado).
+**Decisão:** confirmado — não é schema novo, é composição. Normativo em
+`conhecimento_documentos` (já existe) + resumo em `knowledge_base` (falta o
+passo que gera esse resumo a partir do documento indexado, citando-o como
+fonte). Esse passo de geração de resumo entra no mesmo pipeline de autoria
+que já existe (`knowledge-pipeline.ts`), só trocando a entrada: hoje o
+Pesquisador busca por recall do LLM, aqui a entrada já seria o documento
+indexado — sem inventar, só resumir com trecho/página citados.
 
 ---
 
@@ -207,11 +208,13 @@ Calcular IMC" consumindo o Objeto de Conhecimento "Cálculo de IMC").
 *saída* (o kit de arquitetura lista "Checklist" também como formato do
 Transformer Engine, e "Skill Gerar Checklist" no Skill Engine).
 
-**Decisão necessária:** um Checklist é conteúdo próprio (uma lista de itens
-de verificação com identidade e fonte, ex.: "Checklist de Cirurgia Segura da
-OMS") ou é sempre *gerado* a partir de outro Objeto de Conhecimento (ex.:
-extrair os passos de "cuidados" de um Procedimento)? Isso muda se precisa de
-schema próprio ou não.
+**Decisão:** regra híbrida — checklist com fonte oficial própria e citável
+(ex.: Checklist de Cirurgia Segura da OMS, um checklist do COFEN/COREN) é
+Objeto de Conhecimento próprio, com sua própria referência auditável; um
+checklist ad-hoc (ex.: "lista de cuidados" extraída de um Procedimento) é
+sempre *gerado* sob demanda pelo Transformer Engine a partir do objeto de
+origem, nunca persistido como conteúdo independente — evita duplicar a
+mesma informação em dois lugares que podem divergir.
 
 ---
 
@@ -253,28 +256,34 @@ aqui sem entender se é conteúdo estático, trilha de curso, ou avaliação.
 | Resultados (NOC) | ❌ falta | Sim |
 | CIPE | ❌ falta | Sim (schema próprio, diferente de NANDA-I) |
 | Medicamentos | ❌ falta | Sim — maior risco clínico |
-| Diretrizes/RDC/COFEN/COREN/ANVISA/MS | ⚠️ parcial (RAG existe, resumo navegável falta) | Composição, não schema novo |
+| Diretrizes/RDC/COFEN/COREN/ANVISA/MS | ⚠️ parcial — **decidido**: composição, não schema novo | Não |
 | Escalas Clínicas | ❌ falta | Sim |
 | Cálculos | ❌ falta | Sim |
-| Checklists | ❌ falta | Depende de decisão (gerado vs. próprio) |
-| Fluxos Assistenciais | ❌ falta | Não — mover para Workflow Engine |
+| Checklists | ❌ falta — **decidido**: híbrido (oficial = objeto próprio, ad-hoc = gerado) | Só pros oficiais |
+| Fluxos Assistenciais | ❌ falta — **decidido**: mover para Workflow Engine | Não |
 | Educação Permanente | ❌ indefinido | Precisa definição antes de tudo |
 
 ---
 
-## Perguntas Abertas (bloqueiam Draft → Architect)
+## Decisão — qual tipo entra primeiro
+
+**NANDA-I (Diagnósticos de Enfermagem), não Medicamentos.** Medicamentos é o
+tipo de maior risco clínico (erro de dose/via é evento adverso grave) —
+justamente por isso não deveria ser o primeiro a entrar, porque o Validation
+Engine em tempo de resposta (Domínio 3 do kit de arquitetura) ainda não
+existe. NANDA-I tem risco clínico menor quando errado (é sobre classificação
+de diagnóstico, não sobre uma dose administrada), já tem fonte primária na
+pasta do Drive (`NANDA-I-2018_2020.pdf`) e reaproveita o mesmo formato de
+pipeline de autoria já existente (`knowledge-pipeline.ts`), só trocando os
+campos de saída (ver item 4 acima). Medicamentos entra depois que o
+Validation Engine em tempo de resposta estiver de pé.
+
+## Perguntas Abertas (ainda bloqueiam Draft → Architect)
 
 1. NANDA-I e CIPE vão coexistir no produto, ou só uma taxonomia de
    diagnóstico será adotada? Isso decide se o item 7 vira um ou dois schemas.
-2. Diretrizes/RDC/normas (item 9): confirma que o formato certo é
-   "documento fonte em `conhecimento_documentos` + resumo navegável em
-   `knowledge_base`", em vez de um schema totalmente novo?
-3. Checklists (item 12): existem como conteúdo próprio com fonte oficial
-   (ex.: Checklist de Cirurgia Segura), ou são sempre derivados de outro
-   objeto via Transformer Engine?
-4. Educação Permanente (item 14): o que é, na prática, esse conteúdo? Sem
-   essa resposta não dá pra propor schema.
-5. Qual desses tipos entra primeiro? Dado o risco clínico, Medicamentos
-   (item 8) parece o candidato mais sensível a acertar cedo — mas também o
-   mais caro de fazer errado sem Validation Engine em tempo de resposta
-   pronto (ver Domínio 3 do kit de arquitetura).
+   Como o primeiro tipo a entrar é NANDA-I (decisão acima), essa pergunta
+   bloqueia só a extensão futura pra CIPE, não o primeiro recorte.
+2. Educação Permanente (item 14): o que é, na prática, esse conteúdo? Sem
+   essa resposta não dá pra propor schema — mas também não bloqueia o
+   primeiro recorte (NANDA-I).

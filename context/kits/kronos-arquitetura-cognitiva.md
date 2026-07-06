@@ -190,14 +190,26 @@ API/script antes de virar tela.
 
 ---
 
-## Perguntas Abertas (bloqueiam Draft → Architect)
+## Decisões (resolvidas)
 
-1. O Agent Engine (Domínio 5) deve voltar como chat ao vivo, ou o MVP fica só
-   em "pergunta pontual → resposta com fonte" sem estado de conversa?
-2. Vale a pena adicionar `pagina_inicio`/`pagina_fim` em
-   `conhecimento_fragmentos` agora (exigiria reindexar via
-   `scripts/rag-pipeline.js`) ou isso fica para quando o Validation Engine em
-   tempo de resposta for implementado?
-3. Os PDFs novos da pasta do Drive (NANDA-I, Guyton, hemodiálise etc.) entram
-   no `PDF_METADATA` do `scripts/rag-pipeline.js` antes ou depois desse
-   recorte ser validado?
+1. **Agent Engine — sem chat ao vivo no primeiro recorte.** Consistente com a
+   decisão já tomada nesta mesma sessão de apagar `kronos.tsx`/`professor.ts`
+   por confundir o usuário: o MVP fica em "pergunta pontual → resposta com
+   fonte", sem estado de conversa. Chat ao vivo só entra depois que Context →
+   Retrieval → Validation → Response estiverem provados isoladamente.
+2. **Rastreabilidade por página — adicionar agora, antes de indexar PDFs
+   novos.** Adicionar `pagina_inicio`/`pagina_fim` em `conhecimento_fragmentos`
+   depois exigiria reindexar tudo de novo (muda `CHUNKING_VERSION`, invalida o
+   hash de todos os documentos já indexados). Fazer isso antes de rodar
+   `scripts/rag-pipeline.js` sobre os PDFs da pasta do Drive evita reindexar
+   duas vezes.
+3. **PDFs novos entram no `PDF_METADATA` depois da decisão 2 acima estar
+   implementada** — decorrência direta: não vale indexar sem o campo de
+   página, teria que refazer.
+
+## Pergunta Aberta (ainda bloqueia Draft → Architect)
+
+Nenhuma nesta camada — as 3 pendências viraram decisões acima. A única
+pendência que ainda depende do usuário está em
+`context/kits/knowledge-engine-tipos-objeto.md` (NANDA-I vs. CIPE e Educação
+Permanente).
