@@ -17,6 +17,29 @@ export type NivelRisco = 'baixo' | 'moderado' | 'alto';
 export type NivelVariabilidade = 'nenhuma' | 'moderada' | 'elevada';
 export type ClassificacaoPipeline = 'verde' | 'amarelo' | 'vermelho';
 
+/**
+ * Tipo de Objeto de Conhecimento. "procedimento" cobre Procedimentos,
+ * Protocolos e POPs (campos indicacoes..variacoes_institucionais abaixo).
+ * Outros tipos guardam seus campos próprios em `campos_especificos` — ver
+ * context/kits/knowledge-engine-tipos-objeto.md.
+ */
+export type TipoConhecimento = 'procedimento' | 'diagnostico_enfermagem';
+
+/** Taxonomia de diagnóstico de enfermagem — NANDA-I é o primeiro tipo implementado. */
+export type TaxonomiaDiagnostico = 'NANDA-I' | 'CIPE';
+
+/** Campos próprios de um Diagnóstico de Enfermagem (tipo = 'diagnostico_enfermagem'). */
+export interface CamposEspecificosDiagnostico {
+  taxonomia: TaxonomiaDiagnostico;
+  codigo?: string;
+  dominio?: string;
+  classe?: string;
+  definicao: string;
+  caracteristicas_definidoras?: string[];
+  fatores_relacionados?: string[];
+  fatores_de_risco?: string[];
+}
+
 /** Registro de uma fonte oficial coletada na Etapa 1 (Pesquisador). */
 export interface ReferenciaOficial {
   instituicao: string;
@@ -89,6 +112,11 @@ export interface KnowledgeSpec {
   resumo?: string;
   objetivo?: string;
   escopo?: string;
+
+  /** Default 'procedimento' no banco — ausente aqui significa 'procedimento'. */
+  tipo?: TipoConhecimento;
+  /** Só preenchido quando tipo !== 'procedimento'. */
+  campos_especificos?: CamposEspecificosDiagnostico | null;
 
   // Seções de conteúdo (Etapa 2: Redator)
   indicacoes?: string;
