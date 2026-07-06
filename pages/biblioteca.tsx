@@ -379,7 +379,7 @@ function CardCategoria({
         border: ativo
           ? 'none'
           : destaque
-            ? '1.5px solid var(--color-clinical)'
+            ? '1.5px solid var(--color-warm-accent)'
             : '1px solid var(--color-line)',
         borderRadius: 14,
         padding: '12px 10px',
@@ -398,8 +398,8 @@ function CardCategoria({
           width: 26,
           height: 26,
           borderRadius: 7,
-          background: ativo ? 'rgba(255,255,255,.2)' : 'var(--color-clinical-tint)',
-          color: ativo ? '#fff' : 'var(--color-clinical)',
+          background: ativo ? 'rgba(255,255,255,.2)' : destaque ? 'var(--color-warm-tint)' : 'var(--color-clinical-tint)',
+          color: ativo ? '#fff' : destaque ? 'var(--color-warm-accent)' : 'var(--color-clinical)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

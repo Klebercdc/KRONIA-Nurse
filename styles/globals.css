@@ -23,6 +23,10 @@
      em tema claro (texto pequeno de badge) — variantes de texto mais escuras. */
   --color-ok-ink:        #1B7A45;
   --color-warn-ink:      #8A5A09;
+  /* Acento quente reservado a UM único uso: o atalho de Escalas em Conhecimento
+     — não é conteúdo, é ferramenta, e é o único lugar que foge do azul clínico. */
+  --color-warm-accent:   #9C5518;
+  --color-warm-tint:     #FBEEE3;
   /* Sombra sutil (blur curto, não o "ghost card" de blur largo) — dá profundidade
      a cards/superfícies sem competir com o conteúdo. */
   --shadow-card: 0 1px 3px rgba(16,24,40,.07), 0 4px 10px rgba(16,24,40,.10);
@@ -51,6 +55,8 @@
   /* Em tema escuro, --color-ok/--color-warn já passam de sobra sobre seus tints. */
   --color-ok-ink:        var(--color-ok);
   --color-warn-ink:      var(--color-warn);
+  --color-warm-accent:   #E0935B;
+  --color-warm-tint:     #3A2415;
   /* Sombra preta não separa superfície de fundo já escuro — em vez disso,
      um realce sutil no topo sugere a mesma elevação. */
   --shadow-card: inset 0 1px 0 rgba(255,255,255,.05);
