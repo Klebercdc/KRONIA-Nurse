@@ -47,7 +47,22 @@ export type RascunhoRedator = Pick<KnowledgeSpec,
 // de página) — o Redator (Etapa 2) parafraseia esse trecho real, nunca
 // texto inventado pelo modelo.
 
-const MATCH_COUNT_PESQUISADOR = 8;
+const MATCH_COUNT_PESQUISADOR = 5;
+
+// Limite de caracteres do trecho de cada referência ao montar os prompts
+// (Redator e Auditores). Chunks reais (não mais ruído de sumário) trazem
+// parágrafos inteiros — sem limite, N referências completas facilmente
+// estouram o TPM (tokens/min) da Groq num único request (visto em produção:
+// 8 referências reais -> 413 "tokens per minute limit exceeded"). O trecho
+// completo continua salvo em referencias_oficiais; só o prompt é truncado.
+const MAX_TRECHO_PROMPT_CHARS = 500;
+
+function truncarTrecho(trecho: string | undefined): string | undefined {
+  if (!trecho) return trecho;
+  return trecho.length > MAX_TRECHO_PROMPT_CHARS
+    ? `${trecho.slice(0, MAX_TRECHO_PROMPT_CHARS)}…`
+    : trecho;
+}
 
 const PROMPT_CLASSIFICADOR = `Você é o classificador da Base de Conhecimento KRONIA Nurse.
 
@@ -97,7 +112,7 @@ export async function pesquisarFontes(tema: string, dominios: readonly string[])
 
   const contextoTrechos = referencias
     .slice(0, 4)
-    .map((r, i) => `${i + 1}. ${r.trecho}`)
+    .map((r, i) => `${i + 1}. ${truncarTrecho(r.trecho)}`)
     .join('\n');
   const { categoria, subcategoria } = await classificarTema(tema, dominios, contextoTrechos);
 
@@ -149,7 +164,7 @@ export async function redigirConteudo(
         if (r.versao) partes.push(r.versao);
         if (r.ano) partes.push(`(${r.ano})`);
         if (r.pagina) partes.push(`p. ${r.pagina}`);
-        if (r.trecho) partes.push(`\n   Conteúdo relevante: "${r.trecho}"`);
+        if (r.trecho) partes.push(`\n   Conteúdo relevante: "${truncarTrecho(r.trecho)}"`);
         return partes.join(' ');
       }).join('\n')
     : 'Nenhuma referência oficial encontrada para este tema.';
@@ -226,7 +241,7 @@ function montarContextoSpec(spec: KnowledgeSpec): string {
       if (r.versao) partes.push(r.versao);
       if (r.ano) partes.push(`(${r.ano})`);
       if (r.pagina) partes.push(`p. ${r.pagina}`);
-      if (r.trecho) partes.push(`\n   Trecho: "${r.trecho}"`);
+      if (r.trecho) partes.push(`\n   Trecho: "${truncarTrecho(r.trecho)}"`);
       if (r.data_atualizacao) partes.push(`\n   Última atualização: ${r.data_atualizacao}`);
       return partes.join(' ');
     })
