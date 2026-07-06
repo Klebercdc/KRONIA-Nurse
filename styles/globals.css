@@ -279,6 +279,7 @@ input, textarea, select {
   gap: 10px;
   background: var(--color-surface);
   transition: border-color 0.15s;
+  min-width: 0; /* sem isso, um item flex não encolhe abaixo da largura de conteúdo do input */
 }
 
 .auth-input-wrap:focus-within {
@@ -287,6 +288,7 @@ input, textarea, select {
 
 .auth-input-wrap input {
   flex: 1;
+  min-width: 0;
   border: none;
   outline: none;
   padding: 14px 0;
