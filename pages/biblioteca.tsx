@@ -89,9 +89,11 @@ export default function BibliotecaPage() {
   const [carregandoMais, setCarregandoMais] = useState(false);
   const [erro, setErro] = useState('');
   const [somenteFavoritos, setSomenteFavoritos] = useState(false);
+  const [busca, setBusca] = useState('');
+  const [buscaAplicada, setBuscaAplicada] = useState('');
   const { favoritos, alternar, persisteOk } = useFavoritos();
 
-  const carregar = useCallback(async (categoria: string | null, offset: number, substituir: boolean) => {
+  const carregar = useCallback(async (categoria: string | null, offset: number, substituir: boolean, termoBusca: string) => {
     if (offset === 0) setCarregando(true); else setCarregandoMais(true);
     setErro('');
     try {
@@ -99,6 +101,7 @@ export default function BibliotecaPage() {
       const token = data.session?.access_token ?? '';
       const params = new URLSearchParams({ offset: String(offset), limit: String(LIMITE_POR_PAGINA) });
       if (categoria) params.set('categoria', categoria);
+      if (termoBusca) params.set('busca', termoBusca);
       const resp = await fetch(`/api/biblioteca/listar?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -123,10 +126,16 @@ export default function BibliotecaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady]);
 
+  // Debounce — evita uma requisição por tecla digitada.
   useEffect(() => {
-    carregar(categoriaFiltro, 0, true);
+    const t = setTimeout(() => setBuscaAplicada(busca.trim()), 350);
+    return () => clearTimeout(t);
+  }, [busca]);
+
+  useEffect(() => {
+    carregar(categoriaFiltro, 0, true, buscaAplicada);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoriaFiltro]);
+  }, [categoriaFiltro, buscaAplicada]);
 
   function selecionarCategoria(categoria: string) {
     setCategoriaFiltro((atual) => (atual === categoria ? null : categoria));
@@ -150,6 +159,17 @@ export default function BibliotecaPage() {
       <Layout>
         <div className="tela-header">
           <h1 className="tela-titulo">Conhecimento</h1>
+        </div>
+
+        <div className="auth-input-wrap" style={{ marginBottom: 16 }}>
+          <IconBusca />
+          <input
+            type="text"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Pesquisar procedimento, tema ou palavra-chave..."
+            aria-label="Pesquisar conhecimento"
+          />
         </div>
 
         {dados && (
@@ -212,7 +232,7 @@ export default function BibliotecaPage() {
               </button>
             </div>
 
-            {!categoriaFiltro && dados.atualizacoes.length > 0 && !atualizacoesRedundantes && (
+            {!categoriaFiltro && !buscaAplicada && dados.atualizacoes.length > 0 && !atualizacoesRedundantes && (
               <>
                 <p className="card-titulo" style={{ marginBottom: 8 }}>Atualizações recentes</p>
                 <div className="card" style={{ padding: 0 }}>
@@ -233,7 +253,11 @@ export default function BibliotecaPage() {
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 20, marginBottom: 8 }}>
               <p className="card-titulo" style={{ margin: 0 }}>
-                {categoriaFiltro ? `${categoriaFiltro} (${dados.totalFiltrado})` : `Conhecimentos recentes (${dados.totalFiltrado})`}
+                {buscaAplicada
+                  ? `Resultados para "${buscaAplicada}" (${dados.totalFiltrado})`
+                  : categoriaFiltro
+                    ? `${categoriaFiltro} (${dados.totalFiltrado})`
+                    : `Conhecimentos recentes (${dados.totalFiltrado})`}
               </p>
               <button
                 className={`pill${somenteFavoritos ? ' ativo' : ''}`}
@@ -267,9 +291,11 @@ export default function BibliotecaPage() {
               <div className="estado-vazio">
                 {somenteFavoritos
                   ? 'Você ainda não marcou nenhum conhecimento como favorito.'
-                  : categoriaFiltro
-                    ? `Nenhum conhecimento publicado ainda em "${categoriaFiltro}".`
-                    : 'Nenhum conhecimento publicado ainda.'}
+                  : buscaAplicada
+                    ? `Nenhum conhecimento encontrado para "${buscaAplicada}".`
+                    : categoriaFiltro
+                      ? `Nenhum conhecimento publicado ainda em "${categoriaFiltro}".`
+                      : 'Nenhum conhecimento publicado ainda.'}
               </div>
             )}
 
@@ -278,7 +304,7 @@ export default function BibliotecaPage() {
                 className="btn btn-secundario btn-bloco"
                 style={{ marginTop: 12 }}
                 disabled={carregandoMais}
-                onClick={() => carregar(categoriaFiltro, dados.itens.length, false)}
+                onClick={() => carregar(categoriaFiltro, dados.itens.length, false, buscaAplicada)}
               >
                 {carregandoMais ? 'Carregando...' : `Carregar mais (${dados.totalFiltrado - dados.itens.length} restantes)`}
               </button>
@@ -374,6 +400,15 @@ function formatarData(iso: string): string {
 }
 
 // ── Icons ────────────────────────────────────────────────────────────────────
+
+function IconBusca() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-ink-faint)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <circle cx="11" cy="11" r="7" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
 
 function IconRelogio() {
   return (

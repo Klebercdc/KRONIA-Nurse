@@ -109,7 +109,7 @@ export default function Home() {
           </div>
           <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--color-ink)' }}>Escalas</span>
         </button>
-        <button className="kronos-grid-item" style={{ flexDirection: 'row', alignItems: 'center' }} onClick={() => router.push('/kronos')}>
+        <button className="kronos-grid-item" style={{ flexDirection: 'row', alignItems: 'center' }} onClick={() => router.push('/biblioteca')}>
           <div className="kronos-grid-item-icon" style={{ width: 28, height: 28, borderRadius: 7 }}>
             <IconKronos />
           </div>
