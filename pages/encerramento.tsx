@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import { useTurno, montarDadosPaciente, montarDadosRelatorioFinal, montarListaParaReclassificacao } from '../components/useTurno';
@@ -19,16 +19,26 @@ export default function Encerramento() {
   const [documentoCompleto, setDocumentoCompleto] = useState('');
   const [erro, setErro] = useState('');
   const [confirmandoEncerrar, setConfirmandoEncerrar] = useState(false);
+  const [confirmoQueCopiei, setConfirmoQueCopiei] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   function addLog(msg: string) {
     setLog((l) => [...l, msg]);
+  }
+
+  function cancelarProcessamento() {
+    abortRef.current?.abort();
+    setFase('inicial');
+    setLog([]);
   }
 
   async function processarPlantao() {
     setFase('processando');
     setLog([]);
     setErro('');
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     try {
       const { data: sessao } = await getSupabaseBrowser().auth.getSession();
@@ -43,9 +53,10 @@ export default function Encerramento() {
         method: 'POST',
         headers: headersAuth,
         body: JSON.stringify({ listaNumerada }),
+        signal: controller.signal,
       });
       const jsonRecl = await respRecl.json();
-      if (!respRecl.ok) throw new Error(jsonRecl.erro);
+      if (!respRecl.ok) throw new Error(jsonRecl.erro || 'Não foi possível reclassificar os leitos. Tente novamente.');
 
       const mapeamento: { indice: number; leito: string }[] = jsonRecl.mapeamento;
       const eventosOrdenados = [...turno.eventos].sort((a, b) => a.ts - b.ts);
@@ -72,9 +83,10 @@ export default function Encerramento() {
           method: 'POST',
           headers: headersAuth,
           body: JSON.stringify({ formato: 'evolucao', dados }),
+          signal: controller.signal,
         });
         const json = await resp.json();
-        if (!resp.ok) throw new Error(json.erro);
+        if (!resp.ok) throw new Error(json.erro || `Não foi possível gerar a evolução de ${p.leito}. Tente novamente.`);
         docs.push({ leito: p.leito, texto: json.texto });
       }
       addLog(`${docs.length} evolução(ões) gerada(s).`);
@@ -85,9 +97,10 @@ export default function Encerramento() {
         method: 'POST',
         headers: headersAuth,
         body: JSON.stringify({ dados: dadosRel }),
+        signal: controller.signal,
       });
       const jsonRel = await respRel.json();
-      if (!respRel.ok) throw new Error(jsonRel.erro);
+      if (!respRel.ok) throw new Error(jsonRel.erro || 'Não foi possível gerar o relatório final. Tente novamente.');
       addLog('Relatório final gerado.');
 
       const partes = [
@@ -105,7 +118,8 @@ export default function Encerramento() {
       setDocumentoCompleto(partes.join('\n'));
       setFase('pronto');
     } catch (e: unknown) {
-      setErro(e instanceof Error ? e.message : 'Erro ao processar o plantão.');
+      if (e instanceof DOMException && e.name === 'AbortError') return;
+      setErro(e instanceof Error && e.message ? e.message : 'Erro ao processar o plantão. Tente novamente.');
       setFase('inicial');
     }
   }
@@ -242,9 +256,14 @@ export default function Encerramento() {
 
           {fase === 'processando' && (
             <div className="card" style={{ marginBottom: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <div className="spinner spinner-clinical" />
-                <strong style={{ fontSize: '0.9rem', color: 'var(--color-ink)' }}>Processando...</strong>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div className="spinner spinner-clinical" />
+                  <strong style={{ fontSize: '0.9rem', color: 'var(--color-ink)' }}>Processando...</strong>
+                </div>
+                <button className="btn btn-secundario" style={{ padding: '5px 12px', fontSize: '0.78rem' }} onClick={cancelarProcessamento}>
+                  Cancelar
+                </button>
               </div>
               {log.map((l, i) => (
                 <p key={i} style={{ fontSize: '0.78rem', color: 'var(--color-ink-muted)', lineHeight: 1.7, fontFamily: 'var(--font-mono)' }}>
@@ -272,14 +291,15 @@ export default function Encerramento() {
           {fase === 'pronto' && (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <p className="card-titulo" style={{ margin: 0 }}>Documentos gerados</p>
+                <p className="card-titulo" id="titulo-documento" style={{ margin: 0 }}>Documentos gerados</p>
                 <button className="btn btn-secundario" style={{ padding: '6px 14px', fontSize: '0.82rem' }} onClick={copiar}>
-                  {copiado ? '✓ Copiado!' : 'Copiar tudo'}
+                  <span aria-live="polite">{copiado ? '✓ Copiado!' : 'Copiar tudo'}</span>
                 </button>
               </div>
 
               <textarea
                 className="documento-area"
+                aria-labelledby="titulo-documento"
                 value={documentoCompleto}
                 onChange={(e) => setDocumentoCompleto(e.target.value)}
                 rows={18}
@@ -304,11 +324,33 @@ export default function Encerramento() {
                   <p style={{ fontSize: '0.82rem', color: 'var(--color-ink-muted)', marginBottom: 14, lineHeight: 1.5 }}>
                     Todos os dados do turno serão apagados permanentemente. Ação irreversível.
                   </p>
+
+                  {!copiado && (
+                    <label style={{
+                      display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 14,
+                      padding: '10px 12px', background: 'var(--color-warn-tint)', borderRadius: 10,
+                      fontSize: '0.8rem', color: 'var(--color-warn)', lineHeight: 1.5, cursor: 'pointer',
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={confirmoQueCopiei}
+                        onChange={(e) => setConfirmoQueCopiei(e.target.checked)}
+                        style={{ accentColor: 'var(--color-warn)', width: 16, height: 16, marginTop: 1, flexShrink: 0 }}
+                      />
+                      Você ainda não usou "Copiar tudo". Confirmo que salvei ou copiei este documento em outro lugar antes de apagar.
+                    </label>
+                  )}
+
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn btn-perigo" style={{ flex: 1 }} onClick={handleEncerrar}>
+                    <button
+                      className="btn btn-perigo"
+                      style={{ flex: 1 }}
+                      onClick={handleEncerrar}
+                      disabled={!copiado && !confirmoQueCopiei}
+                    >
                       Sim, encerrar
                     </button>
-                    <button className="btn btn-secundario" style={{ flex: 1 }} onClick={() => setConfirmandoEncerrar(false)}>
+                    <button className="btn btn-secundario" style={{ flex: 1 }} onClick={() => { setConfirmandoEncerrar(false); setConfirmoQueCopiei(false); }}>
                       Cancelar
                     </button>
                   </div>
