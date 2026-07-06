@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import { getSupabaseBrowser } from '../lib/supabase-browser';
+import { ICONE_CATEGORIA, IconProtocolo } from './biblioteca';
 
 type Mensagem = {
   tipo: 'pergunta' | 'resposta' | 'erro';
@@ -9,12 +10,7 @@ type Mensagem = {
   fontes?: { titulo: string; categoria: string }[];
 };
 
-const QUICK_ACCESS = [
-  { icon: <IconProtocolo />, label: 'Protocolos', query: 'Quais protocolos estão disponíveis?' },
-  { icon: <IconProcedimento />, label: 'Procedimentos', query: 'Quais procedimentos estão disponíveis?' },
-  { icon: <IconMedicamento />, label: 'Medicamentos', query: 'Quais medicamentos estão cadastrados?' },
-  { icon: <IconDispositivo />, label: 'Dispositivos', query: 'Quais dispositivos estão cadastrados?' },
-] as const;
+type CategoriaResumo = { categoria: string; total: number };
 
 const CHAVE_HISTORICO = 'kronia:kronos:historico';
 
@@ -23,7 +19,27 @@ export default function KronosPage() {
   const [pergunta, setPergunta] = useState('');
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [carregando, setCarregando] = useState(false);
+  const [categorias, setCategorias] = useState<CategoriaResumo[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Categorias reais da base — o acesso rápido só mostra o que existe de fato,
+  // sem repetir a lista fictícia que ficava desatualizada em relação a Conhecimento.
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await getSupabaseBrowser().auth.getSession();
+        const token = data.session?.access_token ?? '';
+        const resp = await fetch('/api/biblioteca/listar?limit=1', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!resp.ok) return;
+        const json = await resp.json() as { categorias?: CategoriaResumo[] };
+        setCategorias(json.categorias ?? []);
+      } catch {
+        // sem acesso rápido por categoria nesta sessão — a pergunta livre continua funcionando.
+      }
+    })();
+  }, []);
 
   // Restaura a conversa se a página recarregar (interrupção comum em plantão) —
   // sessionStorage some quando a aba fecha de verdade, não é histórico permanente.
@@ -135,18 +151,18 @@ export default function KronosPage() {
         O KRONOS não interpreta casos clínicos nem recomenda condutas.
       </div>
 
-      {/* Quick access grid */}
-      {mensagens.length === 0 && (
+      {/* Quick access grid — categorias reais, vai direto pro Conhecimento filtrado */}
+      {mensagens.length === 0 && categorias.length > 0 && (
         <div className="kronos-grid">
-          {QUICK_ACCESS.map((item) => (
+          {categorias.map((c) => (
             <button
-              key={item.label}
+              key={c.categoria}
               className="kronos-grid-item"
-              onClick={() => enviar(item.query)}
+              onClick={() => router.push({ pathname: '/biblioteca', query: { categoria: c.categoria } })}
             >
-              <div className="kronos-grid-item-icon">{item.icon}</div>
+              <div className="kronos-grid-item-icon">{ICONE_CATEGORIA[c.categoria] ?? <IconProtocolo />}</div>
               <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--color-ink)' }}>
-                {item.label}
+                {c.categoria} ({c.total})
               </span>
             </button>
           ))}
@@ -333,41 +349,3 @@ function IconEnviar() {
   );
 }
 
-function IconProtocolo() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <polyline points="14 2 14 8 20 8" />
-      <line x1="16" y1="13" x2="8" y2="13" />
-      <line x1="16" y1="17" x2="8" y2="17" />
-    </svg>
-  );
-}
-
-function IconProcedimento() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-    </svg>
-  );
-}
-
-function IconMedicamento() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M10.5 20H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H20a2 2 0 0 1 2 2v3" />
-      <circle cx="18" cy="18" r="3" />
-      <path d="M18 15v6M15 18h6" />
-    </svg>
-  );
-}
-
-function IconDispositivo() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="3" width="20" height="14" rx="2" />
-      <line x1="8" y1="21" x2="16" y2="21" />
-      <line x1="12" y1="17" x2="12" y2="21" />
-    </svg>
-  );
-}

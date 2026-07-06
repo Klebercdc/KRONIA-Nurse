@@ -19,7 +19,7 @@ type RespostaListar = {
 
 const LIMITE_POR_PAGINA = 20;
 
-const ICONE_CATEGORIA: Record<string, JSX.Element> = {
+export const ICONE_CATEGORIA: Record<string, JSX.Element> = {
   'Fundamentos de Enfermagem': <IconProtocolo />,
   'Procedimentos Gerais': <IconProcedimento />,
   'Administração de Medicamentos': <IconMedicamento />,
@@ -82,7 +82,9 @@ function useFavoritos() {
 export default function BibliotecaPage() {
   const router = useRouter();
   const [dados, setDados] = useState<RespostaListar | null>(null);
-  const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
+  const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(
+    () => (typeof router.query.categoria === 'string' ? router.query.categoria : null)
+  );
   const [carregando, setCarregando] = useState(true);
   const [carregandoMais, setCarregandoMais] = useState(false);
   const [erro, setErro] = useState('');
@@ -113,6 +115,13 @@ export default function BibliotecaPage() {
       setCarregandoMais(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    const daUrl = typeof router.query.categoria === 'string' ? router.query.categoria : null;
+    setCategoriaFiltro((atual) => (atual === daUrl ? atual : daUrl));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.isReady]);
 
   useEffect(() => {
     carregar(categoriaFiltro, 0, true);
@@ -356,7 +365,7 @@ function formatarData(iso: string): string {
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 
-function IconProtocolo() {
+export function IconProtocolo() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
