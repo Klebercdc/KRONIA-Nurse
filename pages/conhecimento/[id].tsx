@@ -89,27 +89,25 @@ export default function ConhecimentoDetalhe() {
         {!carregando && !erro && item && (
           <>
             {item.cover_url && (
-              <>
-                <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', borderRadius: 14, overflow: 'hidden', marginBottom: item.cover_credito ? 4 : 14 }}>
-                  <Image src={item.cover_url} alt={item.titulo} fill sizes="(max-width: 430px) 100vw, 430px" style={{ objectFit: 'cover' }} priority />
-                </div>
-                {item.cover_credito && (() => {
-                  const credito = parseCredito(item.cover_credito);
-                  return credito ? (
-                    <p style={{ fontSize: '0.68rem', color: 'var(--color-ink-faint)', marginBottom: 14, textAlign: 'right' }}>
-                      Foto:{' '}
-                      <a href={credito.link} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
-                        {credito.nome}
-                      </a>
-                      {' '}/{' '}
-                      <a href={`https://unsplash.com/?utm_source=kronia_nurse&utm_medium=referral`} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
-                        Unsplash
-                      </a>
-                    </p>
-                  ) : null;
-                })()}
-              </>
+              <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', borderRadius: 14, overflow: 'hidden', marginBottom: item.cover_credito ? 4 : 14 }}>
+                <Image src={item.cover_url} alt={item.titulo} fill sizes="(max-width: 430px) 100vw, 430px" style={{ objectFit: 'cover' }} priority />
+              </div>
             )}
+            {item.cover_url && item.cover_credito && (() => {
+              const credito = parseCredito(item.cover_credito);
+              return credito ? (
+                <p style={{ fontSize: '0.68rem', color: 'var(--color-ink-faint)', marginBottom: 14, textAlign: 'right' }}>
+                  Foto:{' '}
+                  <a href={credito.link} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+                    {credito.nome}
+                  </a>
+                  {' '}/{' '}
+                  <a href="https://unsplash.com/?utm_source=kronia_nurse&utm_medium=referral" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+                    Unsplash
+                  </a>
+                </p>
+              ) : null;
+            })()}
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
               <span className="badge" style={{ background: 'var(--color-clinical-tint)', color: 'var(--color-clinical)' }}>
