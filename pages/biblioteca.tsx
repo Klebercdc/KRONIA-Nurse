@@ -437,8 +437,8 @@ function ConhecimentoCard({
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAbrir(); } }}
         style={{ display: 'flex', gap: 12, alignItems: 'center', flex: 1, minWidth: 0, cursor: 'pointer' }}
       >
-        <div style={{ position: 'relative', width: 56, height: 56, borderRadius: 10, overflow: 'hidden', flexShrink: 0 }}>
-          {item.cover_url ? (
+        {item.cover_url && (
+          <div style={{ position: 'relative', width: 56, height: 56, borderRadius: 10, overflow: 'hidden', flexShrink: 0 }}>
             <Image
               src={item.cover_url}
               alt={item.titulo}
@@ -447,10 +447,8 @@ function ConhecimentoCard({
               sizes="56px"
               style={{ objectFit: 'cover' }}
             />
-          ) : (
-            <CapaPlaceholder />
-          )}
-        </div>
+          </div>
+        )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ fontSize: '0.9rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {item.titulo}
@@ -483,18 +481,6 @@ function IconEstrela({ preenchida }: { preenchida: boolean }) {
     <svg width="16" height="16" viewBox="0 0 24 24" fill={preenchida ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
       <path d="M12 2.5 15.1 8.8 22 9.8 17 14.7 18.2 21.5 12 18.2 5.8 21.5 7 14.7 2 9.8 8.9 8.8z" />
     </svg>
-  );
-}
-
-function CapaPlaceholder() {
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        background: 'linear-gradient(160deg, var(--color-clinical-tint), var(--color-clinical))',
-      }}
-    />
   );
 }
 

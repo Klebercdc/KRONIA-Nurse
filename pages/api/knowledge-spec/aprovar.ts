@@ -113,6 +113,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       observacoes:                specTyped.observacoes                ?? null,
       limitacoes:                 specTyped.limitacoes                 ?? null,
       variacoes_institucionais:   specTyped.variacoes_institucionais   ?? null,
+      // cover_url/cover_credito ficam null aqui de propósito — a foto é
+      // escolhida por alguém da equipe depois da publicação, entre
+      // candidatas reais (ver /api/conhecimento/buscar-fotos.ts e
+      // /api/conhecimento/definir-foto.ts). Ver lib/cover-photo.ts.
 
       // Rastreabilidade
       spec_id: id,

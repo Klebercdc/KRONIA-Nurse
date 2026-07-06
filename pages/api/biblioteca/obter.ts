@@ -25,6 +25,7 @@ export type ConhecimentoCompleto = {
   autor: string | null;
   data_revisao: string | null;
   cover_url: string | null;
+  cover_credito: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -46,7 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       indicacoes, contraindicacoes, materiais, preparacao, procedimento,
       cuidados, complicacoes, prevencao_eventos_adversos, pontos_criticos,
       observacoes, limitacoes, variacoes_institucionais, referencias,
-      autor, data_revisao, cover_url, created_at, updated_at
+      autor, data_revisao, cover_url, cover_credito, created_at, updated_at
     `)
     .eq('id', id)
     .is('deleted_at', null)

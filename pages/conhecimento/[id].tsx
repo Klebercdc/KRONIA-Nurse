@@ -6,6 +6,13 @@ import Layout from '../../components/Layout';
 import { getSupabaseBrowser } from '../../lib/supabase-browser';
 import type { ConhecimentoCompleto } from '../api/biblioteca/obter';
 
+/** Separa "{nome}|{link}" salvo em cover_credito nos dois componentes. */
+function parseCredito(credito: string): { nome: string; link: string } | null {
+  const [nome, link] = credito.split('|');
+  if (!nome || !link) return null;
+  return { nome, link };
+}
+
 const SECOES: { chave: keyof ConhecimentoCompleto; titulo: string }[] = [
   { chave: 'resumo', titulo: 'Resumo' },
   { chave: 'indicacoes', titulo: 'Indicações' },
@@ -82,10 +89,25 @@ export default function ConhecimentoDetalhe() {
         {!carregando && !erro && item && (
           <>
             {item.cover_url && (
-              <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', borderRadius: 14, overflow: 'hidden', marginBottom: 14 }}>
+              <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', borderRadius: 14, overflow: 'hidden', marginBottom: item.cover_credito ? 4 : 14 }}>
                 <Image src={item.cover_url} alt={item.titulo} fill sizes="(max-width: 430px) 100vw, 430px" style={{ objectFit: 'cover' }} priority />
               </div>
             )}
+            {item.cover_url && item.cover_credito && (() => {
+              const credito = parseCredito(item.cover_credito);
+              return credito ? (
+                <p style={{ fontSize: '0.68rem', color: 'var(--color-ink-faint)', marginBottom: 14, textAlign: 'right' }}>
+                  Foto:{' '}
+                  <a href={credito.link} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+                    {credito.nome}
+                  </a>
+                  {' '}/{' '}
+                  <a href="https://unsplash.com/?utm_source=kronia_nurse&utm_medium=referral" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>
+                    Unsplash
+                  </a>
+                </p>
+              ) : null;
+            })()}
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
               <span className="badge" style={{ background: 'var(--color-clinical-tint)', color: 'var(--color-clinical)' }}>
