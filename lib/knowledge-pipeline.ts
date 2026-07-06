@@ -263,7 +263,16 @@ Verifique:
 4. PARÁFRASE: o conteúdo foi reescrito com palavras próprias (exigido) ou há trechos copiados literalmente?
 
 IMPORTANTE: conteúdo técnico de enfermagem usa terminologia padrão — isso é esperado e não configura cópia.
-O que reprova é a reprodução literal de parágrafos ou frases completas de documentos.
+O que reprova é a reprodução literal de PARÁGRAFOS OU FRASES EXPLICATIVAS COMPLETAS de documentos.
+
+EXCEÇÃO OBRIGATÓRIA — checklists de registro/documentação: muitas referências são listas do
+que deve ser anotado num procedimento (ex.: "data e hora; profissional responsável; intercorrências;
+carimbo e assinatura"). Esses itens são padronizados em toda a enfermagem — não existe forma
+alternativa de dizer "registrar data e hora" ou "nome e COREN do profissional". Reutilizar os MESMOS
+itens de um checklist, na mesma função de lista, NÃO é cópia e NÃO reprova — mesmo que os nomes dos
+itens coincidam quase palavra por palavra com a referência. O que reprovaria aqui seria copiar a
+referência inteira, na mesma ordem, sem nenhuma reorganização, contexto clínico ou agrupamento
+adicionado pelo Redator.
 
 Responda SOMENTE com JSON válido, sem markdown, sem texto antes ou depois:
 {"aprovado":true|false,"observacoes":["..."],"itens_reprovados":["frase/trecho exato que motiva reprovação — somente se aprovado=false"]}`;
