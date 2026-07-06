@@ -7,30 +7,13 @@
  * recupera; a composição de resposta fica a cargo do chamador (ex.: KRONOS).
  */
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { gerarEmbedding } from '../../../lib/embeddings';
-import { getSupabase } from '../../../lib/supabase-client';
 import { getUsuarioAutenticado } from '../../../lib/auth-server';
 import { dentroDoRateLimit, LIMITE_PROFESSOR, MSG_RATE_LIMIT } from '../../../lib/rate-limit';
+import { buscarFragmentos, type FragmentoEncontrado } from '../../../lib/knowledge-retrieval';
 
-export type FragmentoEncontrado = {
-  fragmento_id: string;
-  documento_id: string;
-  nome_arquivo: string;
-  tipo_documento: string;
-  instituicao: string;
-  versao: string | null;
-  ano_publicacao: number | null;
-  descricao: string | null;
-  numero_sequencia: number;
-  pagina_inicio: number | null;
-  pagina_fim: number | null;
-  conteudo: string;
-  similarity: number;
-};
+export type { FragmentoEncontrado };
 
 type Resultado = { fragmentos: FragmentoEncontrado[] };
-
-const MATCH_COUNT_MAX = 10;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<Resultado | { erro: string }>) {
   if (req.method !== 'POST') return res.status(405).json({ erro: 'Método não permitido.' });
@@ -46,30 +29,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     return res.status(400).json({ erro: 'Campo "consulta" obrigatório.' });
   }
 
-  const matchCount = Math.min(
-    Number.isInteger(match_count) && (match_count as number) > 0 ? (match_count as number) : 5,
-    MATCH_COUNT_MAX
-  );
-
-  let embedding: number[];
+  let fragmentos: FragmentoEncontrado[];
   try {
-    embedding = await gerarEmbedding(consulta.trim());
+    fragmentos = await buscarFragmentos(consulta, { matchCount: match_count });
   } catch (err) {
-    console.error('[conhecimento/buscar-rag] embedding error:', err);
-    return res.status(500).json({ erro: 'Falha ao processar a consulta.' });
-  }
-
-  const supabase = getSupabase();
-  const { data, error } = await supabase.rpc('buscar_fragmentos_conhecimento', {
-    query_embedding: embedding,
-    similarity_threshold: 0.5,
-    match_count: matchCount,
-  });
-
-  if (error) {
-    console.error('[conhecimento/buscar-rag] supabase error:', error);
+    console.error('[conhecimento/buscar-rag] erro:', err);
     return res.status(500).json({ erro: 'Erro ao buscar nos documentos de conhecimento.' });
   }
 
-  return res.status(200).json({ fragmentos: (data ?? []) as FragmentoEncontrado[] });
+  return res.status(200).json({ fragmentos });
 }
