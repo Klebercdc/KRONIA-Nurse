@@ -138,6 +138,15 @@ const PDF_METADATA = {
     ano: 2017,
     descricao: 'Guia para Construção de Protocolos Assistenciais de Enfermagem',
   },
+  // Fonte primária do primeiro tipo novo de Objeto de Conhecimento
+  // (Diagnóstico de Enfermagem — ver context/kits/knowledge-engine-tipos-objeto.md, item 4).
+  'NANDA-I-2018_2020.pdf': {
+    tipo: 'Taxonomia',
+    instituicao: 'NANDA International',
+    versao: '2018-2020 (11ª edição)',
+    ano: 2018,
+    descricao: 'Diagnósticos de Enfermagem da NANDA-I: Definições e Classificação',
+  },
 };
 
 let _supabase = null;
