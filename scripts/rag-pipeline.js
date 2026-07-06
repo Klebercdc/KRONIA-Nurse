@@ -250,7 +250,7 @@ async function downloadPDFsFromGoogleDrive(authClient) {
 // Versão da estratégia de chunking. Entra no hash do documento: mudar a
 // estratégia invalida o dedup e força a reindexação de todos os documentos
 // na próxima execução, sem flag manual.
-const CHUNKING_VERSION = 'chunker-v2';
+const CHUNKING_VERSION = 'chunker-v3'; // v3: chunks passam a carregar pagina_inicio/pagina_fim
 
 // A Cohere trunca silenciosamente em 512 tokens — tudo além disso fica
 // invisível para a busca. A contagem aqui é estimada por caracteres com
@@ -339,19 +339,24 @@ function detectarCabecalhosRodapes(paginas) {
   return detectadas;
 }
 
+// Remove cabeçalhos/rodapés detectados de cada página, mantendo o texto
+// separado por página (necessário para rastrear em qual página cada chunk
+// se origina — ver dividirPaginasEmSentencasTageadas).
+function limparPaginas(paginas) {
+  const cabecalhos = detectarCabecalhosRodapes(paginas);
+  return paginas.map((pagina) =>
+    pagina
+      .split('\n')
+      .filter((l) => !cabecalhos.has(l.trim()))
+      .join('\n')
+  );
+}
+
 // Junta as páginas removendo cabeçalhos/rodapés detectados. O texto bruto
 // (conteudo_completo e hash) continua vindo da extração inteira; a limpeza
 // vale só para a fragmentação.
 function prepararTextoDePaginas(paginas) {
-  const cabecalhos = detectarCabecalhosRodapes(paginas);
-  return paginas
-    .map((pagina) =>
-      pagina
-        .split('\n')
-        .filter((l) => !cabecalhos.has(l.trim()))
-        .join('\n')
-    )
-    .join('\n');
+  return limparPaginas(paginas).join('\n');
 }
 
 // Remove artefatos de extração que vazam para os chunks. Diagnóstico de
@@ -485,6 +490,102 @@ function chunkText(texto) {
   return resultado;
 }
 
+// Divide o texto de cada página (já limpo de cabeçalho/rodapé por
+// limparPaginas) em sentenças tageadas com o número da página de origem
+// (1-based). Uma sentença nunca atravessa página porque a fronteira entre
+// páginas já é tratada como quebra de sentença pelo mesmo motivo que uma
+// quebra de linha qualquer é (ver dividirEmSentencas) — processar por
+// página não muda os cortes, só permite rastrear a origem de cada uma.
+function dividirPaginasEmSentencasTageadas(paginasLimpas) {
+  const sentencas = [];
+  paginasLimpas.forEach((paginaTexto, idx) => {
+    const pagina = idx + 1;
+    for (const s of dividirEmSentencas(limparTextoParaChunks(paginaTexto))) {
+      if (estimarTokens(s) > MAX_ACUMULO_TOKENS) {
+        for (const pedaco of partirSentencaGigante(s)) sentencas.push({ texto: pedaco, pagina });
+      } else {
+        sentencas.push({ texto: s, pagina });
+      }
+    }
+  });
+  return sentencas;
+}
+
+// Mesma estratégia de acumulação do chunkText, mas operando sobre sentenças
+// tageadas com página — cada chunk resultante inclui paginaInicio/paginaFim
+// (min/max das páginas de origem das sentenças que o compõem, overlap
+// incluso). Usado pelo pipeline; chunkText continua existindo para quem só
+// tem o texto já concatenado (ex.: testes que não precisam de página).
+function chunkTextComPaginas(paginasLimpas) {
+  const sentencas = dividirPaginasEmSentencasTageadas(paginasLimpas);
+
+  const chunks = [];
+  let atual = []; // itens {texto, pagina} do chunk corrente
+  let qtdOverlap = 0;
+
+  const tokensDe = (arr) => estimarTokens(arr.map((i) => i.texto).join(' '));
+  const paginaInicioDe = (arr) => Math.min(...arr.map((i) => i.pagina));
+  const paginaFimDe = (arr) => Math.max(...arr.map((i) => i.pagina));
+
+  const fecharChunk = () => {
+    chunks.push({
+      texto: atual.map((i) => i.texto).join(' '),
+      paginaInicio: paginaInicioDe(atual),
+      paginaFim: paginaFimDe(atual),
+    });
+    const overlap = [];
+    for (let i = atual.length - 1; i >= 0 && overlap.length < OVERLAP_MAX_SENTENCAS; i--) {
+      if (tokensDe([atual[i], ...overlap]) > OVERLAP_TOKENS) break;
+      overlap.unshift(atual[i]);
+    }
+    atual = overlap;
+    qtdOverlap = overlap.length;
+  };
+
+  for (const item of sentencas) {
+    if (atual.length && tokensDe([...atual, item]) > MAX_ACUMULO_TOKENS) {
+      if (tokensDe(atual) < 250 && tokensDe([...atual, item]) <= ESTICA_TOKENS) {
+        atual.push(item);
+        fecharChunk();
+        continue;
+      }
+      fecharChunk();
+      while (atual.length && tokensDe([...atual, item]) > MAX_ACUMULO_TOKENS) {
+        atual.shift();
+        qtdOverlap -= 1;
+      }
+    }
+    atual.push(item);
+  }
+
+  if (atual.length > qtdOverlap) {
+    const novas = atual.slice(qtdOverlap);
+    if (chunks.length && tokensDe(atual) < MIN_TOKENS_FRAGMENTO) {
+      const anterior = chunks[chunks.length - 1];
+      anterior.texto = `${anterior.texto} ${novas.map((i) => i.texto).join(' ')}`.trim();
+      anterior.paginaFim = Math.max(anterior.paginaFim, paginaFimDe(novas));
+    } else {
+      chunks.push({
+        texto: atual.map((i) => i.texto).join(' '),
+        paginaInicio: paginaInicioDe(atual),
+        paginaFim: paginaFimDe(atual),
+      });
+    }
+  }
+
+  const resultado = chunks
+    .map((c) => ({ ...c, texto: c.texto.trim() }))
+    .filter((c) => c.texto.length > 0);
+  for (const c of resultado) {
+    if (estimarTokens(c.texto) > TETO_TOKENS) {
+      throw new Error(
+        `chunkTextComPaginas gerou chunk de ${estimarTokens(c.texto)} tokens (teto ${TETO_TOKENS}): "${c.texto.slice(0, 80)}..."`
+      );
+    }
+  }
+  return resultado;
+}
+
 // ═════════════════════════════════════════════════════════════
 // 4. GERAR EMBEDDINGS COHERE (batch, via REST — igual lib/embeddings.ts)
 // ═════════════════════════════════════════════════════════════
@@ -547,16 +648,18 @@ async function processPDF(filePath) {
   const parser = new PDFParse({ data: fs.readFileSync(filePath) });
   let fullText;
   let totalPaginas;
-  let textoParaChunks;
+  let paginasLimpas;
   try {
     // pageJoiner vazio: sem marcador "-- N of M --" no meio do texto,
     // que sujaria os fragmentos e mudaria o hash do conteúdo
     const pdfData = await parser.getText({ pageJoiner: '' });
     fullText = pdfData.text;
     totalPaginas = pdfData.total;
-    // Para os chunks, usar o texto página a página com cabeçalhos/rodapés
-    // repetidos removidos (conteudo_completo continua sendo o texto bruto).
-    textoParaChunks = prepararTextoDePaginas(pdfData.pages.map((p) => p.text || ''));
+    // Para os chunks, usar o texto página a página (array, não concatenado)
+    // com cabeçalhos/rodapés repetidos removidos — mantém a página de
+    // origem rastreável por chunk (conteudo_completo continua sendo o
+    // texto bruto).
+    paginasLimpas = limparPaginas(pdfData.pages.map((p) => p.text || ''));
   } finally {
     await parser.destroy();
   }
@@ -607,14 +710,14 @@ async function processPDF(filePath) {
   console.log(`✓ Documento inserido com ID: ${documentoId}`);
 
   try {
-    // 5. Dividir em chunks
-    const chunks = chunkText(textoParaChunks);
+    // 5. Dividir em chunks, cada um já com a página de origem
+    const chunks = chunkTextComPaginas(paginasLimpas);
     console.log(`✓ Dividido em ${chunks.length} fragmentos`);
 
     // 6. Gerar embeddings em batch
     const embeddings = [];
     for (let i = 0; i < chunks.length; i += COHERE_BATCH_MAX) {
-      const batch = chunks.slice(i, i + COHERE_BATCH_MAX);
+      const batch = chunks.slice(i, i + COHERE_BATCH_MAX).map((c) => c.texto);
       const batchEmbeddings = await generateEmbeddings(batch);
       embeddings.push(...batchEmbeddings);
       console.log(`  📊 Embeddings: ${Math.min(i + COHERE_BATCH_MAX, chunks.length)}/${chunks.length}`);
@@ -626,12 +729,14 @@ async function processPDF(filePath) {
     }
 
     // 7. Inserir fragmentos em batches de 100
-    const fragmentsToInsert = chunks.map((conteudo, idx) => ({
+    const fragmentsToInsert = chunks.map((chunk, idx) => ({
       documento_id: documentoId,
       numero_sequencia: idx + 1,
-      conteudo,
+      conteudo: chunk.texto,
       embedding: embeddings[idx],
-      tamanho_tokens: estimarTokens(conteudo),
+      tamanho_tokens: estimarTokens(chunk.texto),
+      pagina_inicio: chunk.paginaInicio,
+      pagina_fim: chunk.paginaFim,
     }));
 
     for (let i = 0; i < fragmentsToInsert.length; i += 100) {
@@ -747,8 +852,11 @@ if (require.main === module) {
 module.exports = {
   CHUNKING_VERSION,
   chunkText,
+  chunkTextComPaginas,
+  dividirPaginasEmSentencasTageadas,
   estimarTokens,
   limparTextoParaChunks,
+  limparPaginas,
   dividirEmSentencas,
   detectarCabecalhosRodapes,
   prepararTextoDePaginas,

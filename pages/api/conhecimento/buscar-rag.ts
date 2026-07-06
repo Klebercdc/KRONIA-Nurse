@@ -22,6 +22,8 @@ export type FragmentoEncontrado = {
   ano_publicacao: number | null;
   descricao: string | null;
   numero_sequencia: number;
+  pagina_inicio: number | null;
+  pagina_fim: number | null;
   conteudo: string;
   similarity: number;
 };
