@@ -136,17 +136,25 @@ export default function CadastroPage() {
                       autoComplete="new-password"
                       required
                     />
-                    <button type="button" onClick={() => setMostrarSenha((v) => !v)} style={eyeBtnStyle}>
+                    <button
+                      type="button"
+                      onClick={() => setMostrarSenha((v) => !v)}
+                      style={eyeBtnStyle}
+                      aria-label="Mostrar/ocultar senha"
+                    >
                       <IconOlho visivel={mostrarSenha} />
                     </button>
                   </div>
-                  <div style={{ marginTop: 8, fontSize: '0.78rem', color: 'var(--color-ink-muted)' }}>
-                    A senha deve conter:{' '}
-                    {regras.map((r) => (
-                      <span key={r.label} style={{ color: senhaDigitada && r.ok ? 'var(--color-ok)' : 'var(--color-ink-faint)', fontWeight: 600 }}>
-                        {r.label}
-                      </span>
-                    ))}
+                  <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {regras.map((r) => {
+                      const ativa = senhaDigitada && r.ok;
+                      return (
+                        <div key={r.label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', color: ativa ? 'var(--color-ok-ink)' : 'var(--color-ink-faint)', fontWeight: 600 }}>
+                          <IconRegra ok={ativa} />
+                          {r.label}
+                        </div>
+                      );
+                    })}
                   </div>
                 </Campo>
 
@@ -161,7 +169,12 @@ export default function CadastroPage() {
                       autoComplete="new-password"
                       required
                     />
-                    <button type="button" onClick={() => setMostrarConfirmar((v) => !v)} style={eyeBtnStyle}>
+                    <button
+                      type="button"
+                      onClick={() => setMostrarConfirmar((v) => !v)}
+                      style={eyeBtnStyle}
+                      aria-label="Mostrar/ocultar confirmação de senha"
+                    >
                       <IconOlho visivel={mostrarConfirmar} />
                     </button>
                   </div>
@@ -211,7 +224,9 @@ export default function CadastroPage() {
 function TelaConcluido({ email }: { email: string }) {
   return (
     <div style={{ textAlign: 'center', padding: '20px 0' }}>
-      <div style={{ fontSize: '3rem', marginBottom: 16 }}>📬</div>
+      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
+        <IconEnvelopeConfirmado />
+      </div>
       <h2 style={{
         fontFamily: 'var(--font-display)',
         fontSize: '1.3rem',
@@ -252,10 +267,14 @@ const eyeBtnStyle: React.CSSProperties = {
   background: 'none',
   border: 'none',
   cursor: 'pointer',
-  padding: '4px',
+  width: 40,
+  height: 40,
+  margin: '0 -8px',
   color: 'var(--color-ink-faint)',
   display: 'flex',
   alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0,
 };
 
 function IconPessoa() {
@@ -281,6 +300,31 @@ function IconCadeado() {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-ink-faint)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
       <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
       <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}
+
+function IconEnvelopeConfirmado() {
+  return (
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-clinical)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <polyline points="2,6 12,13 22,6" />
+      <path d="M9 15.5l2 2 4-4" stroke="var(--color-ok-ink)" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function IconRegra({ ok }: { ok: boolean }) {
+  if (ok) {
+    return (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+      <circle cx="12" cy="12" r="9" />
     </svg>
   );
 }
