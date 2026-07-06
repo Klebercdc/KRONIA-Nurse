@@ -50,10 +50,10 @@ export default function Layout({ children, showPulseBar = true }: Props) {
           <IconMais />
         </button>
 
-        {/* KRONOS */}
+        {/* KRONOS — aponta para Conhecimento, que também dá acesso a Escalas */}
         <button
-          className={`nav-item${rota === '/kronos' || rota === '/escalas' ? ' ativo' : ''}`}
-          onClick={() => navegar('/kronos')}
+          className={`nav-item${rota === '/biblioteca' || rota.startsWith('/conhecimento') || rota === '/escalas' ? ' ativo' : ''}`}
+          onClick={() => navegar('/biblioteca')}
         >
           <IconKronos />
           KRONOS

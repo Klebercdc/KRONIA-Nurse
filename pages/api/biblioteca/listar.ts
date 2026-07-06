@@ -33,6 +33,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const categoriaFiltro = typeof req.query.categoria === 'string' && req.query.categoria.length > 0
     ? req.query.categoria
     : null;
+  // ',' e '(' têm significado especial no filtro .or() do PostgREST — remove
+  // para não deixar o usuário compor uma condição diferente da busca pretendida.
+  const buscaFiltro = typeof req.query.busca === 'string' && req.query.busca.trim().length > 0
+    ? req.query.busca.trim().replace(/[,()%]/g, ' ').trim()
+    : null;
   const offset = Math.max(0, Number(req.query.offset) || 0);
   const limit = Math.min(LIMITE_MAXIMO, Math.max(1, Number(req.query.limit) || LIMITE_PADRAO));
 
@@ -72,6 +77,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .range(offset, offset + limit - 1);
 
   if (categoriaFiltro) pagina = pagina.eq('categoria', categoriaFiltro);
+  if (buscaFiltro) {
+    pagina = pagina.or(
+      `titulo.ilike.%${buscaFiltro}%,resumo.ilike.%${buscaFiltro}%,palavras_chave.ilike.%${buscaFiltro}%,categoria.ilike.%${buscaFiltro}%,subcategoria.ilike.%${buscaFiltro}%`
+    );
+  }
 
   const { data: itensPagina, count: totalFiltrado, error: erroPagina } = await pagina;
   if (erroPagina) return res.status(500).json({ erro: erroPagina.message });
