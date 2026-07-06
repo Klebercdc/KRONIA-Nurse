@@ -387,6 +387,7 @@ function CardCategoria({
         flexDirection: 'column',
         justifyContent: icone ? 'flex-start' : 'flex-end',
         minHeight: 76,
+        boxShadow: 'var(--shadow-card)',
         gap: 8,
         textAlign: 'left',
         cursor: 'pointer',
