@@ -39,3 +39,9 @@ export function validarFragmentos(
 export function temPaginaRastreavel(fragmento: FragmentoEncontrado): boolean {
   return fragmento.pagina_inicio != null && fragmento.pagina_fim != null;
 }
+
+/** Formata a página de origem de um fragmento ("12" ou "12-13"), ou null se não rastreável. */
+export function formatarPagina(paginaInicio: number | null, paginaFim: number | null): string | null {
+  if (paginaInicio == null || paginaFim == null) return null;
+  return paginaInicio === paginaFim ? `${paginaInicio}` : `${paginaInicio}-${paginaFim}`;
+}

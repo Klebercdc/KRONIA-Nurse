@@ -46,6 +46,9 @@ export interface ReferenciaOficial {
   documento: string;
   numero?: string;
   ano?: string;
+  versao?: string;
+  /** Página (ou intervalo, ex.: "12-13") do documento original de onde veio o trecho — ver lib/knowledge-retrieval.ts. */
+  pagina?: string;
   url?: string;
   trecho?: string;
   data_publicacao?: string;
@@ -238,7 +241,9 @@ export function composeReferenciasTexto(refs: ReferenciaOficial[]): string {
     .map((r) => {
       const partes = [r.instituicao, r.documento];
       if (r.numero) partes.push(`Nº ${r.numero}`);
+      if (r.versao) partes.push(r.versao);
       if (r.ano) partes.push(r.ano);
+      if (r.pagina) partes.push(`p. ${r.pagina}`);
       if (r.url) partes.push(r.url);
       return partes.join('. ');
     })

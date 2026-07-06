@@ -19,7 +19,7 @@ import { getUsuarioAutenticado } from '../../../lib/auth-server';
 import { dentroDoRateLimit, LIMITE_PROFESSOR, MSG_RATE_LIMIT } from '../../../lib/rate-limit';
 import { montarContexto } from '../../../lib/kronos-context';
 import { buscarFragmentos } from '../../../lib/knowledge-retrieval';
-import { validarFragmentos, temPaginaRastreavel } from '../../../lib/kronos-validation';
+import { validarFragmentos, temPaginaRastreavel, formatarPagina } from '../../../lib/kronos-validation';
 
 interface Evidencia {
   documento: string;
@@ -32,11 +32,6 @@ interface Evidencia {
 type RespostaKronos =
   | { resposta: null; motivo: string }
   | { resposta: { evidencias: Evidencia[] } };
-
-function formatarPagina(paginaInicio: number | null, paginaFim: number | null): string | null {
-  if (paginaInicio == null || paginaFim == null) return null;
-  return paginaInicio === paginaFim ? `${paginaInicio}` : `${paginaInicio}-${paginaFim}`;
-}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<RespostaKronos | { erro: string }>) {
   if (req.method !== 'POST') return res.status(405).json({ erro: 'Método não permitido.' });

@@ -10,6 +10,8 @@
  */
 
 import { chamarGroq, extrairJson } from './groq-client';
+import { buscarFragmentos } from './knowledge-retrieval';
+import { validarFragmentos, temPaginaRastreavel, formatarPagina } from './kronos-validation';
 import type {
   KnowledgeSpec,
   ResultadoEstagio,
@@ -37,58 +39,71 @@ export type RascunhoRedator = Pick<KnowledgeSpec,
 >;
 
 // ─── Etapa 1: Pesquisador ──────────────────────────────────────────────────
+//
+// Não usa recall do LLM (nenhuma fonte é "lembrada" de treinamento) — busca
+// de verdade nos documentos oficiais indexados via RAG (Retrieval Engine,
+// ver context/kits/kronos-arquitetura-cognitiva.md, Domínio 1) e reaproveita
+// o mesmo Validation Engine do KRONOS (lib/kronos-validation.ts) pra decidir
+// se há evidência suficiente. Cada referência carrega o trecho literal e a
+// página de origem (quando o documento já foi reindexado com rastreamento
+// de página) — o Redator (Etapa 2) parafraseia esse trecho real, nunca
+// texto inventado pelo modelo.
 
-const PROMPT_PESQUISADOR = `Você é o Pesquisador da Biblioteca Técnica KRONIA Nurse.
+const MATCH_COUNT_PESQUISADOR = 8;
 
-Sua tarefa: identificar fontes oficiais brasileiras e internacionais reconhecidas para o tema de enfermagem solicitado. Use APENAS fontes que você conhece com segurança a partir do seu treinamento — não invente referências.
+const PROMPT_CLASSIFICADOR = `Você é o classificador da Biblioteca Técnica KRONIA Nurse.
 
-FONTES ACEITAS (em ordem de preferência):
-- ANVISA: Resoluções RDC, Notas Técnicas, Instruções Normativas
-- COFEN: Resoluções, Pareceres normativos
-- COREN estaduais: Pareceres técnicos
-- Ministério da Saúde: Portarias, Protocolos Clínicos, Cadernos de Atenção Básica
-- CDC (Centers for Disease Control and Prevention): Guidelines
-- OMS/WHO: Guidelines e Notas Técnicas
-- Sociedades de especialidade reconhecidas (SOBEP, ABEn, AMIB, SBN, etc.)
-
-FONTES NÃO ACEITAS: blog, fórum, Wikipedia, site pessoal, protocolo interno de hospital não publicado.
-
-Para CADA fonte que você conhecer com certeza, informe:
-- instituicao: nome da instituição emissora (ex: "ANVISA", "COFEN", "Ministério da Saúde")
-- documento: título completo do documento
-- numero: número da resolução/portaria/nota (OMITIR se não tiver certeza)
-- ano: ano de publicação/última revisão conhecida (OMITIR se não souber)
-- trecho: trecho relevante da fonte que embasa o conteúdo técnico para este tema. Se não souber o trecho exato, descreva o que a fonte aborda sobre o tema.
-- data_atualizacao: data da última atualização conhecida (OMITIR se não souber)
-
-INSTRUÇÕES CRÍTICAS:
-- Máximo de 6 fontes, as mais relevantes e específicas para o tema
-- Se o número exato de uma resolução for incerto, omita o campo "numero"
-- Se não encontrar fontes oficiais suficientes (menos de 2), retorne array vazio e explique em "observacao"
-- Classifique o tema na categoria e subcategoria mais adequadas da lista fornecida
+Sua única tarefa: escolher a categoria e subcategoria mais adequadas da lista fornecida para o tema, com base nos trechos de evidência já recuperados. Não redija conteúdo técnico, não avalie fontes — apenas classifique.
 
 Responda SOMENTE com JSON válido, sem markdown, sem texto antes ou depois:
-{"categoria":"string da lista fornecida","subcategoria":"string ou vazio","referencias":[{"instituicao":"...","documento":"...","trecho":"..."}],"observacao":"vazio se fontes encontradas, ou descrição do problema"}`;
+{"categoria":"string da lista fornecida","subcategoria":"string ou vazio"}`;
 
-export async function pesquisarFontes(tema: string, dominios: readonly string[]): Promise<ResultadoPesquisador> {
+async function classificarTema(
+  tema: string,
+  dominios: readonly string[],
+  contextoTrechos: string
+): Promise<{ categoria: string; subcategoria: string }> {
   const listaDominios = dominios.join(', ');
   const resposta = await chamarGroq(
-    PROMPT_PESQUISADOR,
-    `Tema: "${tema}"\n\nLista de categorias disponíveis: ${listaDominios}`
+    PROMPT_CLASSIFICADOR,
+    `Tema: "${tema}"\n\nLista de categorias disponíveis: ${listaDominios}\n\nTrechos de evidência recuperados:\n${contextoTrechos}`
   );
-  const resultado = extrairJson<{
-    categoria?: string;
-    subcategoria?: string;
-    referencias?: ReferenciaOficial[];
-    observacao?: string;
-  }>(resposta);
-
+  const resultado = extrairJson<{ categoria?: string; subcategoria?: string }>(resposta);
   return {
-    referencias: Array.isArray(resultado.referencias) ? resultado.referencias : [],
-    observacao: resultado.observacao ?? '',
     categoria: resultado.categoria ?? dominios[0],
     subcategoria: resultado.subcategoria ?? '',
   };
+}
+
+export async function pesquisarFontes(tema: string, dominios: readonly string[]): Promise<ResultadoPesquisador> {
+  const fragmentos = await buscarFragmentos(tema, { matchCount: MATCH_COUNT_PESQUISADOR });
+  const validacao = validarFragmentos(fragmentos);
+
+  if (!validacao.valido) {
+    return {
+      referencias: [],
+      observacao: `Nenhuma fonte indexada encontrada para este tema na Base de Conhecimento (busca RAG). ${validacao.motivo}`,
+      categoria: dominios[0],
+      subcategoria: '',
+    };
+  }
+
+  const referencias: ReferenciaOficial[] = validacao.fragmentosValidos.map((f) => ({
+    instituicao: f.instituicao,
+    documento: f.nome_arquivo,
+    ano: f.ano_publicacao != null ? String(f.ano_publicacao) : undefined,
+    versao: f.versao ?? undefined,
+    pagina: temPaginaRastreavel(f) ? (formatarPagina(f.pagina_inicio, f.pagina_fim) ?? undefined) : undefined,
+    trecho: f.conteudo,
+  }));
+
+  const contextoTrechos = referencias
+    .slice(0, 4)
+    .map((r, i) => `${i + 1}. ${r.trecho}`)
+    .join('\n');
+  const { categoria, subcategoria } = await classificarTema(tema, dominios, contextoTrechos);
+
+  return { referencias, observacao: '', categoria, subcategoria };
 }
 
 // ─── Etapa 2: Redator ─────────────────────────────────────────────────────
@@ -133,7 +148,9 @@ export async function redigirConteudo(
     ? referencias.map((r, i) => {
         const partes = [`${i + 1}. ${r.instituicao} — ${r.documento}`];
         if (r.numero) partes.push(`Nº ${r.numero}`);
+        if (r.versao) partes.push(r.versao);
         if (r.ano) partes.push(`(${r.ano})`);
+        if (r.pagina) partes.push(`p. ${r.pagina}`);
         if (r.trecho) partes.push(`\n   Conteúdo relevante: "${r.trecho}"`);
         return partes.join(' ');
       }).join('\n')
@@ -198,7 +215,9 @@ function montarContextoSpec(spec: KnowledgeSpec): string {
     .map((r, i) => {
       const partes = [`${i + 1}. ${r.instituicao} — ${r.documento}`];
       if (r.numero) partes.push(`Nº ${r.numero}`);
+      if (r.versao) partes.push(r.versao);
       if (r.ano) partes.push(`(${r.ano})`);
+      if (r.pagina) partes.push(`p. ${r.pagina}`);
       if (r.trecho) partes.push(`\n   Trecho: "${r.trecho}"`);
       if (r.data_atualizacao) partes.push(`\n   Última atualização: ${r.data_atualizacao}`);
       return partes.join(' ');
