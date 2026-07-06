@@ -9,6 +9,7 @@ const ragPipeline = require('../../scripts/rag-pipeline.js');
 const {
   chunkTextComPaginas,
   dividirPaginasEmSentencasTageadas,
+  pareceRuidoDeSumario,
   estimarTokens,
 } = ragPipeline;
 
@@ -75,5 +76,34 @@ describe('chunkTextComPaginas', () => {
     for (const chunk of chunks) {
       expect(chunk.paginaInicio).toBeLessThanOrEqual(chunk.paginaFim);
     }
+  });
+
+  test('descarta página de sumário/índice inteira (leaders de ponto), mantém páginas de conteúdo real', () => {
+    const sumario = 'Alta ........................................................................26\nÓbito .....................................................................................27';
+    const conteudoReal = paginaComFrases(2, 8);
+    const chunks = chunkTextComPaginas([sumario, conteudoReal]);
+
+    expect(chunks.length).toBeGreaterThan(0);
+    for (const chunk of chunks) {
+      expect(chunk.texto).not.toMatch(/Alta \.+/);
+    }
+  });
+});
+
+describe('pareceRuidoDeSumario', () => {
+  test('identifica leaders de ponto consecutivos', () => {
+    expect(pareceRuidoDeSumario('Alta ........................................26')).toBe(true);
+  });
+
+  test('identifica leaders de ponto separados por espaço', () => {
+    expect(pareceRuidoDeSumario('. . . . . . . . . . . . . . . . 6 Lei 5.905/1973')).toBe(true);
+  });
+
+  test('não sinaliza texto técnico normal como ruído', () => {
+    expect(pareceRuidoDeSumario('1. Realizar higiene das mãos. 2. Calçar luvas. 3. Puncionar a veia.')).toBe(false);
+  });
+
+  test('não sinaliza reticências curtas isoladas como ruído', () => {
+    expect(pareceRuidoDeSumario('O paciente referiu dor... e foi encaminhado.')).toBe(false);
   });
 });

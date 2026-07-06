@@ -259,7 +259,7 @@ async function downloadPDFsFromGoogleDrive(authClient) {
 // Versão da estratégia de chunking. Entra no hash do documento: mudar a
 // estratégia invalida o dedup e força a reindexação de todos os documentos
 // na próxima execução, sem flag manual.
-const CHUNKING_VERSION = 'chunker-v3'; // v3: chunks passam a carregar pagina_inicio/pagina_fim
+const CHUNKING_VERSION = 'chunker-v4'; // v4: descarta chunks de sumário/índice (leaders de ponto)
 
 // A Cohere trunca silenciosamente em 512 tokens — tudo além disso fica
 // invisível para a busca. A contagem aqui é estimada por caracteres com
@@ -432,6 +432,19 @@ function partirSentencaGigante(sentenca) {
   return pedacos;
 }
 
+// Detecta chunks que são sumário/índice (linhas "Título ...... 26" com
+// leaders de ponto, com ou sem espaço entre os pontos) em vez de conteúdo
+// de verdade. Diagnóstico de 06/07/2026: fragmentos assim passavam no
+// threshold de similaridade (o nome do capítulo bate com a busca) e viravam
+// "referência" sem nenhum conteúdo clínico real — o Redator então gerava
+// spec vazia ou copiava a própria linha de sumário. Um chunk com 1+
+// ocorrência do padrão já é sinal suficiente; conteúdo real não produz isso.
+const RE_LEADER_DE_SUMARIO = /(?:\.\s?){6,}/;
+
+function pareceRuidoDeSumario(texto) {
+  return RE_LEADER_DE_SUMARIO.test(texto);
+}
+
 function chunkText(texto) {
   const sentencas = [];
   for (const s of dividirEmSentencas(limparTextoParaChunks(texto))) {
@@ -488,7 +501,9 @@ function chunkText(texto) {
     }
   }
 
-  const resultado = chunks.map((c) => c.trim()).filter((c) => c.length > 0);
+  const resultado = chunks
+    .map((c) => c.trim())
+    .filter((c) => c.length > 0 && !pareceRuidoDeSumario(c));
   for (const c of resultado) {
     if (estimarTokens(c) > TETO_TOKENS) {
       throw new Error(
@@ -584,7 +599,7 @@ function chunkTextComPaginas(paginasLimpas) {
 
   const resultado = chunks
     .map((c) => ({ ...c, texto: c.texto.trim() }))
-    .filter((c) => c.texto.length > 0);
+    .filter((c) => c.texto.length > 0 && !pareceRuidoDeSumario(c.texto));
   for (const c of resultado) {
     if (estimarTokens(c.texto) > TETO_TOKENS) {
       throw new Error(
@@ -863,6 +878,7 @@ module.exports = {
   chunkText,
   chunkTextComPaginas,
   dividirPaginasEmSentencasTageadas,
+  pareceRuidoDeSumario,
   estimarTokens,
   limparTextoParaChunks,
   limparPaginas,
