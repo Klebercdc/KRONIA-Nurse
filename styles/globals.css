@@ -8,7 +8,7 @@
   --color-surface:       #FFFFFF;
   --color-ink:           #13161B;
   --color-ink-muted:     #5B6470;
-  --color-ink-faint:     #9AA3AE;
+  --color-ink-faint:     #6B7480;
   --color-line:          #E7EAEE;
   --color-clinical:      #0B4F8A;
   --color-clinical-tint: #EAF2F8;
@@ -19,6 +19,10 @@
   --color-warn-tint:     #FBF1DE;
   --color-danger:        #C5293A;
   --color-danger-tint:   #FBEAEC;
+  /* --color-ok/--color-warn puros ficam abaixo de 4,5:1 sobre seus próprios tints
+     em tema claro (texto pequeno de badge) — variantes de texto mais escuras. */
+  --color-ok-ink:        #1B7A45;
+  --color-warn-ink:      #8A5A09;
   --nav-height: 68px;
   --font-display: 'Space Grotesk', 'Segoe UI', sans-serif;
   --font-body:    'Inter', 'Segoe UI', sans-serif;
@@ -30,7 +34,7 @@
   --color-surface:       #171B21;
   --color-ink:           #F2F4F6;
   --color-ink-muted:     #9AA3AE;
-  --color-ink-faint:     #69707B;
+  --color-ink-faint:     #9199A6;
   --color-line:          #262B33;
   --color-clinical:      #4F9CDB;
   --color-clinical-tint: #16293A;
@@ -41,6 +45,9 @@
   --color-warn-tint:     #332408;
   --color-danger:        #F2697A;
   --color-danger-tint:   #33141A;
+  /* Em tema escuro, --color-ok/--color-warn já passam de sobra sobre seus tints. */
+  --color-ok-ink:        var(--color-ok);
+  --color-warn-ink:      var(--color-warn);
 }
 
 /* ── Reset ─────────────────────────────────────── */
@@ -306,9 +313,9 @@ input, textarea, select {
 .badge-intermediario { background: var(--color-warn-tint); color: var(--color-warn); }
 .badge-critico      { background: var(--color-danger-tint); color: var(--color-danger); }
 
-/* Selo de conhecimento — derivado de created_at/updated_at/data_revisao, ver comStatus() */
-.badge-novo       { background: var(--color-ok-tint);       color: var(--color-ok); }
-.badge-atualizado { background: var(--color-warn-tint);     color: var(--color-warn); }
+/* Selo de conhecimento — derivado de created_at/updated_at/data_revisao, ver comStatus(). */
+.badge-novo       { background: var(--color-ok-tint);       color: var(--color-ok-ink); }
+.badge-atualizado { background: var(--color-warn-tint);     color: var(--color-warn-ink); }
 .badge-revisado   { background: var(--color-clinical-tint); color: var(--color-clinical); }
 
 /* Legacy classification badges (used in existing API outputs) */

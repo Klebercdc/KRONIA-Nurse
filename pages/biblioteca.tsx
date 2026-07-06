@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import Head from 'next/head';
 import Image from 'next/image';
+import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import { getSupabaseBrowser } from '../lib/supabase-browser';
 import type { GuiaResumo, StatusConhecimento } from './api/biblioteca/listar';
@@ -51,13 +52,14 @@ const CHAVE_FAVORITOS = 'kronia:conhecimento:favoritos';
  */
 function useFavoritos() {
   const [favoritos, setFavoritos] = useState<Set<string>>(new Set());
+  const [persisteOk, setPersisteOk] = useState(true);
 
   useEffect(() => {
     try {
       const bruto = window.localStorage.getItem(CHAVE_FAVORITOS);
       if (bruto) setFavoritos(new Set(JSON.parse(bruto)));
     } catch {
-      // localStorage indisponível (modo privado etc.) — segue sem favoritos.
+      setPersisteOk(false);
     }
   }, []);
 
@@ -68,23 +70,24 @@ function useFavoritos() {
       try {
         window.localStorage.setItem(CHAVE_FAVORITOS, JSON.stringify(Array.from(novo)));
       } catch {
-        // idem
+        setPersisteOk(false);
       }
       return novo;
     });
   }, []);
 
-  return { favoritos, alternar };
+  return { favoritos, alternar, persisteOk };
 }
 
 export default function BibliotecaPage() {
+  const router = useRouter();
   const [dados, setDados] = useState<RespostaListar | null>(null);
   const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [carregandoMais, setCarregandoMais] = useState(false);
   const [erro, setErro] = useState('');
   const [somenteFavoritos, setSomenteFavoritos] = useState(false);
-  const { favoritos, alternar } = useFavoritos();
+  const { favoritos, alternar, persisteOk } = useFavoritos();
 
   const carregar = useCallback(async (categoria: string | null, offset: number, substituir: boolean) => {
     if (offset === 0) setCarregando(true); else setCarregandoMais(true);
@@ -126,6 +129,11 @@ export default function BibliotecaPage() {
     : somenteFavoritos
       ? dados.itens.filter((item) => favoritos.has(item.id))
       : dados.itens;
+
+  // Com catálogo pequeno, "Atualizações recentes" pode repetir 100% da lista
+  // principal — só vale a seção quando ela mostra algo que a lista de baixo não mostra.
+  const idsExibidos = new Set(dados?.itens.map((i) => i.id));
+  const atualizacoesRedundantes = !!dados && dados.atualizacoes.every((a) => idsExibidos.has(a.id));
 
   return (
     <>
@@ -185,7 +193,7 @@ export default function BibliotecaPage() {
               </div>
             )}
 
-            {!categoriaFiltro && dados.atualizacoes.length > 0 && (
+            {!categoriaFiltro && dados.atualizacoes.length > 0 && !atualizacoesRedundantes && (
               <>
                 <p className="card-titulo" style={{ marginBottom: 8 }}>Atualizações recentes</p>
                 <div className="card" style={{ padding: 0 }}>
@@ -218,6 +226,12 @@ export default function BibliotecaPage() {
               </button>
             </div>
 
+            {!persisteOk && (
+              <p style={{ fontSize: '0.72rem', color: 'var(--color-warn)', marginTop: -4, marginBottom: 10 }}>
+                Favoritos não puderam ser salvos neste navegador (modo privado?) — vão se perder ao recarregar.
+              </p>
+            )}
+
             {itensExibidos.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {itensExibidos.map((item) => (
@@ -226,6 +240,7 @@ export default function BibliotecaPage() {
                     item={item}
                     favorito={favoritos.has(item.id)}
                     onAlternarFavorito={() => alternar(item.id)}
+                    onAbrir={() => router.push(`/conhecimento/${item.id}`)}
                   />
                 ))}
               </div>
@@ -257,39 +272,48 @@ export default function BibliotecaPage() {
 }
 
 function ConhecimentoCard({
-  item, favorito, onAlternarFavorito,
+  item, favorito, onAlternarFavorito, onAbrir,
 }: {
   item: GuiaResumo;
   favorito: boolean;
   onAlternarFavorito: () => void;
+  onAbrir: () => void;
 }) {
   return (
     <div className="card" style={{ margin: 0, display: 'flex', gap: 12, alignItems: 'center', padding: 10 }}>
-      <div style={{ position: 'relative', width: 56, height: 56, borderRadius: 10, overflow: 'hidden', flexShrink: 0 }}>
-        {item.cover_url ? (
-          <Image
-            src={item.cover_url}
-            alt={item.titulo}
-            fill
-            loading="lazy"
-            sizes="56px"
-            style={{ objectFit: 'cover' }}
-          />
-        ) : (
-          <CapaPlaceholder />
-        )}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: '0.9rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {item.titulo}
-        </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, flexWrap: 'wrap' }}>
-          {item.status && (
-            <span className={`badge badge-${item.status}`}>{ROTULO_STATUS[item.status]}</span>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onAbrir}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAbrir(); } }}
+        style={{ display: 'flex', gap: 12, alignItems: 'center', flex: 1, minWidth: 0, cursor: 'pointer' }}
+      >
+        <div style={{ position: 'relative', width: 56, height: 56, borderRadius: 10, overflow: 'hidden', flexShrink: 0 }}>
+          {item.cover_url ? (
+            <Image
+              src={item.cover_url}
+              alt={item.titulo}
+              fill
+              loading="lazy"
+              sizes="56px"
+              style={{ objectFit: 'cover' }}
+            />
+          ) : (
+            <CapaPlaceholder />
           )}
-          <span style={{ fontSize: '0.75rem', color: 'var(--color-ink-faint)' }}>
-            {item.categoria}{item.subcategoria ? ` · ${item.subcategoria}` : ''}
-          </span>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: '0.9rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {item.titulo}
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, flexWrap: 'wrap' }}>
+            {item.status && (
+              <span className={`badge badge-${item.status}`}>{ROTULO_STATUS[item.status]}</span>
+            )}
+            <span style={{ fontSize: '0.75rem', color: 'var(--color-ink-faint)' }}>
+              {item.categoria}{item.subcategoria ? ` · ${item.subcategoria}` : ''}
+            </span>
+          </div>
         </div>
       </div>
       <button
