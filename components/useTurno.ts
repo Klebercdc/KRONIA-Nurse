@@ -72,6 +72,13 @@ export function useTurno() {
     }));
   }, []);
 
+  const editarPaciente = useCallback((id: string, leito: string, dx: string, complexidade: Complexidade) => {
+    setTurno((t) => ({
+      ...t,
+      pacientes: t.pacientes.map((p) => (p.id === id ? { ...p, leito, dx, complexidade } : p)),
+    }));
+  }, []);
+
   // ---- Organização automática do registro (async, melhor esforço) ----
   // Chamada DEPOIS que o evento cru já está salvo. Qualquer falha (rede,
   // timeout, 4xx/5xx) é silenciosa: o registro permanece cru, sem erro
@@ -158,6 +165,7 @@ export function useTurno() {
     organizandoIds,
     adicionarPaciente,
     removerPaciente,
+    editarPaciente,
     atualizarComplexidade,
     capturar,
     editarEvento,
