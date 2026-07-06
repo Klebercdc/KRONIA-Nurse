@@ -10,11 +10,13 @@ type Mensagem = {
 };
 
 const QUICK_ACCESS = [
-  { icon: <IconProtocolo />, label: 'Protocolos', query: 'protocolo' },
-  { icon: <IconProcedimento />, label: 'Procedimentos', query: 'procedimento' },
-  { icon: <IconMedicamento />, label: 'Medicamentos', query: 'medicamento' },
-  { icon: <IconDispositivo />, label: 'Dispositivos', query: 'dispositivo' },
+  { icon: <IconProtocolo />, label: 'Protocolos', query: 'Quais protocolos estão disponíveis?' },
+  { icon: <IconProcedimento />, label: 'Procedimentos', query: 'Quais procedimentos estão disponíveis?' },
+  { icon: <IconMedicamento />, label: 'Medicamentos', query: 'Quais medicamentos estão cadastrados?' },
+  { icon: <IconDispositivo />, label: 'Dispositivos', query: 'Quais dispositivos estão cadastrados?' },
 ] as const;
+
+const CHAVE_HISTORICO = 'kronia:kronos:historico';
 
 export default function KronosPage() {
   const router = useRouter();
@@ -22,6 +24,25 @@ export default function KronosPage() {
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [carregando, setCarregando] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Restaura a conversa se a página recarregar (interrupção comum em plantão) —
+  // sessionStorage some quando a aba fecha de verdade, não é histórico permanente.
+  useEffect(() => {
+    try {
+      const salvo = window.sessionStorage.getItem(CHAVE_HISTORICO);
+      if (salvo) setMensagens(JSON.parse(salvo));
+    } catch {
+      // sessionStorage indisponível — segue com conversa vazia.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem(CHAVE_HISTORICO, JSON.stringify(mensagens));
+    } catch {
+      // idem
+    }
+  }, [mensagens]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -108,20 +129,11 @@ export default function KronosPage() {
         </div>
       </div>
 
-      {/* Disclaimer */}
-      <p style={{
-        fontSize: '0.78rem',
-        color: 'var(--color-ink-muted)',
-        marginBottom: 16,
-        lineHeight: 1.6,
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-line)',
-        borderRadius: 10,
-        padding: '10px 13px',
-      }}>
+      {/* Disclaimer — mesmo tratamento visual de aviso de responsabilidade clínica usado em Encerramento */}
+      <div className="texto-responsabilidade">
         Respostas baseadas exclusivamente no conteúdo cadastrado pela equipe.
         O KRONOS não interpreta casos clínicos nem recomenda condutas.
-      </p>
+      </div>
 
       {/* Quick access grid */}
       {mensagens.length === 0 && (
@@ -183,6 +195,7 @@ export default function KronosPage() {
             style={{ alignSelf: 'flex-end', padding: '12px 16px' }}
             onClick={() => enviar()}
             disabled={!pergunta.trim() || carregando}
+            aria-label="Enviar pergunta"
           >
             <IconEnviar />
           </button>
@@ -236,21 +249,44 @@ function BubbleMensagem({ mensagem }: { mensagem: Mensagem }) {
 
 function RespostaMarkdown({ texto }: { texto: string }) {
   const linhas = texto.split('\n');
+  const blocos: React.ReactNode[] = [];
+  let itensListaAtual: string[] = [];
+
+  function fecharLista() {
+    if (itensListaAtual.length === 0) return;
+    blocos.push(
+      <ul key={`ul-${blocos.length}`} style={{ margin: '2px 0', paddingLeft: 16 }}>
+        {itensListaAtual.map((item, i) => (
+          <li key={i} style={{ marginBottom: 2 }}>{renderInline(item)}</li>
+        ))}
+      </ul>
+    );
+    itensListaAtual = [];
+  }
+
+  linhas.forEach((linha, i) => {
+    const ehItemLista = linha.startsWith('- ') || linha.startsWith('* ');
+    if (ehItemLista) {
+      itensListaAtual.push(linha.slice(2));
+      return;
+    }
+    fecharLista();
+
+    if (linha.startsWith('## ')) {
+      blocos.push(<h3 key={i} style={{ fontFamily: 'var(--font-display)', fontSize: '0.92rem', fontWeight: 700, marginTop: 10, marginBottom: 4, color: 'var(--color-clinical)' }}>{linha.slice(3)}</h3>);
+    } else if (linha.startsWith('### ')) {
+      blocos.push(<h4 key={i} style={{ fontSize: '0.88rem', fontWeight: 700, marginTop: 8, marginBottom: 2, color: 'var(--color-ink)' }}>{linha.slice(4)}</h4>);
+    } else if (linha.trim() === '') {
+      blocos.push(<div key={i} style={{ height: 6 }} />);
+    } else {
+      blocos.push(<p key={i} style={{ margin: '2px 0' }}>{renderInline(linha)}</p>);
+    }
+  });
+  fecharLista();
+
   return (
     <div style={{ fontSize: '0.88rem', lineHeight: 1.65, color: 'var(--color-ink)' }}>
-      {linhas.map((linha, i) => {
-        if (linha.startsWith('## ')) {
-          return <h3 key={i} style={{ fontFamily: 'var(--font-display)', fontSize: '0.92rem', fontWeight: 700, marginTop: 10, marginBottom: 4, color: 'var(--color-clinical)' }}>{linha.slice(3)}</h3>;
-        }
-        if (linha.startsWith('### ')) {
-          return <h4 key={i} style={{ fontSize: '0.88rem', fontWeight: 700, marginTop: 8, marginBottom: 2, color: 'var(--color-ink)' }}>{linha.slice(4)}</h4>;
-        }
-        if (linha.startsWith('- ') || linha.startsWith('* ')) {
-          return <li key={i} style={{ marginLeft: 16, marginBottom: 2 }}>{renderInline(linha.slice(2))}</li>;
-        }
-        if (linha.trim() === '') return <div key={i} style={{ height: 6 }} />;
-        return <p key={i} style={{ margin: '2px 0' }}>{renderInline(linha)}</p>;
-      })}
+      {blocos}
     </div>
   );
 }
