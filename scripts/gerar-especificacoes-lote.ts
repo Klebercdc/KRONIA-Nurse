@@ -19,8 +19,8 @@ import { createClient } from '@supabase/supabase-js';
 import { pesquisarFontes, redigirConteudo, executarPipeline } from '../lib/knowledge-pipeline';
 import { DOMINIOS_BIBLIOTECA, type KnowledgeSpec, type ReferenciaOficial } from '../lib/knowledge-spec';
 
-function computarHash(titulo: string, objetivo: string, procedimento: string, refs: ReferenciaOficial[]): string {
-  const payload = JSON.stringify({ titulo, objetivo, procedimento, referencias_oficiais: refs });
+function computarHash(titulo: string, objetivo: string, execucaoPassos: string[], refs: ReferenciaOficial[]): string {
+  const payload = JSON.stringify({ titulo, objetivo, execucao_passos: execucaoPassos, referencias_oficiais: refs });
   return createHash('sha256').update(payload, 'utf8').digest('hex');
 }
 
@@ -49,7 +49,7 @@ async function main() {
       const rascunho = await redigirConteudo(tema, referencias);
 
       const agora = new Date().toISOString();
-      const hash = computarHash(rascunho.titulo ?? tema, rascunho.objetivo ?? '', rascunho.procedimento ?? '', referencias);
+      const hash = computarHash(rascunho.titulo ?? tema, rascunho.objetivo ?? '', rascunho.execucao_passos ?? [], referencias);
       const observacaoFonte = semFontesSuficientes
         ? `ATENÇÃO: Fontes indexadas insuficientes (${referencias.length} encontrada(s)). ${observacao}`
         : observacao;
@@ -69,20 +69,20 @@ async function main() {
           categoria,
           subcategoria: subcategoria || null,
           resumo: rascunho.resumo || null,
+          definicao: rascunho.definicao || null,
           objetivo: rascunho.objetivo || null,
           escopo: rascunho.escopo || null,
           indicacoes: rascunho.indicacoes || null,
           contraindicacoes: rascunho.contraindicacoes || null,
           materiais: rascunho.materiais || null,
+          equipamentos: rascunho.equipamentos || null,
+          epis: rascunho.epis || null,
           preparacao: rascunho.preparacao || null,
-          procedimento: rascunho.procedimento || null,
+          execucao_passos: rascunho.execucao_passos?.length ? rascunho.execucao_passos : null,
           cuidados: rascunho.cuidados || null,
           complicacoes: rascunho.complicacoes || null,
-          prevencao_eventos_adversos: rascunho.prevencao_eventos_adversos || null,
-          pontos_criticos: rascunho.pontos_criticos || null,
-          observacoes: rascunho.observacoes || null,
-          limitacoes: rascunho.limitacoes || null,
-          variacoes_institucionais: rascunho.variacoes_institucionais || null,
+          registro: rascunho.registro || null,
+          fundamentacao_cientifica: rascunho.fundamentacao_cientifica || null,
           referencias_oficiais: referencias,
           status: 'rascunho',
           hash,
