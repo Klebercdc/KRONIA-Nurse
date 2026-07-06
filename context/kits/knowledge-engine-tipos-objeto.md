@@ -116,9 +116,15 @@ Prática de Enfermagem) é uma taxonomia concorrente/complementar à NANDA-I,
 com estrutura de eixos própria (Foco, Julgamento, Meios, Ação, Tempo,
 Localização, Cliente).
 
-**Observação:** decisão em aberto — ver "Perguntas Abertas". Se o produto vai
-usar NANDA-I e CIPE simultaneamente, cada uma precisa do próprio schema (não
-dá pra forçar CIPE dentro do formato NANDA-I, os eixos são diferentes).
+**Decisão:** usar as referências necessárias — sem travar em uma taxonomia
+única de antemão. Na prática: NANDA-I é o primeiro tipo implementado
+(decisão já registrada abaixo, com fonte primária disponível), e o schema de
+Diagnóstico de Enfermagem deve deixar espaço pra um `taxonomia` (`"NANDA-I"`
+| `"CIPE"`) desde já, mesmo que só NANDA-I seja populado no primeiro
+recorte — evita ter que migrar o schema depois se um conteúdo-fonte exigir
+CIPE (a estrutura de eixos da CIPE é diferente, então quando isso acontecer
+o campo `taxonomia` decide qual conjunto de campos próprios se aplica, não
+duas tabelas competindo).
 
 ---
 
@@ -231,16 +237,10 @@ duplicar como tipo de Knowledge Object.
 
 ---
 
-## 14. Educação Permanente
+## 14. Educação Permanente — REMOVIDO
 
-**Status:** ❌ não existe. É o menos definido de todos os títulos — pode
-significar conteúdo de treinamento/capacitação (cursos, módulos, avaliação de
-aprendizado), que é um produto bem diferente de "consulta rápida de
-procedimento".
-
-**Observação:** maior risco de escopo mal definido da lista inteira.
-Precisa de uma conversa própria antes de virar schema — não estimo campos
-aqui sem entender se é conteúdo estático, trilha de curso, ou avaliação.
+**Decisão:** retirado do escopo do Knowledge Engine. Não faz parte da lista
+de tipos de Objeto de Conhecimento deste produto.
 
 ---
 
@@ -254,14 +254,14 @@ aqui sem entender se é conteúdo estático, trilha de curso, ou avaliação.
 | Diagnósticos de Enfermagem (NANDA-I) | ❌ falta | Sim |
 | Intervenções (NIC) | ❌ falta | Sim |
 | Resultados (NOC) | ❌ falta | Sim |
-| CIPE | ❌ falta | Sim (schema próprio, diferente de NANDA-I) |
+| CIPE | ❌ falta — **decidido**: campo `taxonomia` no schema de Diagnóstico, não tabela separada por ora | Não isolado (extensão do item 4) |
 | Medicamentos | ❌ falta | Sim — maior risco clínico |
 | Diretrizes/RDC/COFEN/COREN/ANVISA/MS | ⚠️ parcial — **decidido**: composição, não schema novo | Não |
 | Escalas Clínicas | ❌ falta | Sim |
 | Cálculos | ❌ falta | Sim |
 | Checklists | ❌ falta — **decidido**: híbrido (oficial = objeto próprio, ad-hoc = gerado) | Só pros oficiais |
 | Fluxos Assistenciais | ❌ falta — **decidido**: mover para Workflow Engine | Não |
-| Educação Permanente | ❌ indefinido | Precisa definição antes de tudo |
+| ~~Educação Permanente~~ | **decidido**: removido do escopo | — |
 
 ---
 
@@ -278,12 +278,7 @@ pipeline de autoria já existente (`knowledge-pipeline.ts`), só trocando os
 campos de saída (ver item 4 acima). Medicamentos entra depois que o
 Validation Engine em tempo de resposta estiver de pé.
 
-## Perguntas Abertas (ainda bloqueiam Draft → Architect)
+## Perguntas Abertas
 
-1. NANDA-I e CIPE vão coexistir no produto, ou só uma taxonomia de
-   diagnóstico será adotada? Isso decide se o item 7 vira um ou dois schemas.
-   Como o primeiro tipo a entrar é NANDA-I (decisão acima), essa pergunta
-   bloqueia só a extensão futura pra CIPE, não o primeiro recorte.
-2. Educação Permanente (item 14): o que é, na prática, esse conteúdo? Sem
-   essa resposta não dá pra propor schema — mas também não bloqueia o
-   primeiro recorte (NANDA-I).
+Nenhuma restante — todas as pendências acima foram decididas pelo usuário.
+Draft → Architect liberado para este kit.
