@@ -44,6 +44,10 @@ export interface EventoTurno {
   /** Texto cru do ditado, preservado quando a organização automática
    *  reescreve `texto`. Ausente = registro nunca foi reorganizado. */
   textoOriginal?: string;
+  /** true = a organização automática falhou (rede/timeout/erro); o texto
+   *  cru foi mantido sem revisão. A captura nunca bloqueia por causa
+   *  disso, mas o usuário precisa poder ver que ficou pendente. */
+  organizacaoFalhou?: boolean;
   /** Exibição, formato HH:MM. */
   hora: string;
   /** Epoch ms — usado para ordenação e nunca exibido ao usuário. */

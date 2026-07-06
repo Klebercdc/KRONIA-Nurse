@@ -151,9 +151,14 @@ export const MORSE_CAMPOS: CampoEscala[] = [
   ]},
 ];
 
+/** Nível de risco estável para estilização (badge/cor) — nunca inferir isso do texto de `risco`. */
+export type NivelRisco = 'baixo' | 'medio' | 'alto';
+
 export interface ResultadoEscala {
   total: number;
   risco: string;
+  /** Ausente quando a escala não tem gradiente de risco (ex: PUSH, que mede tendência). */
+  nivel?: NivelRisco;
 }
 
 /**
@@ -220,48 +225,59 @@ export function calcularNews2(valores: number[]): ResultadoEscala {
   }
   const algumTres = valores.some((v) => v === 3);
   let risco = 'Baixo';
-  if (total >= 7) risco = 'Alto';
-  else if (total >= 5 || algumTres) risco = 'Médio';
-  return { total, risco };
+  let nivel: NivelRisco = 'baixo';
+  if (total >= 7) { risco = 'Alto'; nivel = 'alto'; }
+  else if (total >= 5 || algumTres) { risco = 'Médio'; nivel = 'medio'; }
+  return { total, risco, nivel };
 }
 
+// Braden é invertido: quanto MENOR o total, MAIOR o risco.
 export function calcularBraden(valores: number[]): ResultadoEscala {
   const total = valores.reduce((a, b) => a + b, 0);
   let risco = 'Sem risco / mínimo';
-  if (total <= 9) risco = 'Muito alto';
-  else if (total <= 12) risco = 'Alto';
-  else if (total <= 14) risco = 'Moderado';
-  else if (total <= 18) risco = 'Baixo';
-  return { total, risco };
+  let nivel: NivelRisco = 'baixo';
+  if (total <= 9) { risco = 'Muito alto'; nivel = 'alto'; }
+  else if (total <= 12) { risco = 'Alto'; nivel = 'alto'; }
+  else if (total <= 14) { risco = 'Moderado'; nivel = 'medio'; }
+  else if (total <= 18) { risco = 'Baixo'; nivel = 'baixo'; }
+  return { total, risco, nivel };
 }
 
 export function calcularMorse(valores: number[]): ResultadoEscala {
   const total = valores.reduce((a, b) => a + b, 0);
   let risco = 'Baixo';
-  if (total >= 51) risco = 'Alto';
-  else if (total >= 25) risco = 'Médio';
-  return { total, risco };
+  let nivel: NivelRisco = 'baixo';
+  if (total >= 51) { risco = 'Alto'; nivel = 'alto'; }
+  else if (total >= 25) { risco = 'Médio'; nivel = 'medio'; }
+  return { total, risco, nivel };
 }
 
 /** qSOFA: 2+ pontos = "considerar avaliação de sepse" — contagem de critério publicado, nunca diagnóstico. */
 export function calcularQsofa(pontos: number): ResultadoEscala {
-  return { total: pontos, risco: pontos >= 2 ? 'Atenção — considerar avaliação de sepse' : 'Baixo' };
+  const alto = pontos >= 2;
+  return {
+    total: pontos,
+    risco: alto ? 'Atenção — considerar avaliação de sepse' : 'Baixo',
+    nivel: alto ? 'alto' : 'baixo',
+  };
 }
 
 /** GCS: Teasdale & Jennett 1974. Total 3–15. < 15 = alteração de consciência (critério de qSOFA). */
 export function calcularGlasgow(valores: number[]): ResultadoEscala {
   const total = valores.reduce((a, b) => a + b, 0);
   let risco: string;
-  if (total <= 8) risco = 'Grave (≤ 8)';
-  else if (total <= 12) risco = 'Moderado (9–12)';
-  else if (total < 15) risco = 'Leve (13–14) — critério de consciência qSOFA ativo';
-  else risco = 'Normal (15) — sem alteração de consciência';
-  return { total, risco };
+  let nivel: NivelRisco;
+  if (total <= 8) { risco = 'Grave (≤ 8)'; nivel = 'alto'; }
+  else if (total <= 12) { risco = 'Moderado (9–12)'; nivel = 'medio'; }
+  else if (total < 15) { risco = 'Leve (13–14) — critério de consciência qSOFA ativo'; nivel = 'medio'; }
+  else { risco = 'Normal (15) — sem alteração de consciência'; nivel = 'baixo'; }
+  return { total, risco, nivel };
 }
 
 /** PUSH Tool: NPUAP / Santos et al. 2004. Escore 0–17. Avalia tendência — comparar com avaliação anterior. */
 export function calcularPush(valores: number[]): ResultadoEscala {
   const total = valores.reduce((a, b) => a + b, 0);
+  // Sem `nivel`: PUSH mede tendência de cicatrização, não tem gradiente de risco pontual.
   return { total, risco: 'Comparar com avaliação anterior para avaliar tendência de cicatrização' };
 }
 

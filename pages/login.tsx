@@ -27,7 +27,10 @@ export default function LoginPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim() || !senha) return;
+    if (!email.trim() || !senha.trim()) {
+      setErro('Preencha e-mail e senha para entrar.');
+      return;
+    }
     setErro('');
     setEnviando(true);
     const { error } = await signIn(email.trim(), senha);
@@ -236,10 +239,14 @@ const eyeBtnStyle: React.CSSProperties = {
   background: 'none',
   border: 'none',
   cursor: 'pointer',
-  padding: '4px',
+  width: 40,
+  height: 40,
+  margin: '0 -8px',
   color: 'var(--color-ink-faint)',
   display: 'flex',
   alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0,
 };
 
 const linkBtnStyle: React.CSSProperties = {

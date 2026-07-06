@@ -72,10 +72,18 @@ export function useTurno() {
     }));
   }, []);
 
+  const editarPaciente = useCallback((id: string, leito: string, dx: string, complexidade: Complexidade) => {
+    setTurno((t) => ({
+      ...t,
+      pacientes: t.pacientes.map((p) => (p.id === id ? { ...p, leito, dx, complexidade } : p)),
+    }));
+  }, []);
+
   // ---- Organização automática do registro (async, melhor esforço) ----
   // Chamada DEPOIS que o evento cru já está salvo. Qualquer falha (rede,
-  // timeout, 4xx/5xx) é silenciosa: o registro permanece cru, sem erro
-  // visível — a captura nunca depende disto.
+  // timeout, 4xx/5xx) nunca bloqueia nem reverte a captura — mas marca
+  // `organizacaoFalhou` pra UI poder mostrar que o registro ficou sem
+  // revisão, em vez de ficar indistinguível de um registro já revisado.
   const organizarRegistro = useCallback(async (eventoId: string, textoCru: string) => {
     setOrganizandoIds((ids) => [...ids, eventoId]);
     try {
@@ -88,19 +96,25 @@ export function useTurno() {
         },
         body: JSON.stringify({ texto: textoCru }),
       });
-      if (!resp.ok) return;
+      if (!resp.ok) {
+        setTurno((t) => ({ ...t, eventos: t.eventos.map((e) => (e.id === eventoId ? { ...e, organizacaoFalhou: true } : e)) }));
+        return;
+      }
       const json = await resp.json();
       if (typeof json?.textoOrganizado !== 'string') return;
       setTurno((t) => aplicarTextoOrganizado(t, eventoId, textoCru, json.textoOrganizado));
     } catch {
-      // silencioso de propósito — ver comentário acima
+      setTurno((t) => ({ ...t, eventos: t.eventos.map((e) => (e.id === eventoId ? { ...e, organizacaoFalhou: true } : e)) }));
     } finally {
       setOrganizandoIds((ids) => ids.filter((id) => id !== eventoId));
     }
   }, []);
 
   // ---- Captura rápida: detecta leito localmente e cria/associa paciente ----
-  const capturar = useCallback((textoFalado: string) => {
+  // `contextoFallbackId` é o leito selecionado manualmente na barra de contexto
+  // da tela Registrar — só é usado quando o texto não tem leito detectável,
+  // pra a nota realmente ir pro leito que a UI mostrou no preview.
+  const capturar = useCallback((textoFalado: string, contextoFallbackId?: string | null) => {
     const texto = textoFalado.trim();
     if (!texto) return;
 
@@ -119,6 +133,8 @@ export function useTurno() {
           pacientes = [...pacientes, p];
         }
         patientId = p.id;
+      } else if (contextoFallbackId && pacientes.some((p) => p.id === contextoFallbackId)) {
+        patientId = contextoFallbackId;
       }
       const novoEvento: EventoTurno = {
         id: eventoId, patientId, tipo: 'Nota', texto: textoCru, hora: horaAgora(), ts: Date.now(),
@@ -158,6 +174,7 @@ export function useTurno() {
     organizandoIds,
     adicionarPaciente,
     removerPaciente,
+    editarPaciente,
     atualizarComplexidade,
     capturar,
     editarEvento,

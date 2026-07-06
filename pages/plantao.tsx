@@ -12,6 +12,7 @@ export default function Home() {
 
   const nome = user?.user_metadata?.nome || user?.email?.split('@')[0] || 'Enfermeiro(a)';
   const primeiroNome = nome.split(' ')[0];
+  const iniciais = nome.split(' ').slice(0, 2).map((n: string) => n[0]).join('').toUpperCase();
 
   const hora = new Date().getHours();
   const saudacao = hora < 12 ? 'BOM DIA' : hora < 18 ? 'BOA TARDE' : 'BOA NOITE';
@@ -26,7 +27,7 @@ export default function Home() {
           <p style={{
             fontFamily: 'var(--font-mono)',
             fontSize: '0.65rem',
-            color: 'var(--color-ink-faint)',
+            color: 'var(--color-ink-muted)',
             textTransform: 'uppercase',
             letterSpacing: '0.08em',
             margin: '0 0 2px',
@@ -47,7 +48,7 @@ export default function Home() {
         <button
           onClick={() => router.push('/perfil')}
           style={{
-            background: 'var(--color-clinical-tint)',
+            background: 'var(--color-clinical-deep)',
             border: 'none',
             borderRadius: '50%',
             width: 40,
@@ -56,12 +57,15 @@ export default function Home() {
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            color: 'var(--color-clinical)',
+            color: '#fff',
+            fontSize: '0.85rem',
+            fontWeight: 800,
+            fontFamily: 'var(--font-display)',
             marginTop: 4,
           }}
-          aria-label="Notificações"
+          aria-label="Perfil"
         >
-          <IconSino />
+          {iniciais}
         </button>
       </div>
 
@@ -97,76 +101,27 @@ export default function Home() {
         </button>
       </div>
 
-      {/* Escalas quick access */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-        <button
-          onClick={() => router.push('/escalas')}
-          style={{
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-line)',
-            borderRadius: 14,
-            padding: '14px 12px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            fontSize: '0.88rem',
-            fontWeight: 600,
-            color: 'var(--color-ink)',
-          }}
-        >
-          <div style={{
-            width: 28,
-            height: 28,
-            borderRadius: 7,
-            background: 'var(--color-clinical-tint)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--color-clinical)',
-            flexShrink: 0,
-          }}>
+      {/* Escalas / KRONOS quick access */}
+      <div className="kronos-grid">
+        <button className="kronos-grid-item" style={{ flexDirection: 'row', alignItems: 'center' }} onClick={() => router.push('/escalas')}>
+          <div className="kronos-grid-item-icon" style={{ width: 28, height: 28, borderRadius: 7 }}>
             <IconRelogio />
           </div>
-          Escalas
+          <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--color-ink)' }}>Escalas</span>
         </button>
-        <button
-          onClick={() => router.push('/kronos')}
-          style={{
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-line)',
-            borderRadius: 14,
-            padding: '14px 12px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            fontSize: '0.88rem',
-            fontWeight: 600,
-            color: 'var(--color-ink)',
-          }}
-        >
-          <div style={{
-            width: 28,
-            height: 28,
-            borderRadius: 7,
-            background: 'var(--color-clinical-tint)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--color-clinical)',
-            flexShrink: 0,
-          }}>
+        <button className="kronos-grid-item" style={{ flexDirection: 'row', alignItems: 'center' }} onClick={() => router.push('/kronos')}>
+          <div className="kronos-grid-item-icon" style={{ width: 28, height: 28, borderRadius: 7 }}>
             <IconKronos />
           </div>
-          KRONOS
+          <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--color-ink)' }}>KRONOS</span>
         </button>
       </div>
 
       {/* Evolução avulsa card */}
-      <div
+      <button
         onClick={() => router.push('/evolucao-avulsa')}
         style={{
+          width: '100%',
           background: 'var(--color-surface)',
           border: '1px solid var(--color-line)',
           borderRadius: 14,
@@ -177,6 +132,7 @@ export default function Home() {
           justifyContent: 'space-between',
           cursor: 'pointer',
           gap: 12,
+          textAlign: 'left',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -202,10 +158,10 @@ export default function Home() {
             </div>
           </div>
         </div>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-ink-faint)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-ink-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
           <polyline points="9 18 15 12 9 6" />
         </svg>
-      </div>
+      </button>
 
       {/* Encerrar turno card */}
       <div
@@ -287,7 +243,7 @@ export default function Home() {
         </div>
       )}
 
-      {turno.pacientes.length === 0 && turno.eventos.length === 0 && (
+      {turno.eventos.length === 0 && (
         <div style={{
           background: 'var(--color-surface)',
           border: '1px solid var(--color-line)',
@@ -309,7 +265,7 @@ export default function Home() {
             <IconPlantao />
           </div>
           <p style={{ fontWeight: 700, color: 'var(--color-ink)', marginBottom: 4, fontSize: '0.95rem' }}>
-            Plantão iniciado
+            {turno.pacientes.length === 0 ? 'Plantão iniciado' : 'Nenhum registro ainda'}
           </p>
           <p style={{ fontSize: '0.83rem', color: 'var(--color-ink-muted)', lineHeight: 1.5 }}>
             Use o botão + para registrar o primeiro evento do turno
@@ -317,15 +273,6 @@ export default function Home() {
         </div>
       )}
     </Layout>
-  );
-}
-
-function IconSino() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    </svg>
   );
 }
 

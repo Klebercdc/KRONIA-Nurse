@@ -21,7 +21,7 @@ export default function PerfilPage() {
 
   const hora = new Date();
   const horaInicio = new Date(turno.iniciadoEm);
-  const duracaoHoras = Math.floor((hora.getTime() - horaInicio.getTime()) / 3600000);
+  const duracaoHoras = Math.max(0, Math.floor((hora.getTime() - horaInicio.getTime()) / 3600000));
 
   return (
     <Layout>
@@ -73,8 +73,8 @@ export default function PerfilPage() {
       {/* Stat cards */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
         <div className="stat-card">
-          <span className="stat-card-label">Turno atual</span>
-          <span className="stat-card-value">{turno.pacientes.length}p</span>
+          <span className="stat-card-label">Pacientes</span>
+          <span className="stat-card-value">{turno.pacientes.length}</span>
         </div>
         <div className="stat-card">
           <span className="stat-card-label">Registros</span>
@@ -85,20 +85,16 @@ export default function PerfilPage() {
       {/* Conta section */}
       <div className="card" style={{ marginBottom: 12 }}>
         <p className="card-titulo">Conta</p>
-        <div className="profile-row" onClick={() => {}}>
+        <button className="profile-row" style={{ width: '100%', textAlign: 'left', opacity: 0.55, cursor: 'default' }} disabled>
           <div className="profile-row-icon"><IconPessoa /></div>
           <span className="profile-row-label">Dados pessoais</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-ink-faint)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </div>
-        <div className="profile-row" onClick={() => {}}>
+          <span style={{ fontSize: '0.68rem', color: 'var(--color-ink-faint)', fontWeight: 600 }}>Em breve</span>
+        </button>
+        <button className="profile-row" style={{ width: '100%', textAlign: 'left', borderBottom: 'none', opacity: 0.55, cursor: 'default' }} disabled>
           <div className="profile-row-icon"><IconEscudo /></div>
           <span className="profile-row-label">Privacidade e dados</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-ink-faint)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </div>
+          <span style={{ fontSize: '0.68rem', color: 'var(--color-ink-faint)', fontWeight: 600 }}>Em breve</span>
+        </button>
       </div>
 
       {/* Preferências section */}
@@ -156,39 +152,45 @@ export default function PerfilPage() {
           </div>
         </div>
 
-        <div className="profile-row" onClick={() => {}}>
+        <button className="profile-row" style={{ width: '100%', textAlign: 'left', opacity: 0.55, cursor: 'default' }} disabled>
           <div className="profile-row-icon"><IconConfig /></div>
           <span className="profile-row-label">Configurações</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-ink-faint)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </div>
-        <div className="profile-row" onClick={() => {}}>
+          <span style={{ fontSize: '0.68rem', color: 'var(--color-ink-faint)', fontWeight: 600 }}>Em breve</span>
+        </button>
+        <button className="profile-row" style={{ width: '100%', textAlign: 'left', borderBottom: 'none', opacity: 0.55, cursor: 'default' }} disabled>
           <div className="profile-row-icon"><IconSino /></div>
           <span className="profile-row-label">Notificações</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-ink-faint)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </div>
+          <span style={{ fontSize: '0.68rem', color: 'var(--color-ink-faint)', fontWeight: 600 }}>Em breve</span>
+        </button>
       </div>
 
-      {/* Encerrar turno */}
-      <div className="card" style={{ marginBottom: 12 }}>
-        <p className="card-titulo">Plantão</p>
-        <div className="profile-row" onClick={() => router.push('/encerramento')} style={{ borderBottom: 'none' }}>
-          <div className="profile-row-icon" style={{ background: 'var(--color-ok-tint)', color: 'var(--color-ok)' }}>
-            <IconCheck />
-          </div>
-          <div style={{ flex: 1 }}>
-            <p className="profile-row-label" style={{ marginBottom: 1 }}>Encerrar turno</p>
-            <p style={{ fontSize: '0.75rem', color: 'var(--color-ink-faint)' }}>
-              Gerar evolução SAE/COFEN · {duracaoHoras}h de plantão
-            </p>
-          </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-ink-faint)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+      {/* Encerrar turno — ação de maior peso da tela, tratamento de CTA dedicado */}
+      <div style={{
+        background: 'var(--color-clinical-tint)',
+        border: '1px solid rgba(11,79,138,.18)',
+        borderRadius: 14,
+        padding: '16px',
+        marginBottom: 12,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+      }}>
+        <div>
+          <p style={{ fontFamily: 'var(--font-display)', fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-ink)', margin: '0 0 3px' }}>
+            Encerrar turno
+          </p>
+          <p style={{ fontSize: '0.8rem', color: 'var(--color-ink-muted)', margin: 0 }}>
+            Gerar evolução SAE/COFEN · {duracaoHoras}h de plantão
+          </p>
         </div>
+        <button
+          className="btn btn-primario"
+          style={{ padding: '10px 16px', fontSize: '0.85rem', borderRadius: 10, whiteSpace: 'nowrap', flexShrink: 0 }}
+          onClick={() => router.push('/encerramento')}
+        >
+          Encerrar
+        </button>
       </div>
 
       {/* Sair */}
@@ -259,14 +261,6 @@ function IconSino() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
       <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    </svg>
-  );
-}
-
-function IconCheck() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12" />
     </svg>
   );
 }

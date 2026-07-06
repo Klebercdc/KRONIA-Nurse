@@ -15,6 +15,7 @@ export default function Registrar() {
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [editTexto, setEditTexto] = useState('');
   const [editPatientId, setEditPatientId] = useState<string | null>(null);
+  const [confirmandoExcluirId, setConfirmandoExcluirId] = useState<string | null>(null);
 
   // Cards com o texto original (pré-organização) expandido
   const [originalAbertoIds, setOriginalAbertoIds] = useState<string[]>([]);
@@ -36,7 +37,7 @@ export default function Registrar() {
   function handleCapturar() {
     const t = texto.trim();
     if (!t) return;
-    capturar(t);
+    capturar(t, contextoId || null);
     setTexto('');
     textareaRef.current?.focus();
 
@@ -81,7 +82,7 @@ export default function Registrar() {
             </>
           ) : (
             <>
-              <div className="contexto-leito" style={{ color: 'var(--cinza-400)', fontSize: '0.95rem', fontWeight: 600 }}>
+              <div className="contexto-leito" style={{ color: 'var(--color-ink-faint)', fontSize: '0.95rem', fontWeight: 600 }}>
                 Nenhum leito selecionado
               </div>
               <div className="contexto-sub">O leito é detectado automaticamente pelo texto</div>
@@ -116,6 +117,7 @@ export default function Registrar() {
         <textarea
           ref={textareaRef}
           className="captura-textarea"
+          aria-label="Registrar nota do plantão"
           placeholder={'Dite ou escreva: "leito 5, PA 130x80, dor 3/10"\nO leito é detectado automaticamente pelo contexto.'}
           value={texto}
           rows={3}
@@ -191,7 +193,7 @@ export default function Registrar() {
                   <>
                     <div className="sessao-card-header">
                       <span className="sessao-hora-pill">{ev.hora}</span>
-                      <span style={{ fontSize: '0.78rem', color: 'var(--cinza-400)' }}>Editando</span>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--color-ink-faint)' }}>Editando</span>
                     </div>
 
                     <div className="campo" style={{ marginBottom: 8 }}>
@@ -245,21 +247,50 @@ export default function Registrar() {
                         </span>
                       )}
 
+                      {ev.organizacaoFalhou && (
+                        <span className="sessao-sem-leito-pill" title="A organização automática falhou — o texto cru foi mantido sem revisão">
+                          ⚠ não revisado
+                        </span>
+                      )}
+
                       <div className="sessao-acoes">
-                        <button
-                          className="btn-icone"
-                          onClick={() => iniciarEdicao(ev.id, ev.texto, ev.patientId)}
-                          aria-label="Editar"
-                        >
-                          <IconLapis />
-                        </button>
-                        <button
-                          className="btn-icone perigo"
-                          onClick={() => excluirEvento(ev.id)}
-                          aria-label="Excluir"
-                        >
-                          <IconLixeira />
-                        </button>
+                        {confirmandoExcluirId === ev.id ? (
+                          <>
+                            <button
+                              className="btn-icone perigo"
+                              onClick={() => { excluirEvento(ev.id); setConfirmandoExcluirId(null); }}
+                              aria-label="Confirmar exclusão"
+                              style={{ fontSize: '0.7rem', width: 'auto', padding: '3px 8px', fontWeight: 700 }}
+                            >
+                              Excluir
+                            </button>
+                            <button
+                              className="btn-icone"
+                              onClick={() => setConfirmandoExcluirId(null)}
+                              aria-label="Cancelar exclusão"
+                              style={{ fontSize: '0.7rem', width: 'auto', padding: '3px 8px' }}
+                            >
+                              Cancelar
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              className="btn-icone"
+                              onClick={() => iniciarEdicao(ev.id, ev.texto, ev.patientId)}
+                              aria-label="Editar"
+                            >
+                              <IconLapis />
+                            </button>
+                            <button
+                              className="btn-icone perigo"
+                              onClick={() => setConfirmandoExcluirId(ev.id)}
+                              aria-label="Excluir"
+                            >
+                              <IconLixeira />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -268,7 +299,7 @@ export default function Registrar() {
                     </p>
 
                     {estaOrganizando && (
-                      <div style={{ fontSize: '0.74rem', color: 'var(--cinza-400)', marginTop: 4 }}>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--color-ink-faint)', marginTop: 4 }}>
                         Organizando registro…
                       </div>
                     )}
