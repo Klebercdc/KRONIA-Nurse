@@ -180,27 +180,37 @@ export default function BibliotecaPage() {
 
         {!carregando && !erro && dados && (
           <>
-            {dados.categorias.length > 0 && (
-              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 6, marginBottom: 18 }}>
-                <button
-                  className={`pill${categoriaFiltro === null ? ' ativo' : ''}`}
-                  onClick={() => setCategoriaFiltro(null)}
-                >
-                  Todos
-                </button>
-                {dados.categorias.map((c) => (
+            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 6, marginBottom: 18 }}>
+              {dados.categorias.length > 0 && (
+                <>
                   <button
-                    key={c.categoria}
-                    className={`pill${categoriaFiltro === c.categoria ? ' ativo' : ''}`}
-                    onClick={() => selecionarCategoria(c.categoria)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}
+                    className={`pill${categoriaFiltro === null ? ' ativo' : ''}`}
+                    onClick={() => setCategoriaFiltro(null)}
                   >
-                    {ICONE_CATEGORIA[c.categoria] ?? <IconProtocolo />}
-                    {c.categoria} ({c.total})
+                    Todos
                   </button>
-                ))}
-              </div>
-            )}
+                  {dados.categorias.map((c) => (
+                    <button
+                      key={c.categoria}
+                      className={`pill${categoriaFiltro === c.categoria ? ' ativo' : ''}`}
+                      onClick={() => selecionarCategoria(c.categoria)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}
+                    >
+                      {ICONE_CATEGORIA[c.categoria] ?? <IconProtocolo />}
+                      {c.categoria} ({c.total})
+                    </button>
+                  ))}
+                </>
+              )}
+              <button
+                className="pill"
+                onClick={() => router.push('/escalas')}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}
+              >
+                <IconRelogio />
+                Escalas
+              </button>
+            </div>
 
             {!categoriaFiltro && dados.atualizacoes.length > 0 && !atualizacoesRedundantes && (
               <>
@@ -364,6 +374,15 @@ function formatarData(iso: string): string {
 }
 
 // ── Icons ────────────────────────────────────────────────────────────────────
+
+function IconRelogio() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <polyline points="12 7 12 12 15 15" />
+    </svg>
+  );
+}
 
 export function IconProtocolo() {
   return (

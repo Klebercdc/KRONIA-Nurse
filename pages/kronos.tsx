@@ -2,15 +2,12 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import { getSupabaseBrowser } from '../lib/supabase-browser';
-import { ICONE_CATEGORIA, IconProtocolo } from './biblioteca';
 
 type Mensagem = {
   tipo: 'pergunta' | 'resposta' | 'erro';
   texto: string;
   fontes?: { titulo: string; categoria: string }[];
 };
-
-type CategoriaResumo = { categoria: string; total: number };
 
 const CHAVE_HISTORICO = 'kronia:kronos:historico';
 
@@ -19,27 +16,7 @@ export default function KronosPage() {
   const [pergunta, setPergunta] = useState('');
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [carregando, setCarregando] = useState(false);
-  const [categorias, setCategorias] = useState<CategoriaResumo[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
-
-  // Categorias reais da base — o acesso rápido só mostra o que existe de fato,
-  // sem repetir a lista fictícia que ficava desatualizada em relação a Conhecimento.
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await getSupabaseBrowser().auth.getSession();
-        const token = data.session?.access_token ?? '';
-        const resp = await fetch('/api/biblioteca/listar?limit=1', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!resp.ok) return;
-        const json = await resp.json() as { categorias?: CategoriaResumo[] };
-        setCategorias(json.categorias ?? []);
-      } catch {
-        // sem acesso rápido por categoria nesta sessão — a pergunta livre continua funcionando.
-      }
-    })();
-  }, []);
 
   // Restaura a conversa se a página recarregar (interrupção comum em plantão) —
   // sessionStorage some quando a aba fecha de verdade, não é histórico permanente.
@@ -151,30 +128,12 @@ export default function KronosPage() {
         O KRONOS não interpreta casos clínicos nem recomenda condutas.
       </div>
 
-      {/* Quick access grid — categorias reais, vai direto pro Conhecimento filtrado */}
-      {mensagens.length === 0 && categorias.length > 0 && (
-        <div className="kronos-grid">
-          {categorias.map((c) => (
-            <button
-              key={c.categoria}
-              className="kronos-grid-item"
-              onClick={() => router.push({ pathname: '/biblioteca', query: { categoria: c.categoria } })}
-            >
-              <div className="kronos-grid-item-icon">{ICONE_CATEGORIA[c.categoria] ?? <IconProtocolo />}</div>
-              <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--color-ink)' }}>
-                {c.categoria} ({c.total})
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* Messages */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 12 }}>
         {mensagens.length === 0 && (
           <div className="estado-vazio" style={{ padding: '24px 0' }}>
             <p style={{ margin: 0, fontSize: '0.85rem' }}>
-              Faça uma pergunta ou use o acesso rápido acima
+              Faça uma pergunta sobre procedimento, técnica ou protocolo
             </p>
           </div>
         )}
