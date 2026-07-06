@@ -452,7 +452,7 @@ export async function auditarDominio(spec: KnowledgeSpec): Promise<ResultadoDomi
 
 // ─── Etapa 8: Consolidação ─────────────────────────────────────────────────
 
-function classificar(
+export function classificar(
   estagio_origem?: ResultadoEstagio,
   estagio_escopo?: ResultadoEstagio,
   estagio_coerencia?: ResultadoEstagio,
