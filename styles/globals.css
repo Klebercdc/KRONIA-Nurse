@@ -306,6 +306,11 @@ input, textarea, select {
 .badge-intermediario { background: var(--color-warn-tint); color: var(--color-warn); }
 .badge-critico      { background: var(--color-danger-tint); color: var(--color-danger); }
 
+/* Selo de conhecimento — derivado de created_at/updated_at/data_revisao, ver comStatus() */
+.badge-novo       { background: var(--color-ok-tint);       color: var(--color-ok); }
+.badge-atualizado { background: var(--color-warn-tint);     color: var(--color-warn); }
+.badge-revisado   { background: var(--color-clinical-tint); color: var(--color-clinical); }
+
 /* Legacy classification badges (used in existing API outputs) */
 .badge-minimos        { background: var(--color-ok-tint);      color: var(--color-ok); }
 .badge-intermediarios { background: var(--color-clinical-tint); color: var(--color-clinical); }
