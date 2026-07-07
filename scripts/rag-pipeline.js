@@ -33,6 +33,7 @@ const crypto = require('crypto');
 const { PDFParse } = require('pdf-parse');
 const { createClient } = require('@supabase/supabase-js');
 const { google } = require('googleapis');
+const { parsearPdfsComDocling } = require('./docling-bridge');
 
 // ═════════════════════════════════════════════════════════════
 // CONFIGURAÇÃO
@@ -74,6 +75,10 @@ const PDF_METADATA = {
     versao: '2ª edição / 2017',
     ano: 2017,
     descricao: 'Medidas de Prevenção de Infecção Relacionada à Assistência à Saúde',
+    // Tabelas e layout multi-coluna que o pdf-parse embaralha — ver análise
+    // Docling vs. pdf-parse. Docling entra só como parser (reading order +
+    // estrutura de tabela); o chunking continua sendo o daqui (ver scripts/docling-bridge.js).
+    parser: 'docling',
   },
   'Código-de-Ética-dos-profissionais-de-Enfermagem.pdf': {
     tipo: 'Legislação',
@@ -658,7 +663,7 @@ async function generateEmbeddings(texts) {
 // 5. PROCESSAR UM PDF COMPLETO
 // ═════════════════════════════════════════════════════════════
 
-async function processPDF(filePath) {
+async function processPDF(filePath, paginasDocling) {
   const fileName = path.basename(filePath);
   console.log(`\n📄 Processando: ${fileName}`);
 
@@ -668,24 +673,35 @@ async function processPDF(filePath) {
     return { status: 'pulado' };
   }
 
-  // 1. Ler PDF (pdf-parse v2: classe PDFParse)
-  const parser = new PDFParse({ data: fs.readFileSync(filePath) });
   let fullText;
   let totalPaginas;
   let paginasLimpas;
-  try {
-    // pageJoiner vazio: sem marcador "-- N of M --" no meio do texto,
-    // que sujaria os fragmentos e mudaria o hash do conteúdo
-    const pdfData = await parser.getText({ pageJoiner: '' });
-    fullText = pdfData.text;
-    totalPaginas = pdfData.total;
-    // Para os chunks, usar o texto página a página (array, não concatenado)
-    // com cabeçalhos/rodapés repetidos removidos — mantém a página de
-    // origem rastreável por chunk (conteudo_completo continua sendo o
-    // texto bruto).
-    paginasLimpas = limparPaginas(pdfData.pages.map((p) => p.text || ''));
-  } finally {
-    await parser.destroy();
+
+  if (paginasDocling) {
+    // PDF flagado com parser: 'docling' no PDF_METADATA — texto já veio do
+    // Docling (reading order + tabelas em Markdown), extraído em lote antes
+    // deste loop (ver runPipeline). O chunking a partir daqui é o mesmo de
+    // qualquer outro PDF: só a extração de texto por página muda.
+    totalPaginas = paginasDocling.paginas_total;
+    paginasLimpas = limparPaginas(paginasDocling.paginas);
+    fullText = paginasLimpas.join('\n');
+  } else {
+    // 1. Ler PDF (pdf-parse v2: classe PDFParse)
+    const parser = new PDFParse({ data: fs.readFileSync(filePath) });
+    try {
+      // pageJoiner vazio: sem marcador "-- N of M --" no meio do texto,
+      // que sujaria os fragmentos e mudaria o hash do conteúdo
+      const pdfData = await parser.getText({ pageJoiner: '' });
+      fullText = pdfData.text;
+      totalPaginas = pdfData.total;
+      // Para os chunks, usar o texto página a página (array, não concatenado)
+      // com cabeçalhos/rodapés repetidos removidos — mantém a página de
+      // origem rastreável por chunk (conteudo_completo continua sendo o
+      // texto bruto).
+      paginasLimpas = limparPaginas(pdfData.pages.map((p) => p.text || ''));
+    } finally {
+      await parser.destroy();
+    }
   }
 
   console.log(`✓ PDF lido: ${fullText.length} caracteres, ${totalPaginas} páginas`);
@@ -845,10 +861,27 @@ async function runPipeline() {
 
   console.log(`⚙️  Processando ${pdfFiles.length} PDFs (leitura + chunks + embeddings)...`);
 
+  // Passo 2.1: PDFs flagados com parser: 'docling' no PDF_METADATA (layout
+  // complexo/tabelas que o pdf-parse embaralha) saem numa única chamada em
+  // lote — os modelos do Docling são carregados uma vez e reaproveitados
+  // entre eles, em vez de um spawn por arquivo (ver docling-bridge.js).
+  const arquivosDocling = pdfFiles.filter((f) => PDF_METADATA[f]?.parser === 'docling');
+  let paginasPorArquivoDocling = {};
+  if (arquivosDocling.length > 0) {
+    console.log(`🔬 Extraindo ${arquivosDocling.length} PDF(s) com Docling (parser dedicado): ${arquivosDocling.join(', ')}`);
+    paginasPorArquivoDocling = await parsearPdfsComDocling(
+      arquivosDocling.map((f) => path.join(PDF_DIR, f))
+    );
+  }
+
   const resumo = { indexado: 0, duplicado: 0, pulado: 0, erro: 0 };
   for (const file of pdfFiles) {
     try {
-      const { status } = await processPDF(path.join(PDF_DIR, file));
+      const doclingResultado = paginasPorArquivoDocling[file];
+      if (doclingResultado?.erro) {
+        throw new Error(`Docling falhou em ${file}: ${doclingResultado.erro}`);
+      }
+      const { status } = await processPDF(path.join(PDF_DIR, file), doclingResultado);
       resumo[status] += 1;
     } catch (error) {
       resumo.erro += 1;

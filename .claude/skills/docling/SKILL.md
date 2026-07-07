@@ -61,14 +61,19 @@ for chunk in chunker.chunk(doc):
 
 `HybridChunker` merges small structural units and splits oversized ones to a target token budget (tokenizer-aware), while never splitting a table mid-row and always keeping a chunk's section heading as context — a more principled version of the sentence-accumulation chunker hand-built in this repo's `scripts/rag-pipeline.js` (`chunkTextComPaginas`).
 
-## Relevant to this project
+## Relevant to this project — decisão adotada
 
-`scripts/rag-pipeline.js` currently does PDF → text via `pdf-parse` (JS) → a hand-rolled sentence-based chunker with a custom summary/TOC-noise filter (`pareceRuidoDeSumario`). Docling would be a Python-side alternative that:
-- Handles the "table of contents / index page leaking into RAG chunks" problem structurally (it classifies TOC/heading elements instead of treating them as body paragraphs), rather than needing a heuristic dot-leader detector.
-- Gives per-element page numbers natively, which the project's `conhecimento_fragmentos.pagina_inicio/pagina_fim` columns are already designed to store.
-- Extracts real table structure from documents like `caderno-4-medidas-de-prevencao-de-infeccao...pdf`, which a flat-text extractor would garble.
+`scripts/rag-pipeline.js` faz PDF → texto via `pdf-parse` (JS) → `chunkTextComPaginas` (chunker de sentenças com filtro de ruído `pareceRuidoDeSumario`). Depois de um benchmark real (OCR desligado, 2 PDFs de produção) comparando o Docling com esse pipeline, a decisão foi: **usar o Docling só como parser opcional, não trocar o chunker.**
 
-**Tradeoff to weigh before adopting:** this project's ingestion pipeline (`scripts/rag-pipeline.js`) is Node.js; Docling is Python-only. Adopting it means either a Python subprocess/microservice step in the pipeline, or porting the ingestion script to Python — not a drop-in replacement of the current JS chunker.
+Motivo: o `HybridChunker` gera chunks bem menores que o alvo atual (~470-540 chars vs. ~1300) e não bate com o teto de 512 tokens da Cohere sem reconfiguração; além disso ele **não elimina** o ruído de capa/ficha catalográfica/diretoria — só muda a forma (vira item de lista curto em vez de linha de sumário com pontilhado), então o `pareceRuidoDeSumario` ainda seria necessário, só que reescrito pra outro formato.
+
+O que o Docling entrega que realmente vale a pena: reading order correto e tabelas como Markdown de verdade, coisa que o `pdf-parse` embaralha em PDFs como `caderno-4-medidas-de-prevencao-de-infeccao...pdf`. Por isso a integração implementada é:
+
+- `scripts/docling_parser.py` — recebe uma lista de PDFs (não um só), carrega os modelos **uma vez** pro lote inteiro, e devolve por PDF um array de texto por página (`doc.export_to_markdown(page_no=N)` — preserva tabela e cabeçalho de seção), não os chunks do `HybridChunker`.
+- `scripts/docling-bridge.js` — `parsearPdfsComDocling(caminhosPdfs)`, spawn único pro lote via `child_process`.
+- `scripts/rag-pipeline.js` — PDFs com layout complexo são marcados com `parser: 'docling'` no `PDF_METADATA` (hoje: `caderno-4-medidas-de-prevencao-de-infeccao-relacionada-a-assistencia-a-saude.pdf`). Esses PDFs são extraídos em lote pelo Docling antes do loop principal; o texto por página entra no mesmo `limparPaginas`/`chunkTextComPaginas` que todo PDF já passa. Todo o resto do pipeline (chunking, embeddings, Supabase) não muda.
+
+**Custo aceito:** processar um PDF grande com Docling leva dezenas de minutos, não segundos (medido: ~1,7-4,9 s/página em CPU, dependendo da densidade de tabela/layout da página) — inviável pra todo PDF, por isso é opt-in por arquivo, não o parser padrão.
 
 ## Supported input formats
 
