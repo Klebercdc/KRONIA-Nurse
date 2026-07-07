@@ -1,6 +1,6 @@
 /**
  * /biblioteca-tecnica
- * Admin da Biblioteca Técnica — Pipeline de Knowledge Specifications.
+ * Admin da Base de Conhecimento — Pipeline de Knowledge Specifications.
  * Rota não listada no nav principal. Acesso direto via URL.
  *
  * Fluxo: Rascunho → Pipeline (Etapas 3–8) → Aguardando Aprovação → [Aprovado | Reprovado]
@@ -59,12 +59,13 @@ async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
 
 // ─── Estado do formulário ──────────────────────────────────────────────────
 
-const FORM_VAZIO: Omit<KnowledgeSpec, 'id' | 'status' | 'criado_por' | 'created_at' | 'updated_at' | 'historico'> = {
-  titulo: '', categoria: '', subcategoria: '', resumo: '', objetivo: '', escopo: '',
-  indicacoes: '', contraindicacoes: '', materiais: '', preparacao: '', procedimento: '',
-  cuidados: '', complicacoes: '', prevencao_eventos_adversos: '', pontos_criticos: '',
-  observacoes: '', limitacoes: '', variacoes_institucionais: '',
-  referencias_oficiais: [],
+const FORM_VAZIO = {
+  titulo: '', categoria: '', subcategoria: '', resumo: '', definicao: '', objetivo: '', escopo: '',
+  indicacoes: '', contraindicacoes: '', materiais: '', equipamentos: '', epis: '', preparacao: '',
+  // Um passo por linha na textarea — convertido para string[] só no envio (ver salvar()).
+  execucao_passos: '',
+  cuidados: '', complicacoes: '', registro: '', fundamentacao_cientifica: '',
+  referencias_oficiais: [] as ReferenciaOficial[],
 };
 
 type FormState = typeof FORM_VAZIO;
@@ -159,25 +160,30 @@ export default function BibliotecaTecnica() {
 
   function editarSpec(spec: KnowledgeSpec) {
     setEditandoId(spec.id);
+    // Compatibilidade com specs antigas: sem execucao_passos, usa o procedimento legado como texto inicial.
+    const execucaoTexto = Array.isArray(spec.execucao_passos) && spec.execucao_passos.length > 0
+      ? spec.execucao_passos.join('\n')
+      : (spec.procedimento ?? '');
+
     setForm({
       titulo: spec.titulo ?? '',
       categoria: spec.categoria ?? '',
       subcategoria: spec.subcategoria ?? '',
       resumo: spec.resumo ?? '',
+      definicao: spec.definicao ?? '',
       objetivo: spec.objetivo ?? '',
       escopo: spec.escopo ?? '',
       indicacoes: spec.indicacoes ?? '',
       contraindicacoes: spec.contraindicacoes ?? '',
       materiais: spec.materiais ?? '',
+      equipamentos: spec.equipamentos ?? '',
+      epis: spec.epis ?? '',
       preparacao: spec.preparacao ?? '',
-      procedimento: spec.procedimento ?? '',
+      execucao_passos: execucaoTexto,
       cuidados: spec.cuidados ?? '',
       complicacoes: spec.complicacoes ?? '',
-      prevencao_eventos_adversos: spec.prevencao_eventos_adversos ?? '',
-      pontos_criticos: spec.pontos_criticos ?? '',
-      observacoes: spec.observacoes ?? '',
-      limitacoes: spec.limitacoes ?? '',
-      variacoes_institucionais: spec.variacoes_institucionais ?? '',
+      registro: spec.registro ?? '',
+      fundamentacao_cientifica: spec.fundamentacao_cientifica ?? '',
       referencias_oficiais: spec.referencias_oficiais ?? [],
     });
     setMensagem('');
@@ -191,11 +197,18 @@ export default function BibliotecaTecnica() {
     setSalvando(true);
     setMensagem('');
     try {
+      const payload = {
+        ...form,
+        execucao_passos: form.execucao_passos
+          .split('\n')
+          .map((p) => p.trim())
+          .filter(Boolean),
+      };
       if (editandoId) {
-        await apiFetch('/api/knowledge-spec/atualizar', { method: 'POST', body: JSON.stringify({ id: editandoId, ...form }) });
+        await apiFetch('/api/knowledge-spec/atualizar', { method: 'POST', body: JSON.stringify({ id: editandoId, ...payload }) });
         setMensagem('Rascunho atualizado. Pipeline reiniciado.');
       } else {
-        const data = await apiFetch<{ id: string }>('/api/knowledge-spec/criar', { method: 'POST', body: JSON.stringify(form) });
+        const data = await apiFetch<{ id: string }>('/api/knowledge-spec/criar', { method: 'POST', body: JSON.stringify(payload) });
         setMensagem(`Spec criada (ID: ${data.id}). Execute o pipeline para iniciar a auditoria.`);
         setEditandoId(data.id);
       }
@@ -312,12 +325,12 @@ export default function BibliotecaTecnica() {
 
   return (
     <>
-      <Head><title>Biblioteca Técnica — Pipeline KRONIA</title></Head>
+      <Head><title>Base de Conhecimento — Pipeline KRONIA</title></Head>
       <div style={{ minHeight: '100vh', background: '#F7FAFC' }}>
         {/* Header */}
         <div style={{ background: '#fff', borderBottom: '1px solid #E2E8F0', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>Biblioteca Técnica</h1>
+            <h1 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>Base de Conhecimento</h1>
             <p style={{ margin: 0, fontSize: '0.72rem', color: '#718096' }}>Pipeline de Knowledge Specifications — {nomeUsuario}</p>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -606,36 +619,36 @@ function FormularioView({
           Todo conteúdo deve ser parafraseado com suas próprias palavras, técnico e fiel às fontes. Proibido copiar textos. Proibido acrescentar conhecimento externo.
         </div>
         <Grid2>
+          <Campo label="Definição"><textarea rows={3} value={form.definicao ?? ''} onChange={(e) => set('definicao', e.target.value)} placeholder="Definição formal e técnica do procedimento" /></Campo>
           <Campo label="Objetivo"><textarea rows={3} value={form.objetivo ?? ''} onChange={(e) => set('objetivo', e.target.value)} placeholder="O que este procedimento visa alcançar" /></Campo>
-          <Campo label="Escopo"><textarea rows={3} value={form.escopo ?? ''} onChange={(e) => set('escopo', e.target.value)} placeholder="A quem e em que contexto se aplica" /></Campo>
         </Grid2>
+        <Campo label="Escopo"><textarea rows={3} value={form.escopo ?? ''} onChange={(e) => set('escopo', e.target.value)} placeholder="A quem e em que contexto se aplica" /></Campo>
         <Grid2>
           <Campo label="Indicações"><textarea rows={3} value={form.indicacoes ?? ''} onChange={(e) => set('indicacoes', e.target.value)} placeholder="Quando é indicado" /></Campo>
           <Campo label="Contraindicações"><textarea rows={3} value={form.contraindicacoes ?? ''} onChange={(e) => set('contraindicacoes', e.target.value)} placeholder="Quando não deve ser realizado" /></Campo>
         </Grid2>
-        <Campo label="Materiais Necessários">
-          <textarea rows={4} value={form.materiais ?? ''} onChange={(e) => set('materiais', e.target.value)} placeholder="Liste todos os materiais necessários" />
+        <Grid2>
+          <Campo label="Materiais"><textarea rows={4} value={form.materiais ?? ''} onChange={(e) => set('materiais', e.target.value)} placeholder="Materiais de consumo necessários" /></Campo>
+          <Campo label="Equipamentos"><textarea rows={4} value={form.equipamentos ?? ''} onChange={(e) => set('equipamentos', e.target.value)} placeholder="Equipamentos (não consumíveis) necessários" /></Campo>
+        </Grid2>
+        <Campo label="EPIs">
+          <textarea rows={3} value={form.epis ?? ''} onChange={(e) => set('epis', e.target.value)} placeholder="Equipamentos de Proteção Individual exigidos" />
         </Campo>
         <Campo label="Preparação">
           <textarea rows={4} value={form.preparacao ?? ''} onChange={(e) => set('preparacao', e.target.value)} placeholder="Higienização das mãos, paramentação, preparo do paciente e ambiente" />
         </Campo>
-        <Campo label="Procedimento Técnico (passo a passo)">
-          <textarea rows={8} value={form.procedimento ?? ''} onChange={(e) => set('procedimento', e.target.value)} placeholder="Descreva cada etapa técnica com precisão" style={{ fontFamily: 'monospace', fontSize: '0.82rem' }} />
+        <Campo label="Execução (um passo por linha)">
+          <textarea rows={8} value={form.execucao_passos} onChange={(e) => set('execucao_passos', e.target.value)} placeholder={'1º passo\n2º passo\n3º passo'} style={{ fontFamily: 'monospace', fontSize: '0.82rem' }} />
         </Campo>
         <Grid2>
           <Campo label="Cuidados Durante e Após"><textarea rows={4} value={form.cuidados ?? ''} onChange={(e) => set('cuidados', e.target.value)} placeholder="Cuidados de enfermagem durante e após o procedimento" /></Campo>
           <Campo label="Complicações Possíveis"><textarea rows={4} value={form.complicacoes ?? ''} onChange={(e) => set('complicacoes', e.target.value)} placeholder="Complicações descritas na literatura" /></Campo>
         </Grid2>
-        <Grid2>
-          <Campo label="Prevenção de Eventos Adversos"><textarea rows={3} value={form.prevencao_eventos_adversos ?? ''} onChange={(e) => set('prevencao_eventos_adversos', e.target.value)} placeholder="Medidas preventivas específicas" /></Campo>
-          <Campo label="Pontos Críticos"><textarea rows={3} value={form.pontos_criticos ?? ''} onChange={(e) => set('pontos_criticos', e.target.value)} placeholder="Etapas que exigem atenção redobrada" /></Campo>
-        </Grid2>
-        <Grid2>
-          <Campo label="Observações"><textarea rows={3} value={form.observacoes ?? ''} onChange={(e) => set('observacoes', e.target.value)} placeholder="Informações adicionais relevantes" /></Campo>
-          <Campo label="Limitações"><textarea rows={3} value={form.limitacoes ?? ''} onChange={(e) => set('limitacoes', e.target.value)} placeholder="O que esta spec NÃO cobre" /></Campo>
-        </Grid2>
-        <Campo label="Variações Institucionais">
-          <textarea rows={3} value={form.variacoes_institucionais ?? ''} onChange={(e) => set('variacoes_institucionais', e.target.value)} placeholder="Se existem variações conhecidas de protocolo entre serviços, registre aqui todas as posições — nunca escolha automaticamente." />
+        <Campo label="Registro">
+          <textarea rows={4} value={form.registro ?? ''} onChange={(e) => set('registro', e.target.value)} placeholder="O que deve constar no registro/anotação de enfermagem" />
+        </Campo>
+        <Campo label="Fundamentação Científica">
+          <textarea rows={4} value={form.fundamentacao_cientifica ?? ''} onChange={(e) => set('fundamentacao_cientifica', e.target.value)} placeholder="Síntese da base científica/racional clínico do procedimento" />
         </Campo>
       </SecaoForm>
 
@@ -884,12 +897,21 @@ function EstagioCard({ label, estagio }: { label: string; estagio: ResultadoEsta
 }
 
 function SpecConteudoView({ spec }: { spec: KnowledgeSpec }) {
+  const execucaoTexto = Array.isArray(spec.execucao_passos) && spec.execucao_passos.length > 0
+    ? spec.execucao_passos.map((p, i) => `${i + 1}. ${p}`).join('\n')
+    : spec.procedimento;
+
   const secoes: [string, string | undefined][] = [
+    ['Definição', spec.definicao],
     ['Objetivo', spec.objetivo], ['Escopo', spec.escopo],
     ['Indicações', spec.indicacoes], ['Contraindicações', spec.contraindicacoes],
-    ['Materiais Necessários', spec.materiais], ['Preparação', spec.preparacao],
-    ['Procedimento Técnico', spec.procedimento], ['Cuidados', spec.cuidados],
-    ['Complicações', spec.complicacoes], ['Prevenção de Eventos Adversos', spec.prevencao_eventos_adversos],
+    ['Materiais', spec.materiais], ['Equipamentos', spec.equipamentos], ['EPIs', spec.epis],
+    ['Preparação', spec.preparacao],
+    ['Execução', execucaoTexto], ['Cuidados', spec.cuidados],
+    ['Complicações', spec.complicacoes],
+    ['Registro', spec.registro], ['Fundamentação Científica', spec.fundamentacao_cientifica],
+    // Campos legados — só aparecem em specs antigas.
+    ['Prevenção de Eventos Adversos', spec.prevencao_eventos_adversos],
     ['Pontos Críticos', spec.pontos_criticos], ['Observações', spec.observacoes],
     ['Limitações', spec.limitacoes], ['Variações Institucionais', spec.variacoes_institucionais],
   ];

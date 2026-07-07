@@ -1,8 +1,8 @@
 /**
- * Pipeline de auditoria da Biblioteca Técnica — Etapas 1–8.
+ * Pipeline de auditoria da Base de Conhecimento — Etapas 1–8.
  *
  * Etapas 1 (Pesquisador) e 2 (Redator) podem ser executadas por IA via
- * processar.ts, ou manualmente pelo usuário no formulário da Biblioteca.
+ * processar.ts, ou manualmente pelo usuário no formulário da Base de Conhecimento.
  * Etapas 3–6 são auditores binários: qualquer reprovação interrompe o
  * pipeline imediatamente (Constitution §PIPELINE OBRIGATÓRIO).
  *
@@ -10,6 +10,8 @@
  */
 
 import { chamarGroq, extrairJson } from './groq-client';
+import { buscarFragmentos } from './knowledge-retrieval';
+import { validarFragmentos, temPaginaRastreavel, formatarPagina } from './kronos-validation';
 import type {
   KnowledgeSpec,
   ResultadoEstagio,
@@ -29,100 +31,126 @@ export interface ResultadoPesquisador {
 }
 
 export type RascunhoRedator = Pick<KnowledgeSpec,
-  | 'titulo' | 'resumo' | 'objetivo' | 'escopo'
-  | 'indicacoes' | 'contraindicacoes' | 'materiais' | 'preparacao'
-  | 'procedimento' | 'cuidados' | 'complicacoes'
-  | 'prevencao_eventos_adversos' | 'pontos_criticos'
-  | 'observacoes' | 'limitacoes' | 'variacoes_institucionais'
+  | 'titulo' | 'resumo' | 'objetivo' | 'escopo' | 'definicao'
+  | 'indicacoes' | 'contraindicacoes' | 'materiais' | 'equipamentos' | 'epis' | 'preparacao'
+  | 'execucao_passos' | 'cuidados' | 'complicacoes' | 'registro' | 'fundamentacao_cientifica'
 >;
 
 // ─── Etapa 1: Pesquisador ──────────────────────────────────────────────────
+//
+// Não usa recall do LLM (nenhuma fonte é "lembrada" de treinamento) — busca
+// de verdade nos documentos oficiais indexados via RAG (Retrieval Engine,
+// ver context/kits/kronos-arquitetura-cognitiva.md, Domínio 1) e reaproveita
+// o mesmo Validation Engine do KRONOS (lib/kronos-validation.ts) pra decidir
+// se há evidência suficiente. Cada referência carrega o trecho literal e a
+// página de origem (quando o documento já foi reindexado com rastreamento
+// de página) — o Redator (Etapa 2) parafraseia esse trecho real, nunca
+// texto inventado pelo modelo.
 
-const PROMPT_PESQUISADOR = `Você é o Pesquisador da Biblioteca Técnica KRONIA Nurse.
+const MATCH_COUNT_PESQUISADOR = 5;
 
-Sua tarefa: identificar fontes oficiais brasileiras e internacionais reconhecidas para o tema de enfermagem solicitado. Use APENAS fontes que você conhece com segurança a partir do seu treinamento — não invente referências.
+// Limite de caracteres do trecho de cada referência ao montar os prompts
+// (Redator e Auditores). Chunks reais (não mais ruído de sumário) trazem
+// parágrafos inteiros — sem limite, N referências completas facilmente
+// estouram o TPM (tokens/min) da Groq num único request (visto em produção:
+// 8 referências reais -> 413 "tokens per minute limit exceeded"). O trecho
+// completo continua salvo em referencias_oficiais; só o prompt é truncado.
+const MAX_TRECHO_PROMPT_CHARS = 500;
 
-FONTES ACEITAS (em ordem de preferência):
-- ANVISA: Resoluções RDC, Notas Técnicas, Instruções Normativas
-- COFEN: Resoluções, Pareceres normativos
-- COREN estaduais: Pareceres técnicos
-- Ministério da Saúde: Portarias, Protocolos Clínicos, Cadernos de Atenção Básica
-- CDC (Centers for Disease Control and Prevention): Guidelines
-- OMS/WHO: Guidelines e Notas Técnicas
-- Sociedades de especialidade reconhecidas (SOBEP, ABEn, AMIB, SBN, etc.)
+function truncarTrecho(trecho: string | undefined): string | undefined {
+  if (!trecho) return trecho;
+  return trecho.length > MAX_TRECHO_PROMPT_CHARS
+    ? `${trecho.slice(0, MAX_TRECHO_PROMPT_CHARS)}…`
+    : trecho;
+}
 
-FONTES NÃO ACEITAS: blog, fórum, Wikipedia, site pessoal, protocolo interno de hospital não publicado.
+const PROMPT_CLASSIFICADOR = `Você é o classificador da Base de Conhecimento KRONIA Nurse.
 
-Para CADA fonte que você conhecer com certeza, informe:
-- instituicao: nome da instituição emissora (ex: "ANVISA", "COFEN", "Ministério da Saúde")
-- documento: título completo do documento
-- numero: número da resolução/portaria/nota (OMITIR se não tiver certeza)
-- ano: ano de publicação/última revisão conhecida (OMITIR se não souber)
-- trecho: trecho relevante da fonte que embasa o conteúdo técnico para este tema. Se não souber o trecho exato, descreva o que a fonte aborda sobre o tema.
-- data_atualizacao: data da última atualização conhecida (OMITIR se não souber)
-
-INSTRUÇÕES CRÍTICAS:
-- Máximo de 6 fontes, as mais relevantes e específicas para o tema
-- Se o número exato de uma resolução for incerto, omita o campo "numero"
-- Se não encontrar fontes oficiais suficientes (menos de 2), retorne array vazio e explique em "observacao"
-- Classifique o tema na categoria e subcategoria mais adequadas da lista fornecida
+Sua única tarefa: escolher a categoria e subcategoria mais adequadas da lista fornecida para o tema, com base nos trechos de evidência já recuperados. Não redija conteúdo técnico, não avalie fontes — apenas classifique.
 
 Responda SOMENTE com JSON válido, sem markdown, sem texto antes ou depois:
-{"categoria":"string da lista fornecida","subcategoria":"string ou vazio","referencias":[{"instituicao":"...","documento":"...","trecho":"..."}],"observacao":"vazio se fontes encontradas, ou descrição do problema"}`;
+{"categoria":"string da lista fornecida","subcategoria":"string ou vazio"}`;
 
-export async function pesquisarFontes(tema: string, dominios: readonly string[]): Promise<ResultadoPesquisador> {
+async function classificarTema(
+  tema: string,
+  dominios: readonly string[],
+  contextoTrechos: string
+): Promise<{ categoria: string; subcategoria: string }> {
   const listaDominios = dominios.join(', ');
   const resposta = await chamarGroq(
-    PROMPT_PESQUISADOR,
-    `Tema: "${tema}"\n\nLista de categorias disponíveis: ${listaDominios}`
+    PROMPT_CLASSIFICADOR,
+    `Tema: "${tema}"\n\nLista de categorias disponíveis: ${listaDominios}\n\nTrechos de evidência recuperados:\n${contextoTrechos}`
   );
-  const resultado = extrairJson<{
-    categoria?: string;
-    subcategoria?: string;
-    referencias?: ReferenciaOficial[];
-    observacao?: string;
-  }>(resposta);
-
+  const resultado = extrairJson<{ categoria?: string; subcategoria?: string }>(resposta);
   return {
-    referencias: Array.isArray(resultado.referencias) ? resultado.referencias : [],
-    observacao: resultado.observacao ?? '',
     categoria: resultado.categoria ?? dominios[0],
     subcategoria: resultado.subcategoria ?? '',
   };
 }
 
+export async function pesquisarFontes(tema: string, dominios: readonly string[]): Promise<ResultadoPesquisador> {
+  const fragmentos = await buscarFragmentos(tema, { matchCount: MATCH_COUNT_PESQUISADOR });
+  const validacao = validarFragmentos(fragmentos);
+
+  if (!validacao.valido) {
+    return {
+      referencias: [],
+      observacao: `Nenhuma fonte indexada encontrada para este tema na Base de Conhecimento (busca RAG). ${validacao.motivo}`,
+      categoria: dominios[0],
+      subcategoria: '',
+    };
+  }
+
+  const referencias: ReferenciaOficial[] = validacao.fragmentosValidos.map((f) => ({
+    instituicao: f.instituicao,
+    documento: f.nome_arquivo,
+    ano: f.ano_publicacao != null ? String(f.ano_publicacao) : undefined,
+    versao: f.versao ?? undefined,
+    pagina: temPaginaRastreavel(f) ? (formatarPagina(f.pagina_inicio, f.pagina_fim) ?? undefined) : undefined,
+    trecho: f.conteudo,
+  }));
+
+  const contextoTrechos = referencias
+    .slice(0, 4)
+    .map((r, i) => `${i + 1}. ${truncarTrecho(r.trecho)}`)
+    .join('\n');
+  const { categoria, subcategoria } = await classificarTema(tema, dominios, contextoTrechos);
+
+  return { referencias, observacao: '', categoria, subcategoria };
+}
+
 // ─── Etapa 2: Redator ─────────────────────────────────────────────────────
 
-const PROMPT_REDATOR = `Você é o Redator da Biblioteca Técnica KRONIA Nurse.
+const PROMPT_REDATOR = `Você é o Redator da Base de Conhecimento KRONIA Nurse.
 
 Sua tarefa: redigir o conteúdo técnico de enfermagem para o tema indicado, usando EXCLUSIVAMENTE as referências fornecidas.
 
 REGRAS OBRIGATÓRIAS:
 1. NUNCA acrescente informação que não esteja nas referências fornecidas
-2. NUNCA copie texto das fontes — parafraseie sempre com suas próprias palavras técnicas
+2. NUNCA copie texto das fontes — parafraseie sempre com suas próprias palavras técnicas. Trocar só algumas palavras isoladas mantendo a mesma sequência de itens/frases da fonte NÃO é paráfrase — reestruture de verdade: combine itens relacionados em frases corridas, reordene quando fizer sentido clínico, condense o que for redundante
 3. Se uma seção não tiver embasamento nas referências, deixe vazia ("") — nunca invente
 4. O conteúdo é REFERÊNCIA TÉCNICA GERAL — não dirija recomendações a um paciente específico
 5. Use linguagem técnica de enfermagem clara, objetiva e no presente
-6. O procedimento deve ser descrito como passo a passo numerado
+6. "execucao_passos" é um ARRAY de strings, um item por passo — nunca uma string única com números embutidos
 
 Responda SOMENTE com JSON válido, sem markdown, sem texto antes ou depois:
 {
   "titulo": "título formal do procedimento/tema",
   "resumo": "1-2 frases descrevendo o procedimento e sua finalidade",
+  "definicao": "definição formal e técnica do que é o procedimento",
   "objetivo": "o que o procedimento visa alcançar clinicamente",
   "escopo": "a quem se aplica e em que contexto clínico",
   "indicacoes": "situações que justificam a realização",
   "contraindicacoes": "situações em que não deve ser realizado",
-  "materiais": "lista de todos os materiais necessários",
+  "materiais": "materiais de consumo necessários",
+  "equipamentos": "equipamentos (não consumíveis) necessários",
+  "epis": "equipamentos de proteção individual exigidos",
   "preparacao": "higiene das mãos, paramentação, preparo do paciente e do ambiente",
-  "procedimento": "passo a passo técnico numerado",
+  "execucao_passos": ["passo 1", "passo 2", "passo 3"],
   "cuidados": "cuidados de enfermagem durante e após o procedimento",
   "complicacoes": "complicações descritas na literatura para este procedimento",
-  "prevencao_eventos_adversos": "medidas preventivas específicas para eventos adversos",
-  "pontos_criticos": "etapas que exigem atenção redobrada pela equipe",
-  "observacoes": "informações adicionais relevantes não cobertas nas seções anteriores",
-  "limitacoes": "o que esta especificação NÃO cobre ou onde diverge de outros contextos",
-  "variacoes_institucionais": "variações de protocolo conhecidas entre diferentes serviços ou regiões"
+  "registro": "o que deve constar no registro/anotação de enfermagem após a execução",
+  "fundamentacao_cientifica": "síntese da base científica/racional clínico do procedimento, a partir das referências"
 }`;
 
 export async function redigirConteudo(
@@ -133,8 +161,10 @@ export async function redigirConteudo(
     ? referencias.map((r, i) => {
         const partes = [`${i + 1}. ${r.instituicao} — ${r.documento}`];
         if (r.numero) partes.push(`Nº ${r.numero}`);
+        if (r.versao) partes.push(r.versao);
         if (r.ano) partes.push(`(${r.ano})`);
-        if (r.trecho) partes.push(`\n   Conteúdo relevante: "${r.trecho}"`);
+        if (r.pagina) partes.push(`p. ${r.pagina}`);
+        if (r.trecho) partes.push(`\n   Conteúdo relevante: "${truncarTrecho(r.trecho)}"`);
         return partes.join(' ');
       }).join('\n')
     : 'Nenhuma referência oficial encontrada para este tema.';
@@ -146,42 +176,52 @@ export async function redigirConteudo(
 
   const resultado = extrairJson<RascunhoRedator>(resposta);
   return {
-    titulo:                     resultado.titulo                     ?? tema,
-    resumo:                     resultado.resumo                     ?? '',
-    objetivo:                   resultado.objetivo                   ?? '',
-    escopo:                     resultado.escopo                     ?? '',
-    indicacoes:                 resultado.indicacoes                 ?? '',
-    contraindicacoes:           resultado.contraindicacoes           ?? '',
-    materiais:                  resultado.materiais                  ?? '',
-    preparacao:                 resultado.preparacao                 ?? '',
-    procedimento:               resultado.procedimento               ?? '',
-    cuidados:                   resultado.cuidados                   ?? '',
-    complicacoes:               resultado.complicacoes               ?? '',
-    prevencao_eventos_adversos: resultado.prevencao_eventos_adversos ?? '',
-    pontos_criticos:            resultado.pontos_criticos            ?? '',
-    observacoes:                resultado.observacoes                ?? '',
-    limitacoes:                 resultado.limitacoes                 ?? '',
-    variacoes_institucionais:   resultado.variacoes_institucionais   ?? '',
+    titulo:                 resultado.titulo                 ?? tema,
+    resumo:                 resultado.resumo                 ?? '',
+    definicao:              resultado.definicao              ?? '',
+    objetivo:               resultado.objetivo               ?? '',
+    escopo:                 resultado.escopo                 ?? '',
+    indicacoes:             resultado.indicacoes             ?? '',
+    contraindicacoes:       resultado.contraindicacoes       ?? '',
+    materiais:              resultado.materiais              ?? '',
+    equipamentos:           resultado.equipamentos           ?? '',
+    epis:                   resultado.epis                   ?? '',
+    preparacao:             resultado.preparacao             ?? '',
+    execucao_passos:        Array.isArray(resultado.execucao_passos) ? resultado.execucao_passos : [],
+    cuidados:               resultado.cuidados               ?? '',
+    complicacoes:           resultado.complicacoes           ?? '',
+    registro:               resultado.registro               ?? '',
+    fundamentacao_cientifica: resultado.fundamentacao_cientifica ?? '',
   };
 }
 
 // ─── Montagem do contexto para os auditores ────────────────────────────────
 
 function montarContextoSpec(spec: KnowledgeSpec): string {
+  const execucaoTexto = Array.isArray(spec.execucao_passos) && spec.execucao_passos.length > 0
+    ? spec.execucao_passos.map((p, i) => `${i + 1}. ${p}`).join('\n')
+    : spec.procedimento;
+
   const secoes: [string, string | undefined][] = [
     ['Título', spec.titulo],
     ['Categoria', spec.categoria],
     ['Subcategoria', spec.subcategoria],
     ['Resumo', spec.resumo],
+    ['Definição', spec.definicao],
     ['Objetivo', spec.objetivo],
     ['Escopo', spec.escopo],
     ['Indicações', spec.indicacoes],
     ['Contraindicações', spec.contraindicacoes],
     ['Materiais Necessários', spec.materiais],
+    ['Equipamentos', spec.equipamentos],
+    ['EPIs', spec.epis],
     ['Preparação', spec.preparacao],
-    ['Procedimento Técnico', spec.procedimento],
+    ['Execução', execucaoTexto],
     ['Cuidados', spec.cuidados],
     ['Complicações', spec.complicacoes],
+    ['Registro', spec.registro],
+    ['Fundamentação Científica', spec.fundamentacao_cientifica],
+    // Campos legados — só aparecem em specs antigas.
     ['Prevenção de Eventos Adversos', spec.prevencao_eventos_adversos],
     ['Pontos Críticos', spec.pontos_criticos],
     ['Observações', spec.observacoes],
@@ -198,8 +238,10 @@ function montarContextoSpec(spec: KnowledgeSpec): string {
     .map((r, i) => {
       const partes = [`${i + 1}. ${r.instituicao} — ${r.documento}`];
       if (r.numero) partes.push(`Nº ${r.numero}`);
+      if (r.versao) partes.push(r.versao);
       if (r.ano) partes.push(`(${r.ano})`);
-      if (r.trecho) partes.push(`\n   Trecho: "${r.trecho}"`);
+      if (r.pagina) partes.push(`p. ${r.pagina}`);
+      if (r.trecho) partes.push(`\n   Trecho: "${truncarTrecho(r.trecho)}"`);
       if (r.data_atualizacao) partes.push(`\n   Última atualização: ${r.data_atualizacao}`);
       return partes.join(' ');
     })
@@ -210,7 +252,7 @@ function montarContextoSpec(spec: KnowledgeSpec): string {
 
 // ─── Etapa 3: Auditor de Origem ────────────────────────────────────────────
 
-const PROMPT_AUDITOR_ORIGEM = `Você é o Auditor de Origem da Biblioteca Técnica KRONIA Nurse.
+const PROMPT_AUDITOR_ORIGEM = `Você é o Auditor de Origem da Base de Conhecimento KRONIA Nurse.
 
 Sua função: verificar se o rascunho foi corretamente elaborado com base nas referências, sem cópias e com rastreabilidade.
 
@@ -221,7 +263,16 @@ Verifique:
 4. PARÁFRASE: o conteúdo foi reescrito com palavras próprias (exigido) ou há trechos copiados literalmente?
 
 IMPORTANTE: conteúdo técnico de enfermagem usa terminologia padrão — isso é esperado e não configura cópia.
-O que reprova é a reprodução literal de parágrafos ou frases completas de documentos.
+O que reprova é a reprodução literal de PARÁGRAFOS OU FRASES EXPLICATIVAS COMPLETAS de documentos.
+
+EXCEÇÃO OBRIGATÓRIA — checklists de registro/documentação: muitas referências são listas do
+que deve ser anotado num procedimento (ex.: "data e hora; profissional responsável; intercorrências;
+carimbo e assinatura"). Esses itens são padronizados em toda a enfermagem — não existe forma
+alternativa de dizer "registrar data e hora" ou "nome e COREN do profissional". Reutilizar os MESMOS
+itens de um checklist, na mesma função de lista, NÃO é cópia e NÃO reprova — mesmo que os nomes dos
+itens coincidam quase palavra por palavra com a referência. O que reprovaria aqui seria copiar a
+referência inteira, na mesma ordem, sem nenhuma reorganização, contexto clínico ou agrupamento
+adicionado pelo Redator.
 
 Responda SOMENTE com JSON válido, sem markdown, sem texto antes ou depois:
 {"aprovado":true|false,"observacoes":["..."],"itens_reprovados":["frase/trecho exato que motiva reprovação — somente se aprovado=false"]}`;
@@ -242,7 +293,7 @@ export async function auditarOrigem(spec: KnowledgeSpec): Promise<ResultadoEstag
 
 // ─── Etapa 4: Auditor de Escopo ────────────────────────────────────────────
 
-const PROMPT_AUDITOR_ESCOPO = `Você é o Auditor de Escopo da Biblioteca Técnica KRONIA Nurse.
+const PROMPT_AUDITOR_ESCOPO = `Você é o Auditor de Escopo da Base de Conhecimento KRONIA Nurse.
 
 Este conteúdo é REFERÊNCIA TÉCNICA GERAL para estudo e consulta — NUNCA pode conter decisão clínica aplicada a caso específico.
 
@@ -277,7 +328,7 @@ export async function auditarEscopo(spec: KnowledgeSpec): Promise<ResultadoEstag
 
 // ─── Etapa 5: Auditor de Coerência ─────────────────────────────────────────
 
-const PROMPT_AUDITOR_COERENCIA = `Você é o Auditor de Coerência da Biblioteca Técnica KRONIA Nurse.
+const PROMPT_AUDITOR_COERENCIA = `Você é o Auditor de Coerência da Base de Conhecimento KRONIA Nurse.
 
 Compare o rascunho com as referências fornecidas e verifique:
 1. ORDEM LÓGICA: o conteúdo segue progressão coerente (preparação → procedimento → cuidados)?
@@ -307,7 +358,7 @@ export async function auditarCoerencia(spec: KnowledgeSpec): Promise<ResultadoEs
 
 // ─── Etapa 6: Auditor de Atualização ───────────────────────────────────────
 
-const PROMPT_AUDITOR_ATUALIZACAO = `Você é o Auditor de Atualização da Biblioteca Técnica KRONIA Nurse.
+const PROMPT_AUDITOR_ATUALIZACAO = `Você é o Auditor de Atualização da Base de Conhecimento KRONIA Nurse.
 
 Seu objetivo é identificar referências que merecem revisão humana pontual — nunca invalidar automaticamente um documento antigo.
 
@@ -344,7 +395,7 @@ export async function auditarAtualizacao(spec: KnowledgeSpec): Promise<Resultado
 
 // ─── Etapa 7: Auditor de Domínio e Variabilidade ───────────────────────────
 
-const PROMPT_AUDITOR_DOMINIO = `Você é o Auditor de Domínio e Variabilidade da Biblioteca Técnica KRONIA Nurse.
+const PROMPT_AUDITOR_DOMINIO = `Você é o Auditor de Domínio e Variabilidade da Base de Conhecimento KRONIA Nurse.
 
 Esta etapa classifica o conteúdo — não aprova nem reprova. Sempre retorne aprovado=true.
 
@@ -401,7 +452,7 @@ export async function auditarDominio(spec: KnowledgeSpec): Promise<ResultadoDomi
 
 // ─── Etapa 8: Consolidação ─────────────────────────────────────────────────
 
-function classificar(
+export function classificar(
   estagio_origem?: ResultadoEstagio,
   estagio_escopo?: ResultadoEstagio,
   estagio_coerencia?: ResultadoEstagio,

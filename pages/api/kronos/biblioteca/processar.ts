@@ -35,8 +35,8 @@ interface ResultadoTema {
   etapa_falha?: string;
 }
 
-function computarHash(titulo: string, objetivo: string, procedimento: string, refs: ReferenciaOficial[]): string {
-  const payload = JSON.stringify({ titulo, objetivo, procedimento, referencias_oficiais: refs });
+function computarHash(titulo: string, objetivo: string, execucaoPassos: string[], refs: ReferenciaOficial[]): string {
+  const payload = JSON.stringify({ titulo, objetivo, execucao_passos: execucaoPassos, referencias_oficiais: refs });
   return createHash('sha256').update(payload, 'utf8').digest('hex');
 }
 
@@ -84,7 +84,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const hash = computarHash(
         rascunho.titulo ?? tema,
         rascunho.objetivo ?? '',
-        rascunho.procedimento ?? '',
+        rascunho.execucao_passos ?? [],
         referencias
       );
 
@@ -103,29 +103,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { data: spec, error: errInsert } = await supabase
         .from('knowledge_specs')
         .insert({
-          titulo:                     rascunho.titulo                     ?? tema,
+          titulo:                   rascunho.titulo                   ?? tema,
           categoria,
-          subcategoria:               subcategoria || null,
-          resumo:                     rascunho.resumo                     || null,
-          objetivo:                   rascunho.objetivo                   || null,
-          escopo:                     rascunho.escopo                     || null,
-          indicacoes:                 rascunho.indicacoes                 || null,
-          contraindicacoes:           rascunho.contraindicacoes           || null,
-          materiais:                  rascunho.materiais                  || null,
-          preparacao:                 rascunho.preparacao                 || null,
-          procedimento:               rascunho.procedimento               || null,
-          cuidados:                   rascunho.cuidados                   || null,
-          complicacoes:               rascunho.complicacoes               || null,
-          prevencao_eventos_adversos: rascunho.prevencao_eventos_adversos || null,
-          pontos_criticos:            rascunho.pontos_criticos            || null,
-          observacoes:                rascunho.observacoes                || null,
-          limitacoes:                 rascunho.limitacoes                 || null,
-          variacoes_institucionais:   rascunho.variacoes_institucionais   || null,
-          referencias_oficiais:       referencias,
-          status:                     'rascunho',
+          subcategoria:             subcategoria || null,
+          resumo:                   rascunho.resumo                   || null,
+          definicao:                rascunho.definicao                || null,
+          objetivo:                 rascunho.objetivo                 || null,
+          escopo:                   rascunho.escopo                   || null,
+          indicacoes:               rascunho.indicacoes               || null,
+          contraindicacoes:         rascunho.contraindicacoes         || null,
+          materiais:                rascunho.materiais                || null,
+          equipamentos:             rascunho.equipamentos             || null,
+          epis:                     rascunho.epis                     || null,
+          preparacao:               rascunho.preparacao               || null,
+          execucao_passos:          rascunho.execucao_passos?.length ? rascunho.execucao_passos : null,
+          cuidados:                 rascunho.cuidados                 || null,
+          complicacoes:             rascunho.complicacoes             || null,
+          registro:                 rascunho.registro                 || null,
+          fundamentacao_cientifica: rascunho.fundamentacao_cientifica || null,
+          referencias_oficiais:     referencias,
+          status:                   'rascunho',
           hash,
-          criado_por:                 usuario.nome,
-          historico:                  [entradaHistorico],
+          criado_por:               usuario.nome,
+          historico:                [entradaHistorico],
         })
         .select('id')
         .single();

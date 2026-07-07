@@ -13,7 +13,7 @@ function computarHash(spec: Partial<KnowledgeSpec>): string {
   const payload = JSON.stringify({
     titulo: spec.titulo ?? '',
     objetivo: spec.objetivo ?? '',
-    procedimento: spec.procedimento ?? '',
+    execucao_passos: spec.execucao_passos ?? [],
     referencias_oficiais: spec.referencias_oficiais ?? [],
   });
   return createHash('sha256').update(payload, 'utf8').digest('hex');
@@ -49,25 +49,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ? (campos.referencias_oficiais as ReferenciaOficial[])
     : [];
 
+  const passos: string[] | undefined = Array.isArray(campos.execucao_passos)
+    ? (campos.execucao_passos as unknown[]).filter((p): p is string => typeof p === 'string' && p.trim().length > 0)
+    : undefined;
+
   const spec: Partial<KnowledgeSpec> = {
     titulo: campos.titulo ? String(campos.titulo).trim() : undefined,
     categoria: campos.categoria ? String(campos.categoria).trim() : undefined,
     subcategoria: campos.subcategoria ? String(campos.subcategoria).trim() : undefined,
     resumo: campos.resumo ? String(campos.resumo).trim() : undefined,
+    definicao: campos.definicao ? String(campos.definicao).trim() : undefined,
     objetivo: campos.objetivo ? String(campos.objetivo).trim() : undefined,
     escopo: campos.escopo ? String(campos.escopo).trim() : undefined,
     indicacoes: campos.indicacoes ? String(campos.indicacoes).trim() : undefined,
     contraindicacoes: campos.contraindicacoes ? String(campos.contraindicacoes).trim() : undefined,
     materiais: campos.materiais ? String(campos.materiais).trim() : undefined,
+    equipamentos: campos.equipamentos ? String(campos.equipamentos).trim() : undefined,
+    epis: campos.epis ? String(campos.epis).trim() : undefined,
     preparacao: campos.preparacao ? String(campos.preparacao).trim() : undefined,
-    procedimento: campos.procedimento ? String(campos.procedimento).trim() : undefined,
+    execucao_passos: passos && passos.length > 0 ? passos : undefined,
     cuidados: campos.cuidados ? String(campos.cuidados).trim() : undefined,
     complicacoes: campos.complicacoes ? String(campos.complicacoes).trim() : undefined,
-    prevencao_eventos_adversos: campos.prevencao_eventos_adversos ? String(campos.prevencao_eventos_adversos).trim() : undefined,
-    pontos_criticos: campos.pontos_criticos ? String(campos.pontos_criticos).trim() : undefined,
-    observacoes: campos.observacoes ? String(campos.observacoes).trim() : undefined,
-    limitacoes: campos.limitacoes ? String(campos.limitacoes).trim() : undefined,
-    variacoes_institucionais: campos.variacoes_institucionais ? String(campos.variacoes_institucionais).trim() : undefined,
+    registro: campos.registro ? String(campos.registro).trim() : undefined,
+    fundamentacao_cientifica: campos.fundamentacao_cientifica ? String(campos.fundamentacao_cientifica).trim() : undefined,
     referencias_oficiais: refs,
   };
 

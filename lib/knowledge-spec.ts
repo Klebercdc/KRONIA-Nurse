@@ -1,5 +1,5 @@
 /**
- * Tipos canônicos para o sistema de Biblioteca Técnica (Knowledge System).
+ * Tipos canônicos para o sistema de Base de Conhecimento (Knowledge System).
  * Toda Knowledge Specification segue exatamente esta estrutura.
  * Nenhum campo pode ser removido sem revisão da Constitution.
  */
@@ -17,12 +17,38 @@ export type NivelRisco = 'baixo' | 'moderado' | 'alto';
 export type NivelVariabilidade = 'nenhuma' | 'moderada' | 'elevada';
 export type ClassificacaoPipeline = 'verde' | 'amarelo' | 'vermelho';
 
+/**
+ * Tipo de Objeto de Conhecimento. "procedimento" cobre Procedimentos,
+ * Protocolos e POPs (campos indicacoes..variacoes_institucionais abaixo).
+ * Outros tipos guardam seus campos próprios em `campos_especificos` — ver
+ * context/kits/knowledge-engine-tipos-objeto.md.
+ */
+export type TipoConhecimento = 'procedimento' | 'diagnostico_enfermagem';
+
+/** Taxonomia de diagnóstico de enfermagem — NANDA-I é o primeiro tipo implementado. */
+export type TaxonomiaDiagnostico = 'NANDA-I' | 'CIPE';
+
+/** Campos próprios de um Diagnóstico de Enfermagem (tipo = 'diagnostico_enfermagem'). */
+export interface CamposEspecificosDiagnostico {
+  taxonomia: TaxonomiaDiagnostico;
+  codigo?: string;
+  dominio?: string;
+  classe?: string;
+  definicao: string;
+  caracteristicas_definidoras?: string[];
+  fatores_relacionados?: string[];
+  fatores_de_risco?: string[];
+}
+
 /** Registro de uma fonte oficial coletada na Etapa 1 (Pesquisador). */
 export interface ReferenciaOficial {
   instituicao: string;
   documento: string;
   numero?: string;
   ano?: string;
+  versao?: string;
+  /** Página (ou intervalo, ex.: "12-13") do documento original de onde veio o trecho — ver lib/knowledge-retrieval.ts. */
+  pagina?: string;
   url?: string;
   trecho?: string;
   data_publicacao?: string;
@@ -90,18 +116,39 @@ export interface KnowledgeSpec {
   objetivo?: string;
   escopo?: string;
 
-  // Seções de conteúdo (Etapa 2: Redator)
+  /** Default 'procedimento' no banco — ausente aqui significa 'procedimento'. */
+  tipo?: TipoConhecimento;
+  /** Só preenchido quando tipo !== 'procedimento'. */
+  campos_especificos?: CamposEspecificosDiagnostico | null;
+
+  // Seções de conteúdo (Etapa 2: Redator) — modelo conceitual atual
+  definicao?: string;
   indicacoes?: string;
   contraindicacoes?: string;
   materiais?: string;
+  equipamentos?: string;
+  epis?: string;
   preparacao?: string;
-  procedimento?: string;
+  /** Passo a passo estruturado — um item por passo. */
+  execucao_passos?: string[];
   cuidados?: string;
   complicacoes?: string;
+  /** O que deve constar no registro/anotação de enfermagem. */
+  registro?: string;
+  /** Síntese da base científica/racional clínico — distinta de referencias_oficiais. */
+  fundamentacao_cientifica?: string;
+
+  /** @deprecated Mantido para specs antigas — não preenchido em specs novas (ver execucao_passos). */
+  procedimento?: string;
+  /** @deprecated Mantido para specs antigas — não preenchido em specs novas. */
   prevencao_eventos_adversos?: string;
+  /** @deprecated Mantido para specs antigas — não preenchido em specs novas. */
   pontos_criticos?: string;
+  /** @deprecated Mantido para specs antigas — não preenchido em specs novas. */
   observacoes?: string;
+  /** @deprecated Mantido para specs antigas — não preenchido em specs novas. */
   limitacoes?: string;
+  /** @deprecated Mantido para specs antigas — não preenchido em specs novas. */
   variacoes_institucionais?: string;
 
   // Fontes coletadas (Etapa 1: Pesquisador)
@@ -139,7 +186,7 @@ export interface KnowledgeSpecSummary {
   aprovado_em?: string;
 }
 
-// Taxonomia de domínios da Biblioteca Técnica
+// Taxonomia de domínios da Base de Conhecimento
 export const DOMINIOS_BIBLIOTECA = [
   'Fundamentos de Enfermagem',
   'Procedimentos Gerais',
@@ -179,18 +226,32 @@ export const CLASSIFICACAO_LABEL: Record<ClassificacaoPipeline, string> = {
   vermelho: 'Reprovado',
 };
 
+/** Formata o array de passos da Execução como texto numerado, ou usa o campo legado "procedimento" se não houver array. */
+function formatarExecucao(spec: KnowledgeSpec): string | undefined {
+  if (Array.isArray(spec.execucao_passos) && spec.execucao_passos.length > 0) {
+    return spec.execucao_passos.map((passo, i) => `${i + 1}. ${passo}`).join('\n');
+  }
+  return spec.procedimento;
+}
+
 /** Compõe o texto de conteúdo para inserção no knowledge_base após aprovação. */
 export function composeConteudoKnowledgeBase(spec: KnowledgeSpec): string {
   const secoes: [string, string | undefined][] = [
+    ['DEFINIÇÃO', spec.definicao],
     ['OBJETIVO', spec.objetivo],
     ['ESCOPO', spec.escopo],
     ['INDICAÇÕES', spec.indicacoes],
     ['CONTRAINDICAÇÕES', spec.contraindicacoes],
     ['MATERIAIS NECESSÁRIOS', spec.materiais],
+    ['EQUIPAMENTOS', spec.equipamentos],
+    ['EPIs', spec.epis],
     ['PREPARAÇÃO', spec.preparacao],
-    ['PROCEDIMENTO TÉCNICO', spec.procedimento],
+    ['EXECUÇÃO', formatarExecucao(spec)],
     ['CUIDADOS', spec.cuidados],
     ['COMPLICAÇÕES', spec.complicacoes],
+    ['REGISTRO', spec.registro],
+    ['FUNDAMENTAÇÃO CIENTÍFICA', spec.fundamentacao_cientifica],
+    // Campos legados — só aparecem em specs antigas que ainda os têm preenchidos.
     ['PREVENÇÃO DE EVENTOS ADVERSOS', spec.prevencao_eventos_adversos],
     ['PONTOS CRÍTICOS', spec.pontos_criticos],
     ['OBSERVAÇÕES', spec.observacoes],
@@ -210,7 +271,9 @@ export function composeReferenciasTexto(refs: ReferenciaOficial[]): string {
     .map((r) => {
       const partes = [r.instituicao, r.documento];
       if (r.numero) partes.push(`Nº ${r.numero}`);
+      if (r.versao) partes.push(r.versao);
       if (r.ano) partes.push(r.ano);
+      if (r.pagina) partes.push(`p. ${r.pagina}`);
       if (r.url) partes.push(r.url);
       return partes.join('. ');
     })
