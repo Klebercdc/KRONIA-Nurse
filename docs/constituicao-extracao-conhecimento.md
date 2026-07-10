@@ -57,6 +57,34 @@ conhecimento factual, não procurar capítulos idênticos.
 14. O objetivo não é preencher campos — é construir a base de
     conhecimento clínico. As Specs são só uma projeção dessa base.
 
+## Constituição de Aproveitamento de Fontes (2026-07-10, addendum)
+
+É proibido descartar uma fonte apenas por não conter um procedimento
+passo a passo. Toda fonte responde primeiro "que tipo de conhecimento
+ela fornece?", nunca "ela possui Material → Técnica → Cuidados?".
+
+Classificação das fontes:
+
+- **Tipo A — Procedimento Operacional** (POP, manual de procedimentos,
+  manual técnico): `materiais`, `equipamentos`, `preparacao`,
+  `execucao_passos`, `cuidados`, `registro`.
+- **Tipo B — Diretriz Clínica** (KDIGO, AHA, ESC, IDSA, WHO, Ministério
+  da Saúde): `indicacoes`, `contraindicacoes`, critérios clínicos,
+  classificação, monitorização, fatores de risco, `complicacoes`,
+  `condutas`, recomendações, níveis de evidência — mesmo sem ensinar o
+  passo a passo.
+- **Tipo C — Livro de Doença** (Brunner, Harrison, tratados):
+  fisiopatologia, `complicacoes`, sinais, sintomas, monitorização,
+  raciocínio clínico.
+- **Tipo D — Revisão Científica**: evidências, comparação entre
+  técnicas, benefícios, riscos, limitações → `fundamentacao_cientifica`.
+- **Tipo E — Norma**: requisitos, biossegurança, legislação,
+  responsabilidades → `epis`, `materiais`/`equipamentos`, `alertas`.
+
+Regra absoluta: nenhuma fonte é descartada por não ter técnica
+operacional — ela só pertence a outro tipo documental. Cada tipo
+enriquece partes diferentes da base, não as mesmas.
+
 ## Regra mestra
 
 Nunca perguntar "este livro tem um capítulo igual à minha Spec?".

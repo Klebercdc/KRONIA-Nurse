@@ -273,6 +273,55 @@ adicionadas em `PDF_METADATA`.
 (Estomas + os 7 acima), além das 7 da rodada anterior — 15 specs de 98
 com conteúdo técnico real além do guia de registro.
 
+### Terceira rodada — Constituição de Aproveitamento de Fontes (Tipo A-E)
+
+Usuário formalizou uma segunda camada da Constituição, classificando
+fontes por tipo documental (A Procedimento Operacional, B Diretriz
+Clínica, C Livro de Doença, D Revisão Científica, E Norma) — nenhuma é
+descartável só por não ter técnica operacional; cada tipo alimenta
+campos diferentes. Adicionado como addendum em
+`docs/constituicao-extracao-conhecimento.md`.
+
+**KDIGO descartado por motivo diferente**: ao abrir `kdigo.pdf` pra
+aplicar Tipo B, achei que é um **rascunho de revisão pública** ("KDIGO
+2026 AKI/AKD Guideline — PUBLIC REVIEW DRAFT, March 2026", marca d'água
+"DRAFT" em toda página, texto explícito "should not be used for any
+other purpose beyond its original intent"). Reportei ao usuário antes
+de citar — usar conteúdo não publicado/sujeito a mudança como
+`citacao_abnt` numa Spec de produção seria diferente de "gênero não
+bate" (motivo dos descartes anteriores): é uso fora do escopo que o
+próprio documento autoriza. Usuário decidiu deixar o KDIGO de fora e
+seguir só com o Brunner & Suddarth (Tipo C).
+
+**Mais 5 specs enriquecidas** (Brunner & Suddarth, Tipo C — capítulos
+de laringectomia/traqueostomia p. 221-224 e hipoglicemia p. 641-643):
+
+- **Aspiração Traqueal** (`92996bec-...`) — `cuidados`/`complicacoes`/
+  `materiais`: monitorar hipoxia/angústia respiratória antes-durante-
+  depois da aspiração, manter material disponível, cuidado com estoma
+  de traqueostomia conforme protocolo.
+- **Nutrição Enteral, Sondagem Gástrica, Sondagem Enteral**
+  (`7e1a0775-...`, `a6c78902-...`, `ad498c60-...`) — mesmo fragmento
+  (elevar cabeceira ≥30° durante e 30-45 min após dieta/medicação pela
+  sonda, prevenção de aspiração) alimentou as 3 (REGRA 5), cada uma com
+  `cuidados`/`complicacoes`/`materiais` redigidos para o contexto
+  específico (gástrica vs. enteral vs. nutrição enteral).
+- **Glicemia Capilar** (`c2f916ad-...`) — capítulo de hipoglicemia:
+  `complicacoes` com a classificação leve/moderada/grave por sintoma,
+  `condutas` complementadas com o protocolo de tratamento (15 g de
+  carboidrato VO no cliente consciente; glucagon SC/IM ou glicose
+  hipertônica 50% IV no inconsciente), `alertas` complementados.
+
+Todas as 5 resincronizadas em `knowledge_base`.
+
+**Total geral: 18 specs de 98 com conteúdo técnico real além do guia
+de registro** (7 + 8 + 5, nas 3 rodadas desta sessão). Balanço
+Hidroeletrolítico foi tentado e descartado desta rodada — o Brunner só
+tem hiponatremia/hipopotassemia embutidas em capítulos de doença
+específica (HSA, insuficiência cardíaca etc.), sem uma seção genérica
+de distúrbio hidroeletrolítico que sirva pra Spec de registro geral;
+manter vazio em vez de forçar o encaixe.
+
 ### Ferramentas de extração avaliadas nesta sessão (usuário forneceu 4 zips)
 
 Testadas de verdade no mesmo PDF de 151 páginas pra comparação justa —
