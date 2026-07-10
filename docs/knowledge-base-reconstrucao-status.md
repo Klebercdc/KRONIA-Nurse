@@ -167,9 +167,44 @@ pré-eclâmpsia (protocolo de sulfato de magnésio), não cuidado
 pós-parto geral — não dava pra usar sem misturar contexto de doença
 específica com cuidado de rotina.
 
-**Total após esta rodada: 6 specs com conteúdo técnico real além do
+Tentei também os dois livros de estomaterapia (guia de implantação de
+serviço ambulatorial + coletânea "Temas em Estomaterapia") pra enriquecer
+"Cuidados com Estomas" e não deu: o primeiro é guia administrativo (lista
+de equipamentos pra compra, não técnica de cuidado), o segundo é
+coletânea de artigos acadêmicos (cada capítulo com autoria/ORCID e
+revisão de literatura), mesmo problema de gênero do Brunner & Suddarth.
+
+Funcionou com o `SAE: Sistematização da Assistência de Enfermagem: Guia
+Prático` (Tannure e Pinheiro, Guanabara Koogan, 2ª ed., 2010 — já
+catalogado em `PDF_METADATA`): tem a definição formal e bem estruturada
+das 5 etapas do processo de enfermagem (investigação, diagnóstico —
+citando a definição oficial da NANDA —, planejamento, implementação,
+avaliação). Usei pra preencher `definicao` e `indicacoes` de **Registro
+de Enfermagem na Consulta de Enfermagem** (`b638cfe3-...`), que antes só
+tinha o nível "o que registrar" do guia COFEN.
+
+**Total após esta rodada: 7 specs com conteúdo técnico real além do
 guia de registro** (PAM, PVC, Nutrição Parenteral, Hemodiálise,
-Cuidados no Pré-Parto, Cuidados na Sala de Parto).
+Cuidados no Pré-Parto, Cuidados na Sala de Parto, Consulta de
+Enfermagem).
+
+### Ferramentas de extração avaliadas nesta sessão (usuário forneceu 4 zips)
+
+Testadas de verdade no mesmo PDF de 151 páginas pra comparação justa —
+ver `.claude/skills/kronia-nurse-document-ingestion/SKILL.md` (Steps
+1/1b/1c) pro guia completo:
+
+| Ferramenta | Resultado | Uso recomendado |
+|---|---|---|
+| **PyMuPDF** (`pymupdf`) | 0,23s/151 pág.; substitui `pdffonts`/`pdftotext`/`pdftoppm` inteiros | Padrão — sempre começar por aqui |
+| **pdfplumber** | ~5s/499 pág.; único que reconstrói tabela célula-por-célula | Quando a página tem tabela real (estadiamento, dosagem) |
+| **MinerU** | ~6-7min/151 pág., 1,1GB de modelo, mas termina | Layout complexo/scan real, quando PyMuPDF falha |
+| **marker** (`marker-pdf`) | **Morreu em 64% após 6+ min**, ~10GB RAM, zero output | **Não usar neste sandbox** |
+| headroom (não é ferramenta de PDF) | Assistente de IA de terminal genérico | Fora de escopo, ignorado |
+
+Isso já mudou a ferramenta padrão de extração usada nesta própria sessão
+(era pdfminer/pypdf, virou PyMuPDF) — reflete-se nos specs enriquecidos
+acima, que usaram PyMuPDF pra ler os PDFs-fonte.
 
 ### MinerU testado e adicionado à skill de ingestão
 

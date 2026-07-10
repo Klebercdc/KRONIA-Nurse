@@ -174,6 +174,15 @@ const PDF_METADATA = {
     ano: null,
     descricao: 'Manual de Condutas em Obstetrícia — Maternidade Dona Evangelina Rosa (Teresina-PI)',
   },
+  // Usado manualmente pra enriquecer Registro de Enfermagem na Consulta de
+  // Enfermagem (item #18 de docs/pdf-triage-referencias-pendentes.md).
+  'SAE Sistematização da Assistência de Enfermagem (Meire Chucre Tannure e Ana Maria Pinheiro) (z-library.sk, 1lib.sk, z-lib.sk).pdf': {
+    tipo: 'Livro/Guia Prático',
+    instituicao: 'Guanabara Koogan',
+    versao: '2ª edição',
+    ano: 2010,
+    descricao: 'SAE: Sistematização da Assistência de Enfermagem: Guia Prático (Tannure e Pinheiro)',
+  },
 };
 
 let _supabase = null;
