@@ -93,19 +93,48 @@ o lote acima rodar.
 
 **Ingestão dos PDFs da pasta "Referências" do Drive** (46 arquivos): 13 já
 indexados (`conhecimento_documentos`/`PDF_METADATA` em
-`scripts/rag-pipeline.js`). Os outros 33 foram triados nesta sessão (ver
-seção "Triagem de PDFs" abaixo) — nenhum foi indexado ainda (ingestão real
-precisa de `COHERE_API_KEY`, também indisponível aqui).
+`scripts/rag-pipeline.js`). Os outros 33 foram triados nesta sessão — 1 na
+hora (`Manual-de-Cuidados-de-Enfermagem-em-Procedimentos-de-Intensivismo.pdf`,
+151 páginas, texto limpo) e 32 por um agente em background. Resultado
+completo em `docs/pdf-triage-referencias-pendentes.md`:
+
+- **31/32 texto extraível, 0 escaneado, 1 falhou.**
+- Falha: `atualidades_em_nefrologia_10.pdf` (#26) — 65MB, excede o limite de
+  10MB do download binário da ferramenta usada, e o fallback de texto do
+  Drive retornou vazio 2x. Precisa de download manual/alternativo pra
+  triar de verdade — **não foi possível afirmar se é escaneado ou só grande
+  demais pro serviço de conversão**, então não presuma nada sobre esse
+  arquivo até reabrir com outra ferramenta.
+- **Achado que exige decisão humana antes de indexar**: `Manual para
+  hemodiálise .pdf` (#31) tem conteúdo real completamente diferente do
+  nome — são os resumos do XXXI Congresso Brasileiro de Nefrologia
+  (2022), não um manual. Não usar o nome do arquivo como `descricao` sem
+  confirmar; pode haver um arquivo de manual de hemodiálise de verdade em
+  outro lugar, ou o nome no Drive está simplesmente errado.
+- Metadados propostos (instituição/tipo/versão/ano) no relatório têm
+  confiança "alta" só quando a publicação é inequívoca pelo nome do
+  arquivo (KDIGO, AHA, IDSA, editoras de tradução conhecidas). Boa parte
+  está "baixa — confirmar": **não copiar direto pra `PDF_METADATA` sem
+  revisão humana** — isso reproduziria o mesmo tipo de erro que motivou
+  toda essa reconstrução, só que na entrada em vez de na saída.
+- Nenhum dos 33 foi de fato indexado (`conhecimento_documentos`/
+  `conhecimento_fragmentos`) — a ingestão real via `npm run rag:pipeline`
+  precisa de `COHERE_API_KEY`, indisponível neste ambiente.
 
 ## Próximos passos, em ordem
 
-1. Configurar `.env.local` com `GROQ_API_KEY`/`COHERE_API_KEY`/
+1. Revisar `docs/pdf-triage-referencias-pendentes.md` e confirmar os
+   metadados marcados "baixa — confirmar" (a maioria dos 32); resolver a
+   discrepância do arquivo #31 e re-triar o #26 com outra ferramenta de
+   download.
+2. Configurar `.env.local` com `GROQ_API_KEY`/`COHERE_API_KEY`/
    `SUPABASE_SERVICE_ROLE_KEY` num ambiente com acesso.
-2. Rodar `npm run rag:pipeline` com os metadados de `PDF_METADATA`
-   atualizados (ver seção de triagem) pra indexar os 33 PDFs pendentes.
-3. Recategorizar/regenerar os ~100 specs restantes via
+3. Adicionar as entradas confirmadas em `PDF_METADATA`
+   (`scripts/rag-pipeline.js`) e rodar `npm run rag:pipeline` pra indexar
+   os PDFs pendentes.
+4. Recategorizar/regenerar os ~100 specs restantes via
    `scripts/gerar-especificacoes-lote.ts` (ou pelo formulário
    `biblioteca-tecnica.tsx`, um por um, pra specs que precisam de revisão
    humana mais próxima).
-4. Depois de zerar a query de aceite: `ALTER TABLE knowledge_specs
+5. Depois de zerar a query de aceite: `ALTER TABLE knowledge_specs
    VALIDATE CONSTRAINT categoria_taxonomia_v2;`.

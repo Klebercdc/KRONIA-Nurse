@@ -106,6 +106,37 @@ cited 4 irrelevant biography/bibliography fragments from a different
 chapter of the same PDF — see `knowledge_spec_audit` history for spec id
 `c167cb42-775f-45db-8fc3-90dcf0f69734`).
 
+## Step 5 — Downloading from the "Referências" Google Drive folder in a sandboxed Claude Code session
+
+If you're triaging via the `Google_Drive` MCP tools instead of a synced
+local folder, two failure modes showed up triaging all 46 files in this
+folder and are worth avoiding:
+
+- `download_file_content` (binary) has a hard **~10MB size limit** and can
+  also fail intermittently with "session expired" on files well under that
+  limit (seen on 6 files between ~7-9.8MB, needing 5+ retries). When it
+  fails, fall back to `read_file_content` (Drive's native text conversion)
+  to at least get a text sample for triage — it worked in 11 of 12 oversized
+  cases in practice. It doesn't give you a page count, so page counts stay
+  "not determined" for those until someone re-opens the file with a proper
+  download.
+- **Never call `read_file_content` in parallel across multiple files in one
+  batch** — a batch of 10 parallel calls once returned content **swapped
+  between 4 different files** (each file's title didn't match its returned
+  content). This is only detectable by cross-checking returned content
+  against the expected filename/title before trusting it. Call it
+  sequentially, or verify every result against its title.
+- **Don't trust the Drive filename as the document title.** One file named
+  `Manual para hemodiálise .pdf` turned out to actually contain "Resumos do
+  XXXI Congresso Brasileiro de Nefrologia" — a completely different
+  document. Always sample the actual extracted text before writing a
+  `descricao` into `PDF_METADATA`.
+
+See `docs/pdf-triage-referencias-pendentes.md` for the full triage table of
+this folder's 33 not-yet-ingested files (31 text-extractable, 1 failed to
+download at all, metadata confidence marked per row) — don't re-triage from
+scratch, review and confirm the low-confidence rows instead.
+
 ## Where this plugs into the real pipeline
 
 - `scripts/rag-pipeline.js` — chunking + embeddings + Supabase insert. Add a
