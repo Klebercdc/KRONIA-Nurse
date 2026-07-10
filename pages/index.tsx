@@ -30,7 +30,7 @@ export default function Splash() {
       <Head><title>KRONIA Nurse</title></Head>
       <div style={{
         minHeight: '100dvh',
-        background: 'var(--color-bg)',
+        background: 'radial-gradient(circle at 50% 42%, #0c2568 0%, #051540 55%, #030d2c 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -39,8 +39,11 @@ export default function Splash() {
           opacity: visible ? 1 : 0,
           transform: visible ? 'scale(1)' : 'scale(0.78)',
           transition: 'opacity 0.8s cubic-bezier(0.16,1,0.3,1), transform 0.8s cubic-bezier(0.16,1,0.3,1)',
+          position: 'relative',
+          width: 280,
+          height: 229,
         }}>
-          <LogoKronia exibirSlogan />
+          <Image src="/kronia-icon-dark.png" alt="KRONIA Nurse" fill style={{ objectFit: 'contain' }} priority />
         </div>
       </div>
     </>
