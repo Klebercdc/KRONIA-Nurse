@@ -125,6 +125,18 @@ text-extractable, 0 scanned). Only reach for MinerU or Docling when
 PyMuPDF's output is visibly wrong (columns interleaved, tables flattened
 into garbage, or genuinely no text layer at all).
 
+**Do NOT use `marker` (PyPI `marker-pdf`, VikParuchuri/marker on GitHub) in
+this sandbox — tested and it doesn't finish.** Same category as MinerU
+(layout model + `surya-ocr` + `torch`/`transformers`), but on the same
+151-page benchmark PDF it was still only 64% through layout recognition
+after 6+ minutes (~3-4s/page, no GPU) and the process died silently — no
+error, no traceback, just vanished from `ps` — while holding ~10GB RSS in a
+~15GB-memory sandbox (almost certainly an OOM kill the container doesn't
+surface to `dmesg`). Zero output produced. If a future session is tempted to
+try it again: don't, unless the sandbox's memory ceiling has genuinely
+changed — MinerU already covers the same "need a real layout model" case
+and actually completes here.
+
 ## Step 1c — pdfplumber: when you specifically need table cells, not just text
 
 PyMuPDF's `get_text()`/`pymupdf4llm` handle body text well but **flatten
