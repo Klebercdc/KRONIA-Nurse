@@ -125,6 +125,41 @@ text-extractable, 0 scanned). Only reach for MinerU or Docling when
 PyMuPDF's output is visibly wrong (columns interleaved, tables flattened
 into garbage, or genuinely no text layer at all).
 
+## Step 1c — pdfplumber: when you specifically need table cells, not just text
+
+PyMuPDF's `get_text()`/`pymupdf4llm` handle body text well but **flatten
+real tables into a linear stream of cell values with no row/column
+structure** — confirmed this session on `KDIGO-2026-AKI-AKD-Guideline...pdf`
+(page 17, a 3-column staging table): PyMuPDF's plain text output interleaves
+`C1`/`U1`/`B1` values in a way that's borderline unreadable without the grid,
+while `pdfplumber` (`pip install pdfplumber`, jsvine/pdfplumber on GitHub —
+built on pdfminer.six, no crypto-conflict issue) reconstructs it as an actual
+2D array:
+
+```python
+import pdfplumber
+
+with pdfplumber.open("document.pdf") as pdf:
+    for page in pdf.pages:
+        for table in page.extract_tables():
+            for row in table:
+                print(row)   # list of cell strings, correctly aligned by column
+```
+
+Scanning all 499 pages of the KDIGO PDF for `extract_tables()` took under 5
+seconds; it found 20 tables in the first 60 pages alone. Clinical guideline
+PDFs are dense with exactly this kind of table (staging/classification
+grids, dosing charts, diagnostic criteria) — anywhere you're about to
+paraphrase a table into prose for `indicacoes`/`materiais`/`execucao_passos`,
+extract it with `pdfplumber` first so you're reading real rows instead of
+reconstructing them by eye from flattened text.
+
+**Decision rule, updated**: PyMuPDF for body text and Markdown structure
+(Step 1), `pdfplumber` specifically when a page has a real table you need
+cell-accurate (Step 1c), MinerU/Docling only when both of those still
+produce garbage (Step 1b). All three coexist in the same venv without
+conflict — installing one doesn't require dropping another.
+
 ## Step 2 — Handle scanned/garbled documents
 
 1. Rasterize the page and read it visually to confirm what's actually on the
