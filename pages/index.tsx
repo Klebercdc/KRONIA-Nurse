@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Image from 'next/image';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../lib/theme-context';
 
 export default function Splash() {
   const { user, loading } = useAuth();
@@ -28,7 +30,7 @@ export default function Splash() {
       <Head><title>KRONIA Nurse</title></Head>
       <div style={{
         minHeight: '100dvh',
-        background: 'var(--color-bg)',
+        background: 'radial-gradient(circle at 50% 42%, #0c2568 0%, #051540 55%, #030d2c 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -37,8 +39,11 @@ export default function Splash() {
           opacity: visible ? 1 : 0,
           transform: visible ? 'scale(1)' : 'scale(0.78)',
           transition: 'opacity 0.8s cubic-bezier(0.16,1,0.3,1), transform 0.8s cubic-bezier(0.16,1,0.3,1)',
+          position: 'relative',
+          width: 280,
+          height: 229,
         }}>
-          <LogoKronia exibirSlogan />
+          <Image src="/kronia-icon-dark.png" alt="KRONIA Nurse" fill style={{ objectFit: 'contain' }} priority />
         </div>
       </div>
     </>
@@ -52,51 +57,33 @@ export function LogoKronia({
   exibirSlogan?: boolean;
   tamanho?: 'grande' | 'pequeno';
 }) {
+  const { theme } = useTheme();
   const grande = tamanho === 'grande';
+  const largura = grande ? 300 : 200;
+  const altura = grande ? 250 : 167;
+
   return (
     <div style={{ textAlign: 'center', userSelect: 'none' }}>
-      <div style={{ marginBottom: grande ? 10 : 6 }}>
-        <KLogo size={grande ? 96 : 60} />
+      <div style={{ position: 'relative', width: largura, height: altura, margin: '0 auto' }}>
+        <Image
+          src={theme === 'dark' ? '/kronia-icon-dark.png' : '/kronia-icon-light.png'}
+          alt="KRONIA Nurse"
+          fill
+          style={{ objectFit: 'contain' }}
+          priority
+        />
       </div>
-      <div style={{
-        fontFamily: 'var(--font-display)',
-        fontSize: grande ? '1.65rem' : '1.15rem',
-        fontWeight: 800,
-        letterSpacing: '-0.3px',
-        lineHeight: 1,
-      }}>
-        <span style={{ color: 'var(--color-clinical)' }}>KRONIA</span>
-        <span style={{ color: 'var(--color-ink)' }}> Nurse</span>
-      </div>
-      <div style={{
-        height: 2.5,
-        background: 'var(--color-clinical)',
-        margin: `${grande ? 10 : 6}px auto`,
-        width: grande ? 180 : 120,
-        borderRadius: 2,
-      }} />
       {exibirSlogan && (
         <p style={{
           color: 'var(--color-clinical)',
           fontWeight: 600,
           fontSize: grande ? '1rem' : '0.82rem',
-          margin: 0,
+          margin: '6px 0 0',
           fontFamily: 'var(--font-body)',
         }}>
           Evolua Sempre
         </p>
       )}
     </div>
-  );
-}
-
-function KLogo({ size }: { size: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M18 10 L18 90 L38 90 L38 62 L55 90 L78 90 L54 52 L76 10 L54 10 L38 40 L38 10 Z"
-        fill="var(--color-clinical)"
-      />
-    </svg>
   );
 }
