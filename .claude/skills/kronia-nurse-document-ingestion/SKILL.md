@@ -191,6 +191,38 @@ conflict — installing one doesn't require dropping another.
    a file with `parser: 'docling'`. Prefer extending that path over inventing
    a new one.
 
+## Step 2b — OpenRN (NCBI Bookshelf mirror): Tipo A checklists, no download needed
+
+`wtcs.pressbooks.pub` (Open RN's own Pressbooks host) returns **403 to
+WebFetch** in this sandbox — don't waste a call there. The same content is
+mirrored at **NCBI Bookshelf** (`ncbi.nlm.nih.gov/books/NBK596735/` for
+*Nursing Skills, 2nd Edition*, Ernstmeyer & Christman, Chippewa Valley
+Technical College, 2023, CC-BY 4.0), which fetches cleanly and is already
+split one URL per chapter:
+`https://www.ncbi.nlm.nih.gov/books/n/openrnns2e/ch##<topicname>/` (23
+chapters — General Survey, Health History, Blood Pressure, Aseptic
+Technique, Math Calculations, Neurological/Head-Neck/Eye-Ear/
+Cardiovascular/Respiratory/Abdominal/Musculoskeletal/Integumentary
+Assessment, Administration of Enteral/Parenteral/Other-Route Medications,
+Enteral Tube Management, Specimen Collection, Wound Care, Facilitation of
+Elimination, Tracheostomy Care & Suctioning, IV Therapy Management).
+
+This is genuinely **Tipo A** (Procedimento Operacional — see
+`docs/constituicao-extracao-conhecimento.md`): each chapter is a real
+checklist with indications, equipment list, numbered steps, safety
+parameters (e.g., suction pressure by age group, max suction duration) and
+complications — the kind of `execucao_passos`/`materiais`/`preparacao`
+content the Brunner & Suddarth extraction (Tipo C, disease-organized) could
+never provide, since Brunner rarely spells out a numbered procedure.
+Confirmed working on Chapter 22 (Tracheostomy Care & Suctioning) this
+session — used to add `execucao_passos`/`indicacoes` to **Aspiração
+Traqueal** (`92996bec-...`) alongside the existing Brunner-sourced
+`cuidados`/`complicacoes`. Foreign-language source (English) — content is
+translated/adapted into Portuguese when writing into a Spec, not copied
+verbatim; cite with `instituicao: 'CHIPPEWA VALLEY TECHNICAL COLLEGE (OPEN
+RN)'` and keep the original chapter URL in the reference's `url` field for
+traceability (REGRA 12 da Constituição).
+
 ## Step 3 — Known institution/document quality (update this list as you learn more)
 
 | Institution / source | Known quality | Notes |

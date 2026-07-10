@@ -322,6 +322,38 @@ específica (HSA, insuficiência cardíaca etc.), sem uma seção genérica
 de distúrbio hidroeletrolítico que sirva pra Spec de registro geral;
 manter vazio em vez de forçar o encaixe.
 
+### Quarta rodada — fonte Tipo A nova: OpenRN (NCBI Bookshelf)
+
+Usuário pediu pra achar algo que otimizasse o trabalho. Toda fonte usada
+até aqui (Brunner & Suddarth, os 2 livros de estomaterapia) é Tipo C/D —
+nenhuma tinha checklist de procedimento passo a passo de verdade, então
+`execucao_passos`/`preparacao` continuavam vazios mesmo nas specs já
+enriquecidas. Achei o **OpenRN "Nursing Skills, 2nd Edition"**
+(Ernstmeyer & Christman, Chippewa Valley Technical College, 2023,
+CC-BY 4.0) — 23 capítulos, cada um um checklist real (indicações,
+material, passo a passo numerado, parâmetros de segurança, complicações).
+Não achei repositório GitHub oficial (só forks de terceiro
+redistribuindo o EPUB, fora de escopo); a fonte real é Pressbooks
+(bloqueada por 403 no fetch deste sandbox) espelhada no **NCBI
+Bookshelf**, que funciona direto, uma URL por capítulo — documentado em
+`.claude/skills/kronia-nurse-document-ingestion/SKILL.md` § Step 2b.
+
+Testei no Capítulo 22 (Tracheostomy Care & Suctioning) e confirmou:
+indicações, lista de material, parâmetros por faixa etária (pressão de
+aspiração), limite de 15s por aspiração, complicações — tudo isso foi
+pra **Aspiração Traqueal** (`92996bec-...`), que ganhou `indicacoes` e
+o primeiro `execucao_passos` real da sessão (6 passos numerados),
+mantendo o `cuidados`/`complicacoes` já vindos do Brunner (multi-fonte,
+REGRA 10). `knowledge_base` resincronizado.
+
+**Total geral: 18 specs enriquecidas, 1 delas agora com
+`execucao_passos` real.** Próximo: repetir o mesmo padrão pros outros
+capítulos do OpenRN que batem com spec já tocada ou pendente (Enteral
+Tube Management → Sondagem/Nutrição Enteral; Oxygen Therapy →
+Oxigenoterapia; Wound Care → Curativos; Specimen Collection → Glicemia
+Capilar/Coleta de Material; IV Therapy Management → Terapia
+Intravenosa; Facilitation of Elimination → Sondagem Vesical).
+
 ### Ferramentas de extração avaliadas nesta sessão (usuário forneceu 4 zips)
 
 Testadas de verdade no mesmo PDF de 151 páginas pra comparação justa —
