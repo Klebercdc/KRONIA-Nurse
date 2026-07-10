@@ -183,6 +183,20 @@ const PDF_METADATA = {
     ano: 2010,
     descricao: 'SAE: Sistematização da Assistência de Enfermagem: Guia Prático (Tannure e Pinheiro)',
   },
+  // Usado manualmente (extração por fragmento, não por capítulo — ver
+  // docs/constituicao-extracao-conhecimento.md) pra enriquecer Cuidados com
+  // Estomas (item #25 de docs/pdf-triage-referencias-pendentes.md). Nome
+  // real do conteúdo confere com "Manual de Enfermagem Médico-Cirúrgica"
+  // (tradução do Clinical Handbook for Brunner & Suddarth's Textbook, 13ª
+  // ed.), não "Tratado" como o nome do arquivo sugeria; ano de copyright da
+  // edição brasileira é 2015, não 2016 (nome do arquivo).
+  'BrunnerSuddarth 2016 1.pdf': {
+    tipo: 'Livro/Manual',
+    instituicao: 'Guanabara Koogan',
+    versao: '13ª edição',
+    ano: 2015,
+    descricao: 'Brunner & Suddarth: Manual de Enfermagem Médico-Cirúrgica (Clinical Handbook, 13ª ed. — trad. brasileira)',
+  },
 };
 
 let _supabase = null;

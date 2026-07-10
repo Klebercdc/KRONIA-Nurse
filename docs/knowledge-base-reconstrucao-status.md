@@ -188,6 +188,49 @@ guia de registro** (PAM, PVC, Nutrição Parenteral, Hemodiálise,
 Cuidados no Pré-Parto, Cuidados na Sala de Parto, Consulta de
 Enfermagem).
 
+### Mudança de método: extração por fragmento (Constituição)
+
+O usuário formalizou uma **Constituição de Extração de Conhecimento**
+(`docs/constituicao-extracao-conhecimento.md`) que substitui a
+heurística de "genre-matching" usada até aqui. Resumo da mudança:
+
+- **Antes**: um livro só era usado se tivesse uma estrutura editorial
+  Material → Técnica → Cuidados batendo 1-pra-1 com uma Spec já
+  existente. Descartei Brunner & Suddarth e os 2 livros de
+  estomaterapia inteiros por não bater essa estrutura.
+- **Depois**: todo documento é tratado como conjunto de fragmentos
+  (Documento → Capítulos → Seções → Parágrafos → Sentenças →
+  Conhecimento). Cada fragmento é avaliado sozinho ("contém
+  conhecimento clínico reutilizável?"); se sim, extrai e classifica
+  semanticamente (Cuidados, Complicações, Alertas, Condutas etc.),
+  independente do documento ter ou não capítulo com esse nome. Um
+  livro organizado por doença (como o Brunner & Suddarth) deixa de ser
+  descartável — os capítulos de doença ainda contêm cuidados de
+  enfermagem, complicações e condutas reaproveitáveis.
+
+**Primeira aplicação**: reabri o Brunner & Suddarth (`BrunnerSuddarth
+2016 1.pdf` — conteúdo real confere com "Manual de Enfermagem
+Médico-Cirúrgica", trad. do *Clinical Handbook*, 13ª ed., Guanabara
+Koogan, copyright 2015; nome do arquivo dizia "2016"/"Tratado", não é o
+que está impresso dentro do PDF) e extraí, do capítulo de câncer
+colorretal/colostomia (p. 174-180), os fragmentos de cuidado com
+ostomia, complicações potenciais e sinais de alerta — mesmo esse
+capítulo sendo organizado por doença ("Câncer Colorretal"), não por
+procedimento. Usei pra enriquecer **Registro de Enfermagem — Cuidados
+com Estomas** (`2afe8946-...`), que antes só tinha o nível "registro"
+do guia COFEN: ganhou `materiais`, `cuidados`, `complicacoes` novos, e
+`alertas`/`condutas` complementados (mantendo o texto original do
+COFEN, só acrescentando). `knowledge_base` resincronizado. Entrada
+adicionada em `PDF_METADATA` (`scripts/rag-pipeline.js`).
+
+Isso destrava, em tese, os outros 91 specs sem exigir mais nenhum
+download novo — os livros já baixados (Brunner & Suddarth, os 2 de
+estomaterapia, KDIGO) passam a ser fonte válida por fragmento, não só
+os 6 que bateram por capítulo. Ainda não processados fragmento a
+fragmento: resto do Brunner & Suddarth (1152 páginas), os 2 livros de
+estomaterapia, KDIGO — trabalho real, não instantâneo, mas sem teto
+artificial de ~10 specs como antes.
+
 ### Ferramentas de extração avaliadas nesta sessão (usuário forneceu 4 zips)
 
 Testadas de verdade no mesmo PDF de 151 páginas pra comparação justa —
