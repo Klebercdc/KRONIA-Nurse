@@ -68,6 +68,44 @@ print(n, len(text), repr(text[:200]))
   ingestion via the existing pipeline (`npm run rag:pipeline`, i.e.
   `scripts/rag-pipeline.js`).
 
+## Step 1b — MinerU: better structure recovery than pdfminer/pypdf
+
+Tested this session on `Manual-de-Cuidados-de-Enfermagem-em-Procedimentos-de-Intensivismo.pdf`
+(151 pages, text-native). MinerU (`pip install "mineru[core]"`, PyPI package
+`mineru`, opendatalab/MinerU on GitHub) produces genuinely better output than
+the pdfminer/pypdf fallback in Step 1: proper Markdown with heading levels
+(`#`/`##` recovers chapter/section titles like "Material" and "Cuidados de
+enfermagem" as real headings, not just lines of body text), clean paragraphs
+(no mid-sentence line breaks from column-width wrapping), and preserved
+bullet lists — closer to what Docling gives you (see the `docling` skill),
+but via a different toolchain.
+
+```bash
+python3 -m venv /tmp/mineru-venv
+/tmp/mineru-venv/bin/pip install "mineru[core]"
+/tmp/mineru-venv/bin/mineru -p document.pdf -o /tmp/mineru-out -b pipeline
+# -b pipeline = pure CPU backend (no GPU requirement). Output:
+#   /tmp/mineru-out/<name>/auto/<name>.md          — structured Markdown
+#   /tmp/mineru-out/<name>/auto/<name>_content_list.json — per-block JSON (bbox, type, page)
+```
+
+**Honest cost**: first run downloads ~1.1GB of layout/OCR/formula models
+(cached after that in `~/.cache/huggingface`). On CPU, a 151-page text-native
+PDF took roughly 6-7 minutes end-to-end (layout detection + OCR detection
+pass even on pages that already have a text layer — MinerU's pipeline mode
+runs OCR unconditionally as part of its layout-aware reading order, it
+doesn't skip it just because `pdffonts` would say the page has embedded
+fonts). Run it in the background (`nohup ... &`) for anything more than a
+handful of pages; don't block on it synchronously.
+
+**When to reach for this over plain pdfminer/pypdf**: multi-column layouts,
+documents where you need to reliably tell "Material" apart from a numbered
+list, or when you're about to hand the output to something that benefits
+from real Markdown structure (chunking by heading, RAG fragment boundaries).
+For a quick one-off text sample just to classify text-vs-scanned (Step 1
+above), pdfminer is faster and sufficient — don't reach for MinerU just to
+answer "does this PDF have a text layer".
+
 ## Step 2 — Handle scanned/garbled documents
 
 1. Rasterize the page and read it visually to confirm what's actually on the

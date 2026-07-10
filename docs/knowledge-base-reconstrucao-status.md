@@ -118,6 +118,52 @@ query de aceite (seção 5 da spec original, adaptada ao schema real —
 constraint `categoria_taxonomia_v2` está totalmente validada (não mais
 `NOT VALID`).
 
+### Enriquecimento profundo de 4 specs com fonte técnica real (além do guia de registro)
+
+Pra provar que dá pra ir além do guia "o que registrar" do COFEN sem
+esperar `COHERE_API_KEY`, baixei e li diretamente (Google Drive +
+pdfminer/pypdf, sem RAG) o `Manual de Cuidados de Enfermagem em
+Procedimentos de Intensivismo` (UFCSPA, 2020, orgs. Souza/Viégas/Caregnato
+— já catalogado em `PDF_METADATA` de `scripts/rag-pipeline.js` pra quando
+o pipeline real rodar). Usei o conteúdo técnico real (indicações,
+contraindicações, materiais, técnica passo a passo, cuidados,
+complicações) pra enriquecer de verdade — não só recategorizar — 4 specs
+que antes só tinham o nível "registro de enfermagem":
+
+- **Pressão Arterial Média (PAM)** — `e1770d9d-...`
+- **Pressão Venosa Central (PVC)** — `9cb9bdde-...`
+- **Nutrição Parenteral (Enfermeiro)** — `a23fde24-...`
+- **Hemodiálise** — `beeb317c-...` (enriquecido com o capítulo "Cateter
+  para Hemodiálise", que cobre a inserção do cateter de Schilley — a
+  sessão de diálise em si já estava coberta pelo guia de registro)
+
+Cada um ganhou `execucao_passos` real (array estruturado, não mais
+vazio), `indicacoes`/`contraindicacoes`/`materiais`/`complicacoes`
+preenchidos, e uma segunda referência com `citacao_abnt` própria (ex.:
+`"UFCSPA. Manual de Cuidados de Enfermagem em Procedimentos de
+Intensivismo. 2020. p. 19-27."`) — mantendo a referência COFEN original
+intacta. `knowledge_base` foi resincronizado pra esses 4.
+
+Isso é prova de conceito, não escala pros outros 94 — peguei os 4 casos
+onde o índice do livro batia exatamente com um spec já existente. Fazer
+isso pros outros exigiria ler o livro inteiro (1152 páginas no caso do
+Brunner & Suddarth, também já baixado) capítulo por capítulo.
+
+### MinerU testado e adicionado à skill de ingestão
+
+Usuário mandou o código-fonte do MinerU (opendatalab/MinerU) pra avaliar
+como skill. Testei de verdade nesta sessão: `pip install "mineru[core]"`
+num venv, rodado em modo `pipeline` (CPU) sobre o manual de intensivismo
+(151 páginas) — ~6-7 min, baixa ~1,1GB de modelos (layout/OCR/fórmula) na
+primeira execução, depois fica em cache. Resultado: Markdown com
+hierarquia de heading de verdade (`#`/`##` recuperam capítulo/seção como
+heading real, não só texto corrido) e parágrafos limpos, sem quebra de
+linha no meio da frase — nitidamente melhor que o fallback pdfminer/pypdf
+usado até aqui. Documentado como Step 1b em
+`.claude/skills/kronia-nurse-document-ingestion/SKILL.md`, com o caveat
+honesto de custo (tempo/download) pra quem for decidir se vale a pena por
+PDF.
+
 O que este processo manual **não fez** — porque exigiria julgamento
 clínico real e/ou fontes que não estão no corpus indexado, não porque foi
 pulado por pressa:

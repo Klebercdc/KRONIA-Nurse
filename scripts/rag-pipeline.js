@@ -152,6 +152,19 @@ const PDF_METADATA = {
     ano: 2018,
     descricao: 'Diagnósticos de Enfermagem da NANDA-I: Definições e Classificação',
   },
+  // Pasta "Referências" do Drive — já triado (texto extraível, ver
+  // docs/pdf-triage-referencias-pendentes.md item #19) e usado manualmente
+  // pra enriquecer PAM/PVC/Nutrição Parenteral/Hemodiálise em
+  // knowledge_specs (ver docs/knowledge-base-reconstrucao-status.md).
+  // Falta rodar este pipeline de verdade (chunking + embedding) quando
+  // COHERE_API_KEY estiver disponível — os campos abaixo já estão prontos.
+  'Manual-de-Cuidados-de-Enfermagem-em-Procedimentos-de-Intensivismo.pdf': {
+    tipo: 'Livro/Manual',
+    instituicao: 'UFCSPA',
+    versao: null,
+    ano: 2020,
+    descricao: 'Manual de Cuidados de Enfermagem em Procedimentos de Intensivismo (Souza, Viégas e Caregnato, orgs.)',
+  },
 };
 
 let _supabase = null;
