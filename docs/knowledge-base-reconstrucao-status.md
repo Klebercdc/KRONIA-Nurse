@@ -145,9 +145,31 @@ Intensivismo. 2020. p. 19-27."`) — mantendo a referência COFEN original
 intacta. `knowledge_base` foi resincronizado pra esses 4.
 
 Isso é prova de conceito, não escala pros outros 94 — peguei os 4 casos
-onde o índice do livro batia exatamente com um spec já existente. Fazer
-isso pros outros exigiria ler o livro inteiro (1152 páginas no caso do
-Brunner & Suddarth, também já baixado) capítulo por capítulo.
+onde o índice do livro batia exatamente com um spec já existente.
+
+Tentei repetir com o Brunner & Suddarth (1152 páginas, já baixado) e não
+compensou: é organizado por doença/condição clínica (handbook), não por
+procedimento de enfermagem isolado — não tem uma seção "Material" +
+"Cuidados de enfermagem" por trás de cada busca como o manual de
+intensivismo tinha. Abandonei essa fonte pra evitar forçar conteúdo de
+doença específica em spec de procedimento geral.
+
+Troquei pelo `Manual de Condutas em Obstetrícia` (Maternidade Dona
+Evangelina Rosa, Teresina-PI, 2ª edição — já catalogado em
+`PDF_METADATA`), que tem seções gerais reais de "Admissão da
+Parturiente" e "Assistência ao Parto Vaginal"/"Quarto Período" — bateu
+certo com **Cuidados no Pré-Parto** (`f0449b33-...`) e **Cuidados na
+Sala de Parto** (`6b0ff0e0-...`), que ganharam `indicacoes`/`materiais`/
+`execucao_passos`/`complicacoes` reais e uma segunda referência. Não
+enriqueci "Cuidados no Pós-Parto Imediato" com essa fonte: o único
+"puerpério imediato" que achei no texto era dentro do capítulo de
+pré-eclâmpsia (protocolo de sulfato de magnésio), não cuidado
+pós-parto geral — não dava pra usar sem misturar contexto de doença
+específica com cuidado de rotina.
+
+**Total após esta rodada: 6 specs com conteúdo técnico real além do
+guia de registro** (PAM, PVC, Nutrição Parenteral, Hemodiálise,
+Cuidados no Pré-Parto, Cuidados na Sala de Parto).
 
 ### MinerU testado e adicionado à skill de ingestão
 

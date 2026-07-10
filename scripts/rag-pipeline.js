@@ -165,6 +165,15 @@ const PDF_METADATA = {
     ano: 2020,
     descricao: 'Manual de Cuidados de Enfermagem em Procedimentos de Intensivismo (Souza, Viégas e Caregnato, orgs.)',
   },
+  // Usado manualmente pra enriquecer Cuidados no Pré-Parto/Sala de Parto
+  // (item #14 de docs/pdf-triage-referencias-pendentes.md).
+  'manual-condutas-obstetricia-maternidade-evangelina-rosa.pdf': {
+    tipo: 'Livro/Manual',
+    instituicao: 'Maternidade Dona Evangelina Rosa',
+    versao: '2ª edição',
+    ano: null,
+    descricao: 'Manual de Condutas em Obstetrícia — Maternidade Dona Evangelina Rosa (Teresina-PI)',
+  },
 };
 
 let _supabase = null;
