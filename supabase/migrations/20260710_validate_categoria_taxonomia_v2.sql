@@ -1,0 +1,15 @@
+-- Segue a migration 20260710_categoria_taxonomia_v2.sql, que deixou a
+-- constraint como NOT VALID porque 98/102 knowledge_specs ainda usavam
+-- categoria fora da Taxonomia v2.0.
+--
+-- Nesta sessão, todos os 98 knowledge_specs ativos foram reconstruídos
+-- manualmente (recategorizados para a Taxonomia v2.0, com objetivo,
+-- alertas, condutas e citacao_abnt preenchidos a partir dos trechos reais
+-- já indexados — sem Groq, sem invenção fora do que as fontes sustentam;
+-- ver docs/knowledge-base-reconstrucao-status.md para o processo
+-- completo). Os 4 registros arquivados também foram ajustados para uma
+-- categoria válida, só para permitir a validação total da constraint.
+--
+-- Com a base 100% conforme, valida a constraint de vez — deixa de haver
+-- brecha para categoria = ANY(...) ser burlada em updates a linhas antigas.
+ALTER TABLE knowledge_specs VALIDATE CONSTRAINT categoria_taxonomia_v2;

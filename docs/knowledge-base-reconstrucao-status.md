@@ -35,11 +35,11 @@ redescobrir o que já foi feito.
 ### Migration (`supabase/migrations/20260710_categoria_taxonomia_v2.sql`, aplicada)
 
 - `ALTER TABLE knowledge_specs ADD COLUMN alertas text, condutas text`.
-- `CHECK (categoria = ANY (...36 valores...)) NOT VALID` — trava categoria
-  nova a partir de agora sem quebrar as 98 linhas antigas que ainda usam
-  categoria fora da árvore. Depois que os specs existentes forem
-  recategorizados, rodar
-  `ALTER TABLE knowledge_specs VALIDATE CONSTRAINT categoria_taxonomia_v2;`.
+- `CHECK (categoria = ANY (...36 valores...))` — **totalmente validada**,
+  não é mais `NOT VALID`. Todos os 102 `knowledge_specs` (ativos e
+  arquivados) já conformam; a constraint agora bloqueia de verdade
+  qualquer `categoria` fora da árvore, inclusive em `UPDATE`s a linhas
+  antigas.
 
 ### Caso de contaminação confirmado, corrigido ponta a ponta
 
@@ -75,21 +75,64 @@ qualidade conhecida por instituição.
 o formatador ABNT e o limiar mais estrito. `npm run typecheck` e `npm test`
 passam limpos (145 testes, 9 suites).
 
-## Não feito — e por quê
+### Os 98 `knowledge_specs` restantes — reconstruídos manualmente, sem Groq
 
-**Os outros ~100 `knowledge_specs` continuam com o problema original**
-(categoria fora da taxonomia, sem `alertas`/`condutas`, referências sem
-`citacao_abnt`). Corrigir isso exige rodar `redigirConteudo` +
-`executarPipeline` (5 auditorias via LLM) objeto por objeto — que precisa
-de `GROQ_API_KEY`, indisponível neste ambiente (sem `.env.local`). O
-código está pronto pra gerar os campos certos assim que rodar; falta só a
-execução em lote (`scripts/gerar-especificacoes-lote.ts` já aceita
-`alertas`/`condutas`).
+`GROQ_API_KEY` não está disponível neste ambiente, então o Redator/Auditor
+automático (`lib/knowledge-pipeline.ts`) não pôde rodar em lote. Em vez
+disso, cada um dos 98 specs ativos foi processado à mão: os `trechos`
+reais já presentes em `referencias_oficiais` (a maioria vinda de
+`Registros-de-Enfermagem-no-Exercicio-da-Profissao.pdf`, COFEN 2023 — um
+guia de "o que registrar" por procedimento, por isso quase todo spec tem
+`execucao_passos` vazio: não são protocolos de execução, são conteúdo de
+documentação) foram lidos um a um para escrever `categoria`/`subcategoria`
+(taxonomia v2.0), `objetivo`, `alertas` e `condutas` — sem inventar nada
+fora do que os trechos sustentam.
 
-Query de aceite (adaptada da seção 5 da spec pro schema real — ver
-`git log` desta migration para o SQL exato): rodada em 2026-07-10, **101
-de 101 specs não-arquivados** ainda não conformam. Vai continuar assim até
-o lote acima rodar.
+`citacao_abnt` foi calculado para **todas** as referências existentes em
+uma única passada mecânica em SQL (join com `conhecimento_documentos`,
+mesma lógica de `lib/abnt.ts`) — determinístico, sem julgamento envolvido.
+`knowledge_base` (o que os usuários realmente veem) foi resincronizado a
+partir dos specs corrigidos com uma segunda passada em SQL que replica
+`composeConteudoKnowledgeBase`/`composeReferenciasTexto` exatamente.
+
+**Achado extra durante o processo — contaminação por dado de teste**: 3
+specs adicionais (`Coleta de Hemocultura`, `Inserção e Manutenção de Sonda
+Vesical de Demora`, `Oxigenoterapia por Cateter Nasal`) tinham
+`criado_por='teste.biblioteca.1782919848'` e citavam documentos
+completamente fora do corpus real (RDC 36/2013, resoluções COFEN com
+números/datas divergentes entre specs, guias CDC/OMS/sociedades) —
+citações plausíveis mas não verificáveis, nunca vindas do RAG. Duas delas
+(`Coleta de Hemocultura` e `Inserção de Sonda Vesical`) estavam **cada uma
+publicada duas vezes simultaneamente** em `knowledge_base`. Todas as 3
+foram arquivadas (`status='arquivado'`, nunca deletadas) e os 5 artigos
+duplicados/fabricados em `knowledge_base` foram soft-deletados
+(`deleted_at`, nunca `DELETE`) — auditoria completa em
+`knowledge_spec_audit`/`knowledge_audit`.
+
+**Resultado**: `knowledge_specs` tem 102 linhas — 98 ativas (todas
+conformes) + 4 arquivadas (3 dado de teste + 1 duplicata contaminada dos
+"13 Certos"). `knowledge_base` tem 98 artigos vivos, 5 soft-deletados. A
+query de aceite (seção 5 da spec original, adaptada ao schema real —
+`resumo`/`objetivo`/`alertas`/`condutas` preenchidos, toda referência com
+`citacao_abnt`, `categoria` na taxonomia) **retorna zero linhas**. A
+constraint `categoria_taxonomia_v2` está totalmente validada (não mais
+`NOT VALID`).
+
+O que este processo manual **não fez** — porque exigiria julgamento
+clínico real e/ou fontes que não estão no corpus indexado, não porque foi
+pulado por pressa:
+- `execucao_passos`, `indicacoes`, `contraindicacoes`, `materiais`,
+  `preparacao`, `complicacoes` continuam vazios na maioria dos specs — os
+  trechos-fonte (COFEN "Registros de Enfermagem") são conteúdo de
+  documentação, não protocolos de execução passo a passo. Preenchê-los
+  direito exigiria fontes técnicas adicionais (ex.: manuais de
+  procedimento), não apenas reformatar o que já está indexado.
+- Cada `citacao_abnt` foi gerada a partir dos metadados que a referência
+  já carregava (instituição/documento/página) — não houve nova busca
+  RAG nem confirmação humana de que a página citada é exatamente onde o
+  conteúdo aparece no PDF original.
+
+## Ainda pendente
 
 **Ingestão dos PDFs da pasta "Referências" do Drive** (46 arquivos): 13 já
 indexados (`conhecimento_documentos`/`PDF_METADATA` em
@@ -131,10 +174,16 @@ completo em `docs/pdf-triage-referencias-pendentes.md`:
    `SUPABASE_SERVICE_ROLE_KEY` num ambiente com acesso.
 3. Adicionar as entradas confirmadas em `PDF_METADATA`
    (`scripts/rag-pipeline.js`) e rodar `npm run rag:pipeline` pra indexar
-   os PDFs pendentes.
-4. Recategorizar/regenerar os ~100 specs restantes via
-   `scripts/gerar-especificacoes-lote.ts` (ou pelo formulário
-   `biblioteca-tecnica.tsx`, um por um, pra specs que precisam de revisão
-   humana mais próxima).
-5. Depois de zerar a query de aceite: `ALTER TABLE knowledge_specs
-   VALIDATE CONSTRAINT categoria_taxonomia_v2;`.
+   os PDFs pendentes — isso amplia o corpus além do guia de registro do
+   COFEN, permitindo preencher `indicacoes`/`contraindicacoes`/
+   `execucao_passos`/`materiais` com fontes técnicas de verdade (Potter,
+   Brunner & Suddarth, KDIGO, AHA, protocolos institucionais etc.), em vez
+   de deixá-los vazios como estão hoje na maioria dos specs.
+4. Com o corpus ampliado, revisar os specs reconstruídos manualmente
+   nesta sessão (buscar `criado_por` ou `historico` por entradas sem
+   "agente, sem Groq" nas mais antigas) e enriquecer os campos ainda
+   vazios — não é mais recategorização, é aprofundamento de conteúdo.
+5. Confirmar manualmente as citações ABNT geradas mecanicamente (a
+   página/edição batem com o PDF de origem?) antes de tratar como
+   definitivas — a passada em SQL usou os metadados já salvos em cada
+   referência, sem reabrir os PDFs originais.
