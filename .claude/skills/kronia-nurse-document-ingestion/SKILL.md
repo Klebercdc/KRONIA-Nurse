@@ -21,97 +21,118 @@ never real to begin with. Triage BEFORE indexing, not after.
 
 ## Step 1 — Diagnose every PDF before extracting anything
 
-Preferred path: use the `pdf-reading` skill's diagnostic sequence
-(`pdfinfo` + `pdffonts` + a `pdftotext` sample). Read that skill first if
-available — it covers font-embedding checks, garbled-text diagnosis, and
-rasterization.
+Preferred path (non-sandboxed environments): use the `pdf-reading` skill's
+diagnostic sequence (`pdfinfo` + `pdffonts` + a `pdftotext` sample). Read
+that skill first if available — it covers font-embedding checks,
+garbled-text diagnosis, and rasterization.
 
-**Sandbox fallback (no poppler-utils, apt blocked):** this environment does
-not have `pdfinfo`/`pdffonts`/`pdftotext` installed and `apt-get install
-poppler-utils` fails (network-restricted). `pip install pypdf` also breaks at
-import time here (system `cryptography` package conflict via `pyo3`). The
-workaround that actually works:
+**Sandbox fallback (no poppler-utils, apt blocked) — use PyMuPDF, not
+pdfminer/pypdf.** This environment doesn't have `pdfinfo`/`pdffonts`/
+`pdftotext`/`pdftoppm` installed and `apt-get install poppler-utils` fails
+(network-restricted). Plain `pip install pypdf` also breaks at import time
+here (system `cryptography` package conflict via `pyo3`). `pymupdf` (PyPI
+package `pymupdf`, import name `pymupdf` — the library historically called
+`fitz`) sidesteps both problems and is a **single package that replaces the
+entire poppler-utils toolchain**, confirmed working this session:
 
 ```bash
 python3 -m venv /tmp/pdfenv
-/tmp/pdfenv/bin/pip install --quiet pdfminer.six pypdf
+/tmp/pdfenv/bin/pip install --quiet pymupdf
 ```
-
-Then, per file:
 
 ```python
-import pypdf
-from pdfminer.high_level import extract_text
+import pymupdf
 
 path = "document.pdf"
-r = pypdf.PdfReader(path)
-n = len(r.pages)
+doc = pymupdf.open(path)
+n = len(doc)                              # = pdfinfo page count
+mid = doc[n // 2]
+fonts = mid.get_fonts()                   # = pdffonts (embedded font check)
+text = mid.get_text()                     # = pdftotext, per page
+# text-vs-scanned: near-empty get_text() + empty get_fonts() on a sampled
+# page (first/middle/last) = scanned/raster, same signal pdffonts gives you.
 
-# Sample first/middle/last page instead of the whole doc — cheap and
-# representative; a 300-page textbook doesn't need full extraction just to
-# classify it.
-sample_pages = sorted(set([0, n // 2, max(0, n - 1)]))
-text = ""
-for p in sample_pages:
-    text += extract_text(path, page_numbers=[p]) or ""
-
-print(n, len(text), repr(text[:200]))
+pix = mid.get_pixmap(dpi=150)             # = pdftoppm, for visual inspection
+pix.save("/tmp/page_mid.png")             # then Read the PNG if garbled/scanned
 ```
 
-- `len(text)` near-zero across 3 sampled pages (roughly under ~150 chars
-  total) → **scanned/raster**, no usable text layer. Do not feed this to the
-  chunker (`scripts/rag-pipeline.js`) — it will silently produce empty or
-  near-empty fragments.
-- `len(text)` substantial but the sample looks like mojibake/wrong characters
-  → **garbled OCR/encoding**, not a clean scan. Also don't index yet.
-- `len(text)` substantial and readable → text-extractable, proceed to
-  ingestion via the existing pipeline (`npm run rag:pipeline`, i.e.
-  `scripts/rag-pipeline.js`).
+Benchmarked on `Manual-de-Cuidados-de-Enfermagem-em-Procedimentos-de-
+Intensivismo.pdf` (151 pages, text-native): full-document `get_text()` over
+all 151 pages took **0.23 seconds**. No model download, no C-extension build
+step, no `cryptography` conflict. This is now the default choice for both
+triage (Step 1) and full extraction in this sandbox — pdfminer.six is no
+longer needed for either.
 
-## Step 1b — MinerU: better structure recovery than pdfminer/pypdf
-
-Tested this session on `Manual-de-Cuidados-de-Enfermagem-em-Procedimentos-de-Intensivismo.pdf`
-(151 pages, text-native). MinerU (`pip install "mineru[core]"`, PyPI package
-`mineru`, opendatalab/MinerU on GitHub) produces genuinely better output than
-the pdfminer/pypdf fallback in Step 1: proper Markdown with heading levels
-(`#`/`##` recovers chapter/section titles like "Material" and "Cuidados de
-enfermagem" as real headings, not just lines of body text), clean paragraphs
-(no mid-sentence line breaks from column-width wrapping), and preserved
-bullet lists — closer to what Docling gives you (see the `docling` skill),
-but via a different toolchain.
+For Markdown-structured extraction (real headings, not just paragraph text —
+useful when you're about to hand output to a chunker or read it yourself to
+enrich a spec), use `pymupdf4llm` on top of the same install:
 
 ```bash
-python3 -m venv /tmp/mineru-venv
-/tmp/mineru-venv/bin/pip install "mineru[core]"
-/tmp/mineru-venv/bin/mineru -p document.pdf -o /tmp/mineru-out -b pipeline
-# -b pipeline = pure CPU backend (no GPU requirement). Output:
-#   /tmp/mineru-out/<name>/auto/<name>.md          — structured Markdown
-#   /tmp/mineru-out/<name>/auto/<name>_content_list.json — per-block JSON (bbox, type, page)
+/tmp/pdfenv/bin/pip install --quiet pymupdf4llm
+```
+```python
+import pymupdf4llm
+md = pymupdf4llm.to_markdown("document.pdf")   # whole doc, or pages=[...] for a subset
 ```
 
-**Honest cost**: first run downloads ~1.1GB of layout/OCR/formula models
-(cached after that in `~/.cache/huggingface`). On CPU, a 151-page text-native
-PDF took roughly 6-7 minutes end-to-end (layout detection + OCR detection
-pass even on pages that already have a text layer — MinerU's pipeline mode
-runs OCR unconditionally as part of its layout-aware reading order, it
-doesn't skip it just because `pdffonts` would say the page has embedded
-fonts). Run it in the background (`nohup ... &`) for anything more than a
-handful of pages; don't block on it synchronously.
+Same 151-page benchmark: **18.6 seconds**, output recovers `#`/`##`/`###`
+headings (font-size/bold heuristics, no ML model) and clean bullet lists —
+qualitatively comparable to MinerU's Markdown (Step 1b below) at roughly
+1/20th the wall-clock time and no model download.
 
-**When to reach for this over plain pdfminer/pypdf**: multi-column layouts,
-documents where you need to reliably tell "Material" apart from a numbered
-list, or when you're about to hand the output to something that benefits
-from real Markdown structure (chunking by heading, RAG fragment boundaries).
-For a quick one-off text sample just to classify text-vs-scanned (Step 1
-above), pdfminer is faster and sufficient — don't reach for MinerU just to
-answer "does this PDF have a text layer".
+- `get_text()`/`to_markdown()` near-zero across sampled pages (first/middle/
+  last — roughly under ~150 chars total) → **scanned/raster**, no usable text
+  layer. Do not feed this to the chunker (`scripts/rag-pipeline.js`) — it
+  will silently produce empty or near-empty fragments. Confirm visually with
+  `get_pixmap()` before concluding a document is unusable.
+- Substantial text but mojibake/wrong characters → **garbled OCR/encoding**,
+  not a clean scan. Also don't index yet.
+- Substantial and readable → text-extractable, proceed to ingestion via the
+  existing pipeline (`npm run rag:pipeline`, i.e. `scripts/rag-pipeline.js`).
+
+## Step 1b — MinerU / Docling: when PyMuPDF's heuristics aren't enough
+
+PyMuPDF's Markdown mode (`pymupdf4llm`) uses font-size/position heuristics —
+no layout model, no OCR. That's enough for most single/double-column
+academic PDFs with a real text layer (confirmed above), but it can still
+misjudge complex multi-column layouts, tables, or genuinely scanned pages
+that need real OCR. For those, reach for a model-backed parser:
+
+**MinerU** (`pip install "mineru[core]"`, PyPI package `mineru`,
+opendatalab/MinerU on GitHub) — tested this session on the same 151-page
+PDF: `mineru -p document.pdf -o /tmp/mineru-out -b pipeline` (`-b pipeline` =
+CPU backend, no GPU needed). Output:
+`/tmp/mineru-out/<name>/auto/<name>.md` (structured Markdown) and
+`<name>_content_list.json` (per-block JSON with bbox/type/page). **Honest
+cost**: downloads ~1.1GB of layout/OCR/formula models on first run (cached
+after in `~/.cache/huggingface`), and took ~6-7 minutes end-to-end on CPU for
+151 pages — it runs OCR detection unconditionally as part of its
+layout-aware reading order, even on pages that already have embedded fonts.
+Run it in the background (`nohup ... &`); don't block on it synchronously.
+
+**Docling** — already integrated into this repo's real pipeline
+(`scripts/docling-bridge.js` / `docling_parser.py`), used for ANVISA's
+`caderno-4-medidas-de-prevencao...` (multi-column + tables that `pdf-parse`
+scrambled). Prefer extending that existing path for anything headed toward
+production ingestion; MinerU is a good ad hoc/exploratory option when you're
+manually reading a PDF to enrich a spec (as in this session) rather than
+building the permanent ingestion path.
+
+**Decision rule**: start with PyMuPDF/pymupdf4llm always (cheap, instant,
+covers the large majority of this corpus per the triage in
+`docs/pdf-triage-referencias-pendentes.md` — 31/32 pending files are
+text-extractable, 0 scanned). Only reach for MinerU or Docling when
+PyMuPDF's output is visibly wrong (columns interleaved, tables flattened
+into garbage, or genuinely no text layer at all).
 
 ## Step 2 — Handle scanned/garbled documents
 
 1. Rasterize the page and read it visually to confirm what's actually on the
    page (150 DPI is the default that works for standard COFEN/COREN/ANVISA
-   institutional PDFs — see `pdf-reading` skill for the `pdftoppm` command,
-   or use `pdf2image`/`pypdfium2` if poppler CLI tools aren't available).
+   institutional PDFs — see `pdf-reading` skill for the `pdftoppm` command;
+   in this sandbox use `page.get_pixmap(dpi=150).save(...)` from PyMuPDF,
+   confirmed working in Step 1 above — no need for `pdf2image`/`pypdfium2`
+   as a separate dependency).
 2. For bulk re-extraction of a scanned document, OCR it for real
    (`pytesseract` over rasterized pages) — never trust text that already went
    through a bad OCR pass once (re-extracting the same garbled layer just
