@@ -354,6 +354,50 @@ Oxigenoterapia; Wound Care → Curativos; Specimen Collection → Glicemia
 Capilar/Coleta de Material; IV Therapy Management → Terapia
 Intravenosa; Facilitation of Elimination → Sondagem Vesical).
 
+### Quinta rodada — os outros 6 capítulos do OpenRN ("sim e tudo que der")
+
+Puxei os 6 capítulos restantes do NCBI Bookshelf (Enteral Tube
+Management, Oxygen Therapy, Wound Care, Specimen Collection, IV Therapy
+Management, Facilitation of Elimination) e mapeei pra **10 specs**
+(1 capítulo alimentando várias specs relacionadas quando fazia sentido,
+REGRA 5):
+
+- **Chapter 17 (Enteral Tube Management)**, 4 sub-skills distintos →
+  **Nutrição Enteral** (Skill 2: administração da dieta),
+  **Sondagem Enteral** (Skill 1: verificação de posicionamento),
+  **Sondagem Gástrica** e **Lavado Gástrico** (Skill 4: descompressão
+  gástrica) — cada uma com `execucao_passos` real e específico do
+  sub-skill certo, não o mesmo texto copiado 4x.
+- **Chapter 11 (Oxygen Therapy)** → **Oxigenoterapia**: `indicacoes`,
+  `execucao_passos` (8 passos), fluxos por dispositivo (cateter nasal
+  1-6 L/min, máscara simples 6-10 L/min, não reinalante 10-15+ L/min),
+  alertas de segurança do cilindro.
+- **Chapter 20 (Wound Care)** → **Curativos**: `indicacoes`,
+  `contraindicacoes` (escara estável em calcanhar não se desbrida sem
+  avaliação vascular), `execucao_passos`, `complicacoes` (antes vazio).
+- **Chapter 19 (Specimen Collection)** → **Glicemia Capilar**:
+  `execucao_passos` (9 passos), `materiais` e `preparacao` reais.
+- **Chapter 23 (IV Therapy Management)** → **Acesso Venoso Periférico**
+  (estava 100% vazia): `indicacoes`, `contraindicacoes`, `materiais`,
+  `execucao_passos`, `complicacoes` (infiltração vs. extravasamento,
+  distinção que a Spec não tinha).
+- **Chapter 21 (Facilitation of Elimination)** → **Sondagem Vesical**
+  (estava 100% vazia): critérios CDC de indicação/contraindicação,
+  `execucao_passos` completo, sinais de ITU-AC; **Irrigação de Sonda
+  Vesical e Bexiga**: `cuidados`/`complicacoes`/`materiais` (o capítulo
+  não cobre irrigação em si, então usei só os princípios de manejo do
+  cateter que se aplicam — bolsa abaixo da bexiga, técnica asséptica,
+  sinais de ITU-AC — sem inventar passo de irrigação que a fonte não
+  descreve).
+
+Todas as 10 resincronizadas em `knowledge_base`.
+
+**Total geral: 28 specs de 98 enriquecidas nesta sessão**, 9 delas já
+com `execucao_passos` real (Aspiração Traqueal + as 8 acima que
+ganharam array de passos — Irrigação de Sonda Vesical ficou só com
+cuidados/complicações/materiais, sem execucao_passos, porque a fonte
+não descreve a técnica de irrigação em si).
+
 ### Ferramentas de extração avaliadas nesta sessão (usuário forneceu 4 zips)
 
 Testadas de verdade no mesmo PDF de 151 páginas pra comparação justa —
