@@ -68,9 +68,22 @@ MinerU is not a drop-in replacement for that decision — it's a heavier tool fo
 
 - **Reach for MinerU when:** the PDF is scanned/handwritten with no usable text layer and needs real OCR (109 languages), or accuracy on dense tables/formulas matters more than throughput, or the PDF is large enough (many hundreds of pages) that page-range chunking (`-s/-e`) is needed to keep memory bounded — Docling has no equivalent built-in page-batching primitive, so you'd hand-roll it (split the PDF into page-range chunks yourself, e.g. with `pypdf`, before calling `DocumentConverter`).
 - **Keep Docling when:** the PDF has a text layer and the concern is layout/reading-order/table-structure, not OCR — Docling already solves that with a much smaller install and no GPU requirement, which is why it was adopted as the opt-in parser for `kronia-nurse`.
-- **Cost either way:** both are per-page-seconds, not instant — Docling was measured at ~1.7–4.9 s/page on CPU; MinerU's `pipeline` backend is comparable, `vlm-engine`/`hybrid-engine` are slower per page but higher accuracy. Neither belongs in a request/response path; both are batch/offline preprocessing steps.
+- **Cost either way:** both are per-page-seconds, not instant. Neither belongs in a request/response path; both are batch/offline preprocessing steps.
 
-**Recommendation:** don't switch `kronia-nurse`'s existing Docling integration. Add MinerU as a second opt-in tool, selected per-document like `PDF_METADATA`'s `parser: 'docling'` flag already does, for the subset of PDFs that are scanned/handwritten or too large for a single Docling pass — and only if/when such a PDF actually shows up in the corpus. Provisioning MinerU (GPU, disk for weights) is real infra cost; don't pay it speculatively.
+### Benchmark: `atualidades-nefrologia.pdf` (Kronia-Nurse "Referências" corpus, real scanned PT-BR textbook, 544 pages, 0% text layer)
+
+Ran both tools, out of the box, no per-tool tuning, CPU-only, on the same 5 pages of this real scanned Portuguese-language book:
+
+| | MinerU (`-b pipeline`) | Docling (default, RapidOCR) |
+|---|---|---|
+| Time (5 pages, model already downloaded) | ~15 s (~3 s/page) | ~174 s (~35 s/page) |
+| Accented PT-BR characters preserved | 103 | **4** |
+| Coordinator/author names | all 4 correct, on separate lines | 1 of 4 names dropped entirely |
+| Legibility | clean, correct headings | readable but visibly mangled ("ATUALIDADES SEM NEFROLOGIA 10" instead of "EM", "I1." instead of "II.", accents gone: "Sao Paulo", "Doencas", "autorizacao"...) |
+
+**Verdict for this corpus:** for the one PDF in "Referências" that actually needs OCR (`atualidades-nefrologia.pdf` — everything else in that folder, including the 3092-page `wong.pdf`, already has a clean text layer and needs no OCR at all), MinerU's default `pipeline` backend beat Docling's default OCR both on speed (~10x) and on accuracy — critically, Docling's default RapidOCR engine stripped almost every Portuguese accent (á/ã/ç/é/í/ó), which is a real problem for a PT-BR medical corpus (search/embeddings degrade on de-accented text). Docling may do better with a different OCR engine (EasyOCR/Tesseract with an explicit `por` language pack) — untested here — but out of the box, MinerU is the better choice specifically for this document.
+
+**Recommendation:** keep Docling as the default for the corpus (44+ of 47 PDFs already have a usable text layer, no OCR needed). Route `atualidades-nefrologia.pdf` — and any future scanned/no-text-layer PDF — through MinerU's `pipeline` backend instead of Docling's default OCR, based on the measured result above, not a hypothetical. Don't provision MinerU's GPU backends (`vlm-engine`/`hybrid-engine`) unless a future document needs table/formula recovery beyond what `pipeline` gives — `pipeline` already cleared this corpus's one real OCR case on CPU alone.
 
 ## Supported input formats
 
