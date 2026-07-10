@@ -12,6 +12,7 @@
 import { chamarGroq, extrairJson } from './groq-client';
 import { buscarFragmentos } from './knowledge-retrieval';
 import { validarFragmentos, temPaginaRastreavel, formatarPagina } from './kronos-validation';
+import { formatarCitacaoAbnt } from './abnt';
 import type {
   KnowledgeSpec,
   ResultadoEstagio,
@@ -33,7 +34,7 @@ export interface ResultadoPesquisador {
 export type RascunhoRedator = Pick<KnowledgeSpec,
   | 'titulo' | 'resumo' | 'objetivo' | 'escopo' | 'definicao'
   | 'indicacoes' | 'contraindicacoes' | 'materiais' | 'equipamentos' | 'epis' | 'preparacao'
-  | 'execucao_passos' | 'cuidados' | 'complicacoes' | 'registro' | 'fundamentacao_cientifica'
+  | 'execucao_passos' | 'cuidados' | 'alertas' | 'complicacoes' | 'condutas' | 'registro' | 'fundamentacao_cientifica'
 >;
 
 // ─── Etapa 1: Pesquisador ──────────────────────────────────────────────────
@@ -48,6 +49,17 @@ export type RascunhoRedator = Pick<KnowledgeSpec,
 // texto inventado pelo modelo.
 
 const MATCH_COUNT_PESQUISADOR = 5;
+
+// Limiar de similaridade específico para coleta de referências permanentes
+// (mais estrito que SIMILARITY_THRESHOLD_PADRAO de knowledge-retrieval.ts,
+// usado em respostas efêmeras do KRONOS). Diagnóstico confirmado: a busca
+// vetorial padrão (limiar 0.5) trouxe biografias/bibliografia de
+// processo_de_enfermagem.pdf como referência da spec "Os 13 Certos na
+// Administração de Medicamentos" — vocabulário de enfermagem compartilhado
+// basta pra passar de 0.5 mesmo sem relação temática real. Uma referência
+// persistida numa Knowledge Specification vira citação permanente; exige
+// bar mais alto que uma resposta de busca ao vivo.
+const SIMILARITY_THRESHOLD_REFERENCIA = 0.65;
 
 // Limite de caracteres do trecho de cada referência ao montar os prompts
 // (Redator e Auditores). Chunks reais (não mais ruído de sumário) trazem
@@ -89,8 +101,11 @@ async function classificarTema(
 }
 
 export async function pesquisarFontes(tema: string, dominios: readonly string[]): Promise<ResultadoPesquisador> {
-  const fragmentos = await buscarFragmentos(tema, { matchCount: MATCH_COUNT_PESQUISADOR });
-  const validacao = validarFragmentos(fragmentos);
+  const fragmentos = await buscarFragmentos(tema, {
+    matchCount: MATCH_COUNT_PESQUISADOR,
+    limiar: SIMILARITY_THRESHOLD_REFERENCIA,
+  });
+  const validacao = validarFragmentos(fragmentos, SIMILARITY_THRESHOLD_REFERENCIA);
 
   if (!validacao.valido) {
     return {
@@ -101,14 +116,22 @@ export async function pesquisarFontes(tema: string, dominios: readonly string[])
     };
   }
 
-  const referencias: ReferenciaOficial[] = validacao.fragmentosValidos.map((f) => ({
-    instituicao: f.instituicao,
-    documento: f.nome_arquivo,
-    ano: f.ano_publicacao != null ? String(f.ano_publicacao) : undefined,
-    versao: f.versao ?? undefined,
-    pagina: temPaginaRastreavel(f) ? (formatarPagina(f.pagina_inicio, f.pagina_fim) ?? undefined) : undefined,
-    trecho: f.conteudo,
-  }));
+  const referencias: ReferenciaOficial[] = validacao.fragmentosValidos.map((f) => {
+    const pagina = temPaginaRastreavel(f) ? (formatarPagina(f.pagina_inicio, f.pagina_fim) ?? undefined) : undefined;
+    const tituloLimpo = f.descricao || f.nome_arquivo;
+    return {
+      instituicao: f.instituicao,
+      documento: f.nome_arquivo,
+      ano: f.ano_publicacao != null ? String(f.ano_publicacao) : undefined,
+      versao: f.versao ?? undefined,
+      pagina,
+      trecho: f.conteudo,
+      citacao_abnt: formatarCitacaoAbnt(
+        { instituicao: f.instituicao, titulo: tituloLimpo, versao: f.versao, ano: f.ano_publicacao },
+        pagina
+      ),
+    };
+  });
 
   const contextoTrechos = referencias
     .slice(0, 4)
@@ -148,7 +171,9 @@ Responda SOMENTE com JSON válido, sem markdown, sem texto antes ou depois:
   "preparacao": "higiene das mãos, paramentação, preparo do paciente e do ambiente",
   "execucao_passos": ["passo 1", "passo 2", "passo 3"],
   "cuidados": "cuidados de enfermagem durante e após o procedimento",
+  "alertas": "sinais que exigem atenção imediata durante ou após a execução",
   "complicacoes": "complicações descritas na literatura para este procedimento",
+  "condutas": "o que fazer diante de um alerta ou complicação — distinto de execucao_passos, que é a execução padrão",
   "registro": "o que deve constar no registro/anotação de enfermagem após a execução",
   "fundamentacao_cientifica": "síntese da base científica/racional clínico do procedimento, a partir das referências"
 }`;
@@ -189,7 +214,9 @@ export async function redigirConteudo(
     preparacao:             resultado.preparacao             ?? '',
     execucao_passos:        Array.isArray(resultado.execucao_passos) ? resultado.execucao_passos : [],
     cuidados:               resultado.cuidados               ?? '',
+    alertas:                resultado.alertas                ?? '',
     complicacoes:           resultado.complicacoes           ?? '',
+    condutas:               resultado.condutas               ?? '',
     registro:               resultado.registro               ?? '',
     fundamentacao_cientifica: resultado.fundamentacao_cientifica ?? '',
   };
@@ -218,7 +245,9 @@ function montarContextoSpec(spec: KnowledgeSpec): string {
     ['Preparação', spec.preparacao],
     ['Execução', execucaoTexto],
     ['Cuidados', spec.cuidados],
+    ['Alertas', spec.alertas],
     ['Complicações', spec.complicacoes],
+    ['Condutas', spec.condutas],
     ['Registro', spec.registro],
     ['Fundamentação Científica', spec.fundamentacao_cientifica],
     // Campos legados — só aparecem em specs antigas.

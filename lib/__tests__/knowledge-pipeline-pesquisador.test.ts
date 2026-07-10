@@ -72,9 +72,28 @@ describe('pesquisarFontes (grounded em RAG)', () => {
         documento: 'NANDA-I-2018_2020.pdf',
         pagina: '89',
         trecho: expect.stringContaining('Características definidoras'),
+        citacao_abnt: 'NANDA INTERNATIONAL. NANDA I 2018 2020. 2018-2020 (11ª edição). 2018. p. 89.',
       })
     );
     expect(mockChamarGroq).toHaveBeenCalledTimes(1);
+  });
+
+  test('busca as referências com o limiar mais estrito (0.65) — mais rigoroso que o de respostas ao vivo do KRONOS (0.5)', async () => {
+    mockBuscarFragmentos.mockResolvedValue([fragmento()]);
+    mockChamarGroq.mockResolvedValue('{}');
+    mockExtrairJson.mockReturnValue({ categoria: 'Fundamentos de Enfermagem', subcategoria: '' });
+
+    await pesquisarFontes('tema qualquer', DOMINIOS);
+
+    expect(mockBuscarFragmentos).toHaveBeenCalledWith('tema qualquer', { matchCount: 5, limiar: 0.65 });
+  });
+
+  test('fragmento com similaridade 0.55 (passaria no limiar antigo de 0.5, mas não no novo de 0.65) é descartado — regressão do caso "13 Certos"', async () => {
+    mockBuscarFragmentos.mockResolvedValue([fragmento({ similarity: 0.55 })]);
+
+    const resultado = await pesquisarFontes('tema com match fraco', DOMINIOS);
+
+    expect(resultado.referencias).toEqual([]);
   });
 
   test('fragmento sem página rastreável não define pagina na referência', async () => {

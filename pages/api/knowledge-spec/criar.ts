@@ -29,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const {
     titulo, categoria, subcategoria, resumo, definicao, objetivo, escopo,
     indicacoes, contraindicacoes, materiais, equipamentos, epis, preparacao,
-    execucao_passos, cuidados, complicacoes, registro, fundamentacao_cientifica,
+    execucao_passos, cuidados, alertas, complicacoes, condutas, registro, fundamentacao_cientifica,
     referencias_oficiais,
   } = req.body as Record<string, unknown>;
 
@@ -61,7 +61,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     preparacao: preparacao ? String(preparacao).trim() : undefined,
     execucao_passos: passos.length > 0 ? passos : undefined,
     cuidados: cuidados ? String(cuidados).trim() : undefined,
+    alertas: alertas ? String(alertas).trim() : undefined,
     complicacoes: complicacoes ? String(complicacoes).trim() : undefined,
+    condutas: condutas ? String(condutas).trim() : undefined,
     registro: registro ? String(registro).trim() : undefined,
     fundamentacao_cientifica: fundamentacao_cientifica ? String(fundamentacao_cientifica).trim() : undefined,
     referencias_oficiais: refs,

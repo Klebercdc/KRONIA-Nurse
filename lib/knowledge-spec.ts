@@ -50,7 +50,17 @@ export interface ReferenciaOficial {
   /** Página (ou intervalo, ex.: "12-13") do documento original de onde veio o trecho — ver lib/knowledge-retrieval.ts. */
   pagina?: string;
   url?: string;
+  /**
+   * Trecho bruto do fragmento RAG que fundamentou a referência — evidência de
+   * trabalho interna (auditores comparam o rascunho contra ele), NUNCA o que é
+   * exibido como citação. Ver `citacao_abnt`, montado por lib/abnt.ts a partir
+   * só de metadados estruturados.
+   */
   trecho?: string;
+  /** Citação formatada em ABNT (lib/abnt.ts) — determinística, o que de fato aparece como referência. */
+  citacao_abnt?: string;
+  /** Citação literal opcional, ≤20 palavras, só quando a formulação exata importa (ver lib/abnt.ts). */
+  citacao_literal_opcional?: string;
   data_publicacao?: string;
   data_atualizacao?: string;
 }
@@ -132,7 +142,11 @@ export interface KnowledgeSpec {
   /** Passo a passo estruturado — um item por passo. */
   execucao_passos?: string[];
   cuidados?: string;
+  /** Sinais que exigem atenção imediata durante/após a execução. */
+  alertas?: string;
   complicacoes?: string;
+  /** O que fazer diante de um alerta/complicação — distinto de execucao_passos (execução padrão). */
+  condutas?: string;
   /** O que deve constar no registro/anotação de enfermagem. */
   registro?: string;
   /** Síntese da base científica/racional clínico — distinta de referencias_oficiais. */
@@ -186,27 +200,49 @@ export interface KnowledgeSpecSummary {
   aprovado_em?: string;
 }
 
-// Taxonomia de domínios da Base de Conhecimento
+// Taxonomia v2.0 de Áreas Clínicas da Base de Conhecimento — vocabulário
+// controlado e fechado (ver migration 20260710_categoria_taxonomia_v2.sql).
+// Substitui a lista anterior de 19 domínios livres, que deixou "Documentação
+// de Enfermagem" virar um balde genérico (98/102 specs) e permitiu specs
+// como "Os 13 Certos" nascerem fora da árvore de Administração de
+// Medicamentos. Toda categoria nova PRECISA vir desta lista.
 export const DOMINIOS_BIBLIOTECA = [
   'Fundamentos de Enfermagem',
-  'Procedimentos Gerais',
   'Administração de Medicamentos',
-  'Segurança do Paciente',
+  'Acesso Vascular',
+  'Terapia Intravenosa',
+  'Feridas e Curativos',
+  'Sondas e Drenos',
+  'Oxigenoterapia',
+  'Ventilação Mecânica',
+  'Hemodinâmica',
+  'Centro Cirúrgico',
+  'CME',
+  'UTI Adulto',
+  'Pediatria',
+  'Neonatologia',
+  'Obstetrícia',
+  'Emergência',
+  'Trauma',
+  'Oncologia',
+  'Saúde Mental',
+  'Cuidados Paliativos',
+  'Infectologia',
   'Controle de Infecção',
-  'Curativos',
-  'Punção Venosa',
-  'Cateter Venoso Central',
-  'Cateter de Hemodiálise',
-  'Fístula Arteriovenosa',
+  'Hemoterapia',
   'Hemodiálise',
-  'Nefrologia',
-  'Terapia Intensiva (UTI)',
-  'Urgência e Emergência',
-  'Dispositivos',
-  'Documentação de Enfermagem',
-  'Legislação Profissional',
-  'Biossegurança',
-  'Protocolos Técnicos',
+  'Exames Laboratoriais',
+  'Monitorização',
+  'Equipamentos',
+  'Escalas Clínicas',
+  'Diagnósticos de Enfermagem',
+  'Intervenções de Enfermagem',
+  'Resultados de Enfermagem',
+  'Protocolos Institucionais',
+  'POPs',
+  'Diretrizes Clínicas',
+  'Legislação',
+  'Educação Permanente',
 ] as const;
 
 export type DominioBiblioteca = (typeof DOMINIOS_BIBLIOTECA)[number];
@@ -248,7 +284,9 @@ export function composeConteudoKnowledgeBase(spec: KnowledgeSpec): string {
     ['PREPARAÇÃO', spec.preparacao],
     ['EXECUÇÃO', formatarExecucao(spec)],
     ['CUIDADOS', spec.cuidados],
+    ['ALERTAS', spec.alertas],
     ['COMPLICAÇÕES', spec.complicacoes],
+    ['CONDUTAS', spec.condutas],
     ['REGISTRO', spec.registro],
     ['FUNDAMENTAÇÃO CIENTÍFICA', spec.fundamentacao_cientifica],
     // Campos legados — só aparecem em specs antigas que ainda os têm preenchidos.
@@ -265,10 +303,16 @@ export function composeConteudoKnowledgeBase(spec: KnowledgeSpec): string {
     .join('\n\n');
 }
 
-/** Formata as referências oficiais como texto para o campo referencias do knowledge_base. */
+/**
+ * Formata as referências oficiais como texto para o campo referencias do
+ * knowledge_base. Usa `citacao_abnt` (formatador determinístico, lib/abnt.ts)
+ * quando disponível — só cai para a montagem ad hoc por partes em specs
+ * antigas que nunca tiveram a citação ABNT calculada.
+ */
 export function composeReferenciasTexto(refs: ReferenciaOficial[]): string {
   return refs
     .map((r) => {
+      if (r.citacao_abnt) return r.citacao_abnt;
       const partes = [r.instituicao, r.documento];
       if (r.numero) partes.push(`Nº ${r.numero}`);
       if (r.versao) partes.push(r.versao);

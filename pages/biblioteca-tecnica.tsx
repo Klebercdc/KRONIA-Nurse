@@ -64,7 +64,7 @@ const FORM_VAZIO = {
   indicacoes: '', contraindicacoes: '', materiais: '', equipamentos: '', epis: '', preparacao: '',
   // Um passo por linha na textarea — convertido para string[] só no envio (ver salvar()).
   execucao_passos: '',
-  cuidados: '', complicacoes: '', registro: '', fundamentacao_cientifica: '',
+  cuidados: '', alertas: '', complicacoes: '', condutas: '', registro: '', fundamentacao_cientifica: '',
   referencias_oficiais: [] as ReferenciaOficial[],
 };
 
@@ -181,7 +181,9 @@ export default function BibliotecaTecnica() {
       preparacao: spec.preparacao ?? '',
       execucao_passos: execucaoTexto,
       cuidados: spec.cuidados ?? '',
+      alertas: spec.alertas ?? '',
       complicacoes: spec.complicacoes ?? '',
+      condutas: spec.condutas ?? '',
       registro: spec.registro ?? '',
       fundamentacao_cientifica: spec.fundamentacao_cientifica ?? '',
       referencias_oficiais: spec.referencias_oficiais ?? [],
@@ -642,7 +644,11 @@ function FormularioView({
         </Campo>
         <Grid2>
           <Campo label="Cuidados Durante e Após"><textarea rows={4} value={form.cuidados ?? ''} onChange={(e) => set('cuidados', e.target.value)} placeholder="Cuidados de enfermagem durante e após o procedimento" /></Campo>
+          <Campo label="Alertas"><textarea rows={4} value={form.alertas ?? ''} onChange={(e) => set('alertas', e.target.value)} placeholder="Sinais que exigem atenção imediata" /></Campo>
+        </Grid2>
+        <Grid2>
           <Campo label="Complicações Possíveis"><textarea rows={4} value={form.complicacoes ?? ''} onChange={(e) => set('complicacoes', e.target.value)} placeholder="Complicações descritas na literatura" /></Campo>
+          <Campo label="Condutas"><textarea rows={4} value={form.condutas ?? ''} onChange={(e) => set('condutas', e.target.value)} placeholder="O que fazer diante de um alerta ou complicação" /></Campo>
         </Grid2>
         <Campo label="Registro">
           <textarea rows={4} value={form.registro ?? ''} onChange={(e) => set('registro', e.target.value)} placeholder="O que deve constar no registro/anotação de enfermagem" />
@@ -908,7 +914,9 @@ function SpecConteudoView({ spec }: { spec: KnowledgeSpec }) {
     ['Materiais', spec.materiais], ['Equipamentos', spec.equipamentos], ['EPIs', spec.epis],
     ['Preparação', spec.preparacao],
     ['Execução', execucaoTexto], ['Cuidados', spec.cuidados],
+    ['Alertas', spec.alertas],
     ['Complicações', spec.complicacoes],
+    ['Condutas', spec.condutas],
     ['Registro', spec.registro], ['Fundamentação Científica', spec.fundamentacao_cientifica],
     // Campos legados — só aparecem em specs antigas.
     ['Prevenção de Eventos Adversos', spec.prevencao_eventos_adversos],
