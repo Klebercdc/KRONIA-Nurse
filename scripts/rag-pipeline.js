@@ -197,6 +197,30 @@ const PDF_METADATA = {
     ano: 2015,
     descricao: 'Brunner & Suddarth: Manual de Enfermagem Médico-Cirúrgica (Clinical Handbook, 13ª ed. — trad. brasileira)',
   },
+  // Descartado antes como "guia administrativo" (lista de compras); reaberto
+  // sob a Constituição de Extração (docs/constituicao-extracao-conhecimento.md,
+  // REGRA 9 — diretriz administrativa fornece materiais/equipamentos válidos)
+  // pra enriquecer `materiais` de Curativos (item #11 de
+  // docs/pdf-triage-referencias-pendentes.md).
+  'guia-breve-para-implantacao-de-servico-ambulatorial-de-enfermagem-em-estomaterapia.pdf': {
+    tipo: 'Guia',
+    instituicao: 'Atena Editora',
+    versao: null,
+    ano: 2022,
+    descricao: 'Guia Breve para Implantação de Serviço Ambulatorial de Enfermagem em Estomaterapia (Ponta Grossa-PR)',
+  },
+  // Descartado antes como "coletânea de artigos acadêmicos"; reaberto sob a
+  // Constituição de Extração (REGRA 8 — revisão de literatura fornece
+  // fundamentação científica/complicações válidas) pra enriquecer Escala de
+  // Braden e Curativos com o estadiamento NPUAP de Lesão por Pressão
+  // (Capítulo 12, item #12 de docs/pdf-triage-referencias-pendentes.md).
+  'temas-em-enfermagem-em-estomaterapia-cuidado-ensino-e-trabalho.pdf': {
+    tipo: 'Livro/Coletânea',
+    instituicao: 'Atena Editora',
+    versao: null,
+    ano: 2023,
+    descricao: 'Temas em Enfermagem em Estomaterapia: Cuidado, Ensino e Trabalho (org. Norma Valéria Dantas de Oliveira Souza et al.)',
+  },
 };
 
 let _supabase = null;

@@ -227,9 +227,51 @@ Isso destrava, em tese, os outros 91 specs sem exigir mais nenhum
 download novo — os livros já baixados (Brunner & Suddarth, os 2 de
 estomaterapia, KDIGO) passam a ser fonte válida por fragmento, não só
 os 6 que bateram por capítulo. Ainda não processados fragmento a
-fragmento: resto do Brunner & Suddarth (1152 páginas), os 2 livros de
-estomaterapia, KDIGO — trabalho real, não instantâneo, mas sem teto
-artificial de ~10 specs como antes.
+fragmento: resto do Brunner & Suddarth (1152 páginas), o KDIGO —
+trabalho real, não instantâneo, mas sem teto artificial de ~10 specs
+como antes.
+
+**Segunda rodada (mesma sessão, 7 specs)**: continuando por fragmento
+no Brunner & Suddarth e reabrindo os 2 livros de estomaterapia
+(antes descartados por gênero):
+
+- **Drenagem de Tórax** (`d7a4c63a-...`), **Drenos** (`4db094fc-...`),
+  **Troca de Selo d'Água** (`ec6c8154-...`) — fragmento do capítulo de
+  derrame pleural/pneumotórax do Brunner & Suddarth (p. 388-389,
+  937-939): `cuidados`, `complicacoes`, `materiais` novos nos 3 (um
+  fragmento sobre manejo de dreno torácico alimentou as 3 Specs
+  relacionadas, sem duplicar — REGRA 5 da Constituição).
+- **Oxigenoterapia** (`5dce52c3-...`) — fragmento do capítulo de DPOC
+  (p. 469-471): `cuidados`/`complicacoes`/`materiais` novos, `alertas`/
+  `condutas` complementados com o risco de hipercapnia em fluxo alto de
+  O2 em cliente com DPOC.
+- **Inalação/Nebulização** (`f681807d-...`) — fragmento do capítulo de
+  estado de mal asmático (p. 135): uso abusivo de nebulizador como
+  fator de risco pra crise asmática grave.
+- **Escala de Braden** (`0f08afe8-...`) — reabri "Temas em Enfermagem
+  em Estomaterapia" (antes descartado como "coletânea acadêmica",
+  REGRA 8 da Constituição: revisão de literatura não é descartável),
+  capítulo 12 (p. 154-155): `fundamentacao_cientifica` com a definição
+  NPUAP de Lesão por Pressão e os fatores de risco (os mesmos domínios
+  avaliados pelas subescalas de Braden), `complicacoes` com o
+  estadiamento 1-4.
+- **Curativos** (`2e4c31f4-...`) — reabri também "Guia Breve para
+  Implantação de Serviço Ambulatorial de Enfermagem em Estomaterapia"
+  (antes descartado como "guia administrativo/lista de compras", REGRA
+  9 da Constituição: diretriz administrativa fornece materiais
+  válidos), lista real de tipos de cobertura (alginato, hidrofibra com
+  prata, hidropolímero, carvão ativado etc.) pra `materiais` e
+  `cuidados` de seleção de cobertura por tipo de lesão; mais o mesmo
+  estadiamento NPUAP do fragmento anterior pra `fundamentacao_cientifica`.
+
+Todos os 7 resincronizados em `knowledge_base` (query SQL única,
+replica `composeConteudoKnowledgeBase`/`composeReferenciasTexto`
+diretamente em Postgres). Entradas dos 2 livros de estomaterapia
+adicionadas em `PDF_METADATA`.
+
+**Total após a Constituição: 8 specs novas enriquecidas nesta rodada**
+(Estomas + os 7 acima), além das 7 da rodada anterior — 15 specs de 98
+com conteúdo técnico real além do guia de registro.
 
 ### Ferramentas de extração avaliadas nesta sessão (usuário forneceu 4 zips)
 
