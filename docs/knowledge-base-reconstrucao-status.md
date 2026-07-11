@@ -398,6 +398,47 @@ ganharam array de passos — Irrigação de Sonda Vesical ficou só com
 cuidados/complicações/materiais, sem execucao_passos, porque a fonte
 não descreve a técnica de irrigação em si).
 
+### Sexta rodada — mais 4 capítulos OpenRN + achado de licença (OpenStax)
+
+Usuário confirmou que são 23 capítulos ao todo (só tinha usado 7) e
+pediu pra continuar. Puxei mais 3:
+
+- **Chapter 3 (Blood Pressure)** → **Sinais Vitais** (estava 100%
+  vazia): técnica completa de aferição manual (10 passos, método
+  auscultatório), classificação de PA em adultos (normal/elevada/
+  hipertensão estágio 1-2/crise hipertensiva/hipotensão/hipotensão
+  ortostática), fatores que distorcem a leitura (manguito de tamanho
+  errado, cafeína/nicotina, arritmia).
+- **Chapter 6 (Neurological Assessment)** → **Avaliação do Nível de
+  Consciência** (estava 100% vazia): Escala de Coma de Glasgow (3
+  componentes), PERRLA, checklist de avaliação neurológica focada.
+- **Chapter 18 (Administration of Parenteral Medications)** →
+  **Vacina** e **Registro de Enfermagem na Administração de
+  Medicamentos** (ambas 100% vazias nesses campos): técnica de injeção
+  IM/SC completa (calibre de agulha, ângulo, sítios anatômicos,
+  aspiração), complicações por sítio mal identificado.
+
+Todas as 4 resincronizadas em `knowledge_base`.
+
+**Achado de licença**: usuário mandou print de uma modelagem sugerindo
+também **OpenStax Microbiology**, **OpenStax Anatomy & Physiology** e
+"OpenStax Pathophysiology" (este último não confirmei que existe).
+Verifiquei as licenças antes de usar qualquer uma — **Microbiology** e
+**Anatomy and Physiology 2e** são **CC BY-NC-SA** (NonCommercial — uso
+comercial proibido), só a 1ª edição de **Anatomy and Physiology** é
+CC BY puro (uso comercial permitido). Se KRONIA Nurse for produto
+comercial, usar as versões NC violaria a licença — mesma categoria de
+problema do caso do KDIGO rascunho (achar antes de usar, não depois).
+Reportado ao usuário, aguardando confirmação se o produto é comercial
+antes de decidir usar Microbiology/A&P 2e ou só a 1ª edição de A&P.
+
+**Total geral: 32 specs de 98 enriquecidas nesta sessão.** Faltam 16
+capítulos do OpenRN ainda não tocados (General Survey, Health History,
+Aseptic Technique, Math Calculations, Head-Neck/Eye-Ear/Cardiovascular/
+Respiratory/Abdominal/Musculoskeletal/Integumentary Assessment,
+Administration of Enteral Medications, Administration of Medications
+Via Other Routes, Specimen Collection — partes ainda não usadas).
+
 ### Ferramentas de extração avaliadas nesta sessão (usuário forneceu 4 zips)
 
 Testadas de verdade no mesmo PDF de 151 páginas pra comparação justa —
