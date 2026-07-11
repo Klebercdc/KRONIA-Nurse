@@ -490,6 +490,30 @@ Todas as 4 resincronizadas em `knowledge_base`.
 
 **Total geral: 35 specs de 98 enriquecidas nesta sessão.**
 
+### Nona rodada — Chapter 16 (outras vias) e resto do Chapter 19
+
+- **Chapter 16 (Administration of Medications Via Other Routes)** →
+  **Inalação/Nebulização** ganhou `execucao_passos` (nebulizador E
+  inalador dosimetrado com espaçador, que faltavam) e complicação de
+  candidíase oral por corticosteroide inalatório sem higiene oral.
+  Achado de segurança à parte, forte o bastante pra virar
+  `contraindicacoes` de **Aplicação de Calor e Frio** (estava 100%
+  vazia): nunca aplicar calor sobre adesivo transdérmico (fentanila,
+  nitroglicerina) — o calor aumenta a liberação do fármaco e pode
+  causar overdose e óbito. Fato batendo em spec diferente da que eu
+  esperava (REGRA 5 — um fragmento pode alimentar Spec fora do capítulo
+  "óbvio" quando o conteúdo realmente se aplica).
+- **Chapter 19, parte não usada antes (swab orofaríngeo/nasal)** →
+  **Coleta de Material para Exames** (estava 100% vazia): técnica de
+  coleta de swab (orofaríngeo, nasal anterior, nasofaríngeo) como
+  exemplo de coleta respiratória — a fonte não cobre venopunção nem
+  coleta de urina, então não inventei essas partes, só documentei o que
+  realmente estava lá.
+
+Todas as 3 resincronizadas em `knowledge_base`.
+
+**Total geral: 38 specs de 98 enriquecidas nesta sessão.**
+
 ### Ferramentas de extração avaliadas nesta sessão (usuário forneceu 4 zips)
 
 Testadas de verdade no mesmo PDF de 151 páginas pra comparação justa —
