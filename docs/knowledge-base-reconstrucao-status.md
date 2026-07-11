@@ -1833,6 +1833,110 @@ Nenhum outro código do repo referenciava o caminho antigo do script (só a
 documentação histórica deste arquivo, que fica como registro do que
 aconteceu na época).
 
+### Quadragésima primeira rodada — skill kronia-nurse-knowledge pra 10/10 + 2 achados de compliance ao vivo
+
+Usuário pediu nota de 0-10 pra skill consolidada na rodada anterior;
+respondi 7/10 (gates nomeados sem mecanismo real por trás, lista de
+licenciamento duplicada/driftável, backlog nunca exercitado). Pediu pra
+reescrever pra 10, analisando as skills já existentes no repo em busca
+de padrão a copiar.
+
+**O que os outros skills do repo ensinaram**: `cavekit-validation-first`
+usa uma tabela de gates com coluna "Automatizado? Sim/Não" — honesta
+sobre o que é garantido vs. o que ainda depende de alguém lembrar.
+`impeccable` tem scripts reais (`.mjs`) por trás de cada hook, não só
+nome. `kronia-nurse-document-ingestion` já mantém um log de achados de
+licença por fonte (Step 2d-2g) — mais completo que a lista que eu
+mesmo tinha copiado pro `01-licenciamento-e-fontes.md` na rodada
+anterior. `docs/constituicao-extracao-conhecimento.md` já é a fonte
+única de verdade da regra de licença — eu estava duplicando ela.
+
+**Correções estruturais na skill**:
+1. `01-licenciamento-e-fontes.md` — parou de duplicar a regra e a lista
+   de fontes; aponta pra constituição + `kronia-nurse-document-ingestion`
+   em vez disso. Menos conteúdo, zero risco de as duas cópias divergirem
+   de novo.
+2. `SKILL.md` — a lista solta de "7 auditorias automáticas obrigatórias"
+   virou uma tabela honesta mapeando cada gate ao mecanismo real: 4 são
+   CHECK constraints do Postgres (rejeitam sozinhos), 1 é a rota única
+   de aprovação (estrutural), 3 dependem de rodar um script/query (não
+   são automáticas por si só — é preciso lembrar de rodar).
+3. `references/06-auditoria-consistencia.md` (novo) — query SQL real de
+   consistência entre campos, testada contra a base inteira nesta
+   sessão (não é só um exemplo teórico).
+4. Migration `20260712_licenca_conhecimento_documentos.sql` — coluna
+   `licenca` em `conhecimento_documentos` com CHECK allowlist (`CC BY
+   4.0`, `CC BY-SA 4.0`, `CC0 1.0`, `Domínio Público`, `Governamental/
+   Institucional sem restrição`). Qualquer variante NC é rejeitada pelo
+   banco, testado com INSERT real (`check_violation`). Converte a regra
+   de licenciamento de "prosa que precisa ser lida com atenção" pra
+   "o banco recusa sozinho".
+
+**Achado 1 — bug real no pipeline, corrigido**: `excluido_licenca: true`
+em `PDF_METADATA` (`scripts/rag-pipeline.js`) existia desde a exclusão
+do manual UFCSPA mas **nunca era checado em código nenhum** — um PDF
+marcado assim ainda seria processado normalmente se o pipeline rodasse.
+Corrigido: `processPDF()` agora pula qualquer entrada com essa flag
+antes de extrair. `resumo` do pipeline ganhou a chave
+`bloqueado_licenca` (faltava, causaria `NaN` no log se não fosse
+adicionada).
+
+**Achado 2 — 2 fontes CC BY-NC-ND publicadas sem exclusão, corrigido**:
+verificando a lista de licenciamento (não confiando na palavra do zip
+recebido — fui direto no PDF original de cada uma via
+`educapes.capes.gov.br`, extraído com PyMuPDF, não WebFetch — que
+resumiu errado por causa da compressão do PDF), confirmei que os 2
+guias de Estomaterapia da Atena Editora (`guia-breve-para-implantacao-
+...-estomaterapia.pdf`, `temas-em-enfermagem-em-estomaterapia-...pdf`)
+são CC BY-NC-ND 4.0 — texto exato na página de direitos autorais de
+ambos: *"Todo o conteúdo deste livro está licenciado sob uma Licença de
+Atribuição Creative Commons. Atribuição-Não-Comercial-NãoDerivativos
+4.0 Internacional"*. Nenhum dos dois tinha `excluido_licenca` no
+`PDF_METADATA` — mesmo erro do caso UFCSPA, só que não pego até agora.
+Pior: **2 specs já publicadas** (`status='aprovado'`, com linha real em
+`knowledge_base`) citavam essas fontes:
+
+- `Registro de Enfermagem — Escala de Braden` — `registro` totalmente
+  reescrito usando só COFEN (Camada 1, fonte única suficiente). Achado
+  bônus: o COFEN cobre as 6 subescalas de Braden completas (percepção
+  sensorial, umidade, atividade, mobilidade, nutrição, fricção/
+  cisalhamento) — a versão anterior, apoiada em parte na Atena, só
+  cobria 4. Resultado ficou mais completo, não só "limpo". 5 citações
+  novas com `fragmento_id` real, todas verificadas por substring antes
+  de gravar. `pipeline_classificacao` subiu pra `verde`.
+- `Curativos — Registro de Enfermagem` — `materiais`/`cuidados`
+  reescritos removendo os itens só confirmados na Atena (malha com
+  prata isolada, bota de Unna nomeada, carvão ativado pra odor),
+  mantendo só o que o OpenRN Cap. 20 (Wound Care, CC BY 4.0, já citado)
+  sustenta de fato (confirmado por leitura direta do capítulo: alginato/
+  hidrofibra pra exsudato intenso, hidropolímero pra exsudato moderado-
+  intenso inclusive sob compressão em úlcera venosa, hidrocoloide
+  contraindicado se infectada). `pipeline_classificacao` ficou
+  `amarelo` — verificação foi por leitura, não por `fragmento_id`
+  mecânico (OpenRN não está indexado em `conhecimento_fragmentos`).
+
+Ambas corrigidas nas duas tabelas (`knowledge_specs` E `knowledge_base`
+— a segunda é o que o app renderiza de fato). Achado documentado como
+Step 2g em `kronia-nurse-document-ingestion/SKILL.md`, mesmo padrão do
+Step 2f (UFCSPA).
+
+**Achado 3 — não resolvido, reportado pro usuário decidir**: rodando a
+nova query de consistência (`06-auditoria-consistencia.md`) pela
+primeira vez contra a base inteira: **98/98** specs `aprovado` têm
+`knowledge_base_id` nulo na própria linha (o vínculo existe ao contrário,
+via `knowledge_base.spec_id`, só não está espelhado), e **86/98** não
+têm `aprovado_por` nenhum. As 12 que têm `aprovado_por` preenchido
+compartilham o mesmo timestamp exato (`2026-07-10 14:21:10`) — assinatura
+de um UPDATE em lote, não de 12 cliques de aprovação humana em momentos
+diferentes. Pode ser perfeitamente normal (conteúdo semente de antes
+desta skill existir) ou pode não ser — não dá pra saber sem a história
+real dos 98 registros, que só o usuário tem. Não tentei corrigir.
+
+**Verificação**: `npx tsc --noEmit`, `node --check scripts/rag-pipeline.js`,
+`npm run build`, `npm test` (145 testes) — todos limpos. CHECK constraint
+de `licenca` testado com INSERT real (rejeita NC, aceita CC BY). As 2
+specs corrigidas reconfirmadas via SELECT direto nas duas tabelas.
+
 ## Ainda pendente
 
 **Ingestão dos PDFs da pasta "Referências" do Drive** (46 arquivos): 13 já

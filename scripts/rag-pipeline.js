@@ -211,29 +211,33 @@ const PDF_METADATA = {
     ano: 2015,
     descricao: 'Brunner & Suddarth: Manual de Enfermagem Médico-Cirúrgica (Clinical Handbook, 13ª ed. — trad. brasileira)',
   },
-  // Descartado antes como "guia administrativo" (lista de compras); reaberto
-  // sob a Constituição de Extração (docs/constituicao-extracao-conhecimento.md,
-  // REGRA 9 — diretriz administrativa fornece materiais/equipamentos válidos)
-  // pra enriquecer `materiais` de Curativos (item #11 de
-  // docs/pdf-triage-referencias-pendentes.md).
+  // EXCLUÍDO — licença CC BY-NC-ND 4.0, confirmada em 2026-07-11 direto no
+  // PDF (página de direitos autorais: "Todo o conteúdo deste livro está
+  // licenciado sob uma Licença de Atribuição Creative Commons. Atribuição-
+  // Não-Comercial-NãoDerivativos 4.0 Internacional (CC BY-NC-ND 4.0)").
+  // Tinha sido reaberto antes (REGRA 9 da Constituição de Extração) sem
+  // checar a licença — mesmo erro que o caso UFCSPA (ver Step 2f de
+  // .claude/skills/kronia-nurse-document-ingestion/SKILL.md). NÃO usar
+  // como fonte de `conhecimento_fragmentos` nem em enriquecimento manual.
   'guia-breve-para-implantacao-de-servico-ambulatorial-de-enfermagem-em-estomaterapia.pdf': {
     tipo: 'Guia',
     instituicao: 'Atena Editora',
     versao: null,
     ano: 2022,
     descricao: 'Guia Breve para Implantação de Serviço Ambulatorial de Enfermagem em Estomaterapia (Ponta Grossa-PR)',
+    excluido_licenca: true,
   },
-  // Descartado antes como "coletânea de artigos acadêmicos"; reaberto sob a
-  // Constituição de Extração (REGRA 8 — revisão de literatura fornece
-  // fundamentação científica/complicações válidas) pra enriquecer Escala de
-  // Braden e Curativos com o estadiamento NPUAP de Lesão por Pressão
-  // (Capítulo 12, item #12 de docs/pdf-triage-referencias-pendentes.md).
+  // EXCLUÍDO — mesma licença CC BY-NC-ND 4.0, mesmo texto de direitos
+  // autorais confirmado direto no PDF em 2026-07-11 (série da mesma
+  // editora/coleção do guia acima). Reaberto antes (REGRA 8) sem checar a
+  // licença. NÃO usar.
   'temas-em-enfermagem-em-estomaterapia-cuidado-ensino-e-trabalho.pdf': {
     tipo: 'Livro/Coletânea',
     instituicao: 'Atena Editora',
     versao: null,
     ano: 2023,
     descricao: 'Temas em Enfermagem em Estomaterapia: Cuidado, Ensino e Trabalho (org. Norma Valéria Dantas de Oliveira Souza et al.)',
+    excluido_licenca: true,
   },
   // Item #16 de docs/pdf-triage-referencias-pendentes.md. 44MB/3092
   // páginas — acima do limite de 10MB de download binário e do que
@@ -771,6 +775,14 @@ async function processPDF(filePath, paginasDocling) {
     console.warn(`⚠️ Metadados não encontrados para ${fileName}, pulando...`);
     return { status: 'pulado' };
   }
+  if (metadata.excluido_licenca) {
+    // Flag documenta a exclusão (ex.: UFCSPA, CC BY-NC-ND) mas até aqui
+    // nada no código de fato a respeitava — um PDF marcado excluido_licenca
+    // ainda seria indexado normalmente se reprocessado. Bloqueio real:
+    // nunca extrai/indexa uma entrada marcada assim, ponto.
+    console.warn(`🚫 ${fileName}: excluido_licenca=true — não será indexado.`);
+    return { status: 'bloqueado_licenca' };
+  }
 
   let fullText;
   let totalPaginas;
@@ -838,6 +850,7 @@ async function processPDF(filePath, paginasDocling) {
       descricao: metadata.descricao,
       conteudo_completo: fullText,
       hash_conteudo: contentHash,
+      licenca: metadata.licenca || null,
       ativo: true,
     })
     .select('id')
@@ -973,7 +986,7 @@ async function runPipeline() {
     );
   }
 
-  const resumo = { indexado: 0, duplicado: 0, pulado: 0, erro: 0 };
+  const resumo = { indexado: 0, duplicado: 0, pulado: 0, bloqueado_licenca: 0, erro: 0 };
   for (const file of pdfFiles) {
     try {
       const doclingResultado = paginasPorArquivoDocling[file];
@@ -991,7 +1004,7 @@ async function runPipeline() {
   console.log('\n╔════════════════════════════════════════════════╗');
   console.log('║   PIPELINE CONCLUÍDO                           ║');
   console.log('╚════════════════════════════════════════════════╝');
-  console.log(`   Indexados: ${resumo.indexado} | Já indexados: ${resumo.duplicado} | Sem metadados: ${resumo.pulado} | Erros: ${resumo.erro}\n`);
+  console.log(`   Indexados: ${resumo.indexado} | Já indexados: ${resumo.duplicado} | Sem metadados: ${resumo.pulado} | Bloqueados por licença: ${resumo.bloqueado_licenca} | Erros: ${resumo.erro}\n`);
 
   if (resumo.erro > 0) {
     process.exitCode = 1;

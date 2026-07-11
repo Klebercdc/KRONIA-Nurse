@@ -345,6 +345,54 @@ If a Drive link or filename references "Intensivismo" / "UFCSPA" /
 check this section before using it — the finding above already answers
 the license question, no need to re-verify from scratch.
 
+## Step 2g — Atena Editora "Estomaterapia" guides: CC BY-NC-ND, do NOT use
+
+Two Atena Editora titles were in `PDF_METADATA`
+(`scripts/rag-pipeline.js`) and cited by 2 published `knowledge_specs`
+(`Curativos — Registro de Enfermagem`, `Registro de Enfermagem — Escala
+de Braden`) without any license exclusion — same mistake as the UFCSPA
+book above, just not caught until a later session round:
+
+- `guia-breve-para-implantacao-de-servico-ambulatorial-de-enfermagem-em-estomaterapia.pdf`
+  (Guia Breve para Implantação de Serviço Ambulatorial de Enfermagem em
+  Estomaterapia, 2022)
+- `temas-em-enfermagem-em-estomaterapia-cuidado-ensino-e-trabalho.pdf`
+  (Temas em Enfermagem em Estomaterapia: Cuidado, Ensino e Trabalho,
+  2023, org. Norma Valéria Dantas de Oliveira Souza et al.)
+
+**Confirmed 2026-07-11 directly from the PDFs' own copyright page**
+(`educapes.capes.gov.br` mirror of both, fetched and read with PyMuPDF —
+don't trust a WebFetch summary of a compressed PDF, it can come back
+empty/wrong; download and extract text locally): both state *"Todo o
+conteúdo deste livro está licenciado sob uma Licença de Atribuição
+Creative Commons. Atribuição-Não-Comercial-NãoDerivativos 4.0
+Internacional (CC BY-NC-ND 4.0)"* verbatim on the imprint page. Same
+publisher, likely same license across their whole catalog for this
+series, but confirm per-title anyway — don't generalize from the
+publisher name alone (see the general rule in
+`kronia-nurse-knowledge/references/01-licenciamento-e-fontes.md`).
+
+**Do not cite or extract content from either book.** Both are now
+flagged `excluido_licenca: true` in `PDF_METADATA` (which — as of this
+same round — is actually enforced in `processPDF()`: an entry with that
+flag is skipped before extraction, not just documented and ignored like
+it was before). The 2 affected specs were fixed the same session:
+`Registro de Enfermagem — Escala de Braden` was fully re-grounded in
+COFEN's own registro guide alone (which turned out to cover all 6
+Braden subscales, more complete than what the Atena source had
+provided — losing an excluded source again meant finding who else says
+the same thing, not losing the content); `Curativos — Registro de
+Enfermagem` had its `materiais`/`cuidados` trimmed to only the dressing-
+selection guidance confirmed in OpenRN Chapter 20 (Wound Care, already
+a cited compliant source), dropping the specific items (silver mesh
+named separately, Unna boot by name, activated charcoal for odor) that
+weren't independently confirmed — flagged `pipeline_classificacao =
+'amarelo'` pending a source for those specifics, rather than reintroducing
+them without one.
+
+If a Drive link or filename references "Estomaterapia" / "Atena
+Editora" again in a future session, check this section first.
+
 ## Step 3 — Known institution/document quality (update this list as you learn more)
 
 | Institution / source | Known quality | Notes |
