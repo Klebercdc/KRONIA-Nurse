@@ -55,6 +55,13 @@ const DRIVE_FOLDER_NAME = 'kronia-nurse-pdfs';
 
 // Metadados dos PDFs oficiais (chave = nome exato do arquivo no Drive)
 const PDF_METADATA = {
+  'Mosby.pdf': {
+    tipo: 'Livro',
+    instituicao: 'Elsevier/Mosby',
+    versao: '11ª edição',
+    ano: 2015,
+    descricao: 'Skidmore-Roth, L. Mosby\'s Drug Guide for Nursing Students — guia de fármacos; usado nesta sessão pelo Apêndice H (Photo Atlas of Drug Administration): ângulos de agulha por via, sítios de injeção IM, técnica em Z, administração IV bolus/piggyback. 32MB/1311 páginas, baixado via curl direto (compartilhado por link, sem interstitial de confirmação desta vez).',
+  },
   'RDC-11.pdf': {
     tipo: 'RDC',
     instituicao: 'ANVISA',

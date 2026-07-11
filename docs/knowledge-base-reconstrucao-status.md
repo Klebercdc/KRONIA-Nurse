@@ -1049,6 +1049,42 @@ Resincronizada em `knowledge_base`.
 
 **Total geral: 82 specs de 98 enriquecidas.**
 
+### Vigésima sétima rodada — Mosby's Drug Guide for Nursing Students (Apêndice H)
+
+Usuário mandou `Mosby.pdf` (link do Drive) — **Mosby's Drug Guide for
+Nursing Students**, Skidmore-Roth, 11ª ed., Elsevier/Mosby, 2015, 32MB/
+1311 páginas. Baixado via curl direto (compartilhado por link; desta
+vez o Drive entregou o arquivo completo sem passar pela página de aviso
+de "não foi possível escanear vírus", diferente do caso do wong.pdf).
+Extração local com PyMuPDF: 1311 páginas em ~9s.
+
+É majoritariamente um dicionário de monografias de fármacos (não serve
+pra specs de procedimento, que não são organizadas por fármaco
+individual), mas o **Apêndice H — Photo Atlas of Drug Administration**
+(p. 1229-1239) tem conteúdo técnico real e genérico o bastante pra
+enriquecer 3 specs de administração de medicamento **já enriquecidas
+com o OpenRN**, sem duplicar (REGRA 10 — multi-fonte coexistindo):
+tabela comparativa de ângulo de agulha por via (IM 90°, SC 45-90°, ID
+15°), justificativa anatômica dos sítios (ventroglúteo evita nervos e
+vasos principais; vasto lateral em lactentes), mecanismo da técnica em
+Z (por que fecha o trajeto em ziguezague e evita refluxo do
+medicamento), e técnica de administração IV em bolus/piggyback
+(ocluir a via, aspirar retorno sanguíneo, injetar lentamente
+cronometrando, dispositivo needle-lock na linha secundária):
+
+- **Vacina**: `fundamentacao_cientifica` nova (ângulos por via + Z-track).
+- **Registro de Enfermagem na Administração de Medicamentos**:
+  `fundamentacao_cientifica` nova (ângulos, sítios, Z-track, IV bolus).
+- **Acesso Venoso Periférico**: `cuidados` complementados com a técnica
+  de administração IV bolus/piggyback pelo acesso já estabelecido.
+
+Todas as 3 já contavam no total de 82 (só ganharam profundidade, não
+são specs novas). Entrada adicionada em `PDF_METADATA`
+(`scripts/rag-pipeline.js`).
+
+**Total geral inalterado: 82 specs de 98 enriquecidas** (profundidade
+aumentada em 3 delas).
+
 ## Ainda pendente
 
 **Ingestão dos PDFs da pasta "Referências" do Drive** (46 arquivos): 13 já
