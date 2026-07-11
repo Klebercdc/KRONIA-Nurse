@@ -99,6 +99,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       autor:         usuario.nome,
       embedding,
 
+      // Tipo de Objeto de Conhecimento (migration 20260706_knowledge_tipo +
+      // 20260712_resultado_enfermagem_tipo). tipo !== 'procedimento' guarda
+      // seus campos próprios em campos_especificos (migration
+      // 20260712_campos_especificos_knowledge_base) — sem isso, specs de
+      // diagnóstico/resultado publicariam sem NANDA/NOC nenhum.
+      tipo:                specTyped.tipo                ?? 'procedimento',
+      campos_especificos:  specTyped.campos_especificos   ?? null,
+
       // Seções estruturadas (adicionadas via ALTER TABLE — migration 20260630_alter)
       objetivo:                   specTyped.objetivo                   ?? null,
       escopo:                     specTyped.escopo                     ?? null,

@@ -23,7 +23,7 @@ export type ClassificacaoPipeline = 'verde' | 'amarelo' | 'vermelho';
  * Outros tipos guardam seus campos próprios em `campos_especificos` — ver
  * context/kits/knowledge-engine-tipos-objeto.md.
  */
-export type TipoConhecimento = 'procedimento' | 'diagnostico_enfermagem';
+export type TipoConhecimento = 'procedimento' | 'diagnostico_enfermagem' | 'resultado_enfermagem';
 
 /** Taxonomia de diagnóstico de enfermagem — NANDA-I é o primeiro tipo implementado. */
 export type TaxonomiaDiagnostico = 'NANDA-I' | 'CIPE';
@@ -38,6 +38,19 @@ export interface CamposEspecificosDiagnostico {
   caracteristicas_definidoras?: string[];
   fatores_relacionados?: string[];
   fatores_de_risco?: string[];
+}
+
+/** Campos próprios de um Resultado de Enfermagem (tipo = 'resultado_enfermagem'), taxonomia NOC — ver context/kits/knowledge-engine-tipos-objeto.md item 6. */
+export interface CamposEspecificosResultado {
+  taxonomia: 'NOC';
+  codigo?: string;
+  dominio?: string;
+  classe?: string;
+  definicao: string;
+  /** Indicadores mensuráveis do resultado. */
+  indicadores?: string[];
+  /** Escala usada para avaliar cada indicador (ex.: Likert 1-5 NOC). */
+  escala_avaliacao?: string;
 }
 
 /** Registro de uma fonte oficial coletada na Etapa 1 (Pesquisador). */
@@ -129,7 +142,7 @@ export interface KnowledgeSpec {
   /** Default 'procedimento' no banco — ausente aqui significa 'procedimento'. */
   tipo?: TipoConhecimento;
   /** Só preenchido quando tipo !== 'procedimento'. */
-  campos_especificos?: CamposEspecificosDiagnostico | null;
+  campos_especificos?: CamposEspecificosDiagnostico | CamposEspecificosResultado | null;
 
   // Seções de conteúdo (Etapa 2: Redator) — modelo conceitual atual
   definicao?: string;

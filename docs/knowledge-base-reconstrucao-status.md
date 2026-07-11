@@ -1578,6 +1578,101 @@ autenticada do Supabase (Bearer token) e não há credencial de teste
 disponível neste sandbox; a verificação ficou no nível de dado
 correto + build/typecheck/test limpos, não confirmação visual.
 
+### Trigésima oitava rodada — validação das 4 specs novas de Hemodiálise + tipo='resultado_enfermagem'
+
+Usuário enviou `Revisao_e_Validacao_Kronia_Nurse_11072026.pdf` (documento de
+revisão feito por outro agente) sobre 4 `knowledge_specs` novas, criadas na
+rodada anterior, ainda em `status='rascunho'`:
+
+1. **Punção de Fístula Arteriovenosa (FAV) para Hemodiálise**
+   (`6360b908-…`, `tipo='procedimento'`)
+2. **Diagnóstico de Enfermagem: Volume de Líquidos Excessivo**
+   (`da204ebd-…`, `tipo='diagnostico_enfermagem'`, NANDA-I)
+3. **Intervenção de Enfermagem: Controle Hídrico**
+   (`51e6f4b3-…`, `tipo='procedimento'` — NIC ainda não tem tipo
+   próprio, ver `context/kits/knowledge-engine-tipos-objeto.md` item 5)
+4. **Resultado de Enfermagem: Equilíbrio Hídrico** (NOC 0601)
+   (`b4464518-…`, `tipo='procedimento'` até esta rodada — NOC também
+   não tinha tipo próprio ainda)
+
+O PDF apontava pontos fracos específicos em cada spec (materiais
+incompletos, característica definidora faltando, ausência de
+fundamentação científica, campo `classe` NOC ausente) e recomendava, no
+item 4, avaliar ampliar o CHECK constraint de `tipo` pra um terceiro
+valor em vez de manter o contorno via `campos_especificos.tipo_registro`.
+
+**Correções de conteúdo** (SQL direto em `knowledge_specs`, não é
+código versionado — specs continuam `rascunho`, nenhuma foi aprovada):
+
+- Spec 1 (FAV): `materiais` reescrito, um passo de `execucao_passos`
+  corrigido via `jsonb_set`, `cuidados` complementado, nova referência
+  (Andrade 2016, Núcleo do Conhecimento, CC BY 4.0) corroborando a
+  técnica.
+- Spec 2 (NANDA): `campos_especificos.caracteristicas_definidoras`
+  ganhou "Hepatomegalia" (estava faltando), referência secundária
+  (deenfermagem.com, marcada como não-autoritativa) acrescentada.
+- Spec 3 (NIC): `fundamentacao_cientifica` adicionado confirmando o
+  código NIC 4120 e a definição batem com literatura secundária,
+  referência terciária acrescentada.
+- Spec 4 (NOC): `campos_especificos.classe` adicionado ("Líquidos e
+  Eletrólitos — Classe G"), `escala_avaliacao` corrigido pra refletir a
+  corroboração encontrada, referência terciária acrescentada.
+
+Nenhuma dessas 4 correções usou os manuais oficiais NANDA-I/NIC/NOC
+(sem acesso) — todas usam literatura acadêmica secundária/terciária pra
+corroborar código/domínio/classe/indicadores, deixando claro que a
+comparação linha a linha com o manual oficial (o que o PDF realmente
+pede) continua pendente.
+
+**Correção estrutural** (item 4 do PDF, "decisão sua" — implementada):
+
+O kit `context/kits/knowledge-engine-tipos-objeto.md` (item 6) já previa
+"Resultados (NOC)" como tipo de Objeto de Conhecimento próprio, só
+faltando entrar no CHECK constraint junto com os outros tipos ainda não
+especificados. Isso não era um desvio, era o próximo passo do roadmap
+do próprio kit:
+
+1. Migration `20260712_resultado_enfermagem_tipo.sql`: amplia
+   `knowledge_specs_tipo_check` e `knowledge_base_tipo_check` pra
+   `('procedimento', 'diagnostico_enfermagem', 'resultado_enfermagem')`.
+2. Spec 4 migrada: `tipo='resultado_enfermagem'`, removido o campo
+   `campos_especificos.tipo_registro` (workaround redundante agora que
+   o `tipo` real está correto).
+3. `lib/knowledge-spec.ts`: `TipoConhecimento` ganhou
+   `'resultado_enfermagem'`; nova interface
+   `CamposEspecificosResultado` (taxonomia NOC — `codigo`, `dominio`,
+   `classe`, `definicao`, `indicadores`, `escala_avaliacao`).
+4. **Bug de mesma classe encontrado e corrigido de passagem**:
+   `knowledge_base` nunca tinha ganhado a coluna `campos_especificos`
+   (só `knowledge_specs` tinha, desde a migration `20260706_knowledge_
+   tipo`), e `pages/api/knowledge-spec/aprovar.ts` nunca levava
+   `tipo`/`campos_especificos` no INSERT — ou seja, se a spec NANDA ou a
+   NOC fossem aprovadas hoje, o artigo publicado sairia com
+   `tipo='procedimento'` e **sem nenhum dado NANDA/NOC**, igual ao bug
+   estrutural da rodada anterior, só que pros tipos novos em vez das
+   seções conceituais. Corrigido: migration
+   `20260712_campos_especificos_knowledge_base.sql` (`ADD COLUMN
+   campos_especificos JSONB`) + `aprovar.ts` agora mapeia `tipo` e
+   `campos_especificos` no INSERT + `pages/api/biblioteca/obter.ts`
+   seleciona os dois campos também.
+
+**Pendente, fora do escopo desta rodada**: `pages/conhecimento/[id].tsx`
+ainda não tem UI pra renderizar `campos_especificos` (características
+definidoras, indicadores NOC etc.) — não é um bug de perda de dado (o
+dado agora chega até `knowledge_base` e fica disponível via API), é uma
+funcionalidade de exibição que só importa quando a primeira spec de tipo
+`diagnostico_enfermagem`/`resultado_enfermagem` for de fato aprovada. Não
+construí essa UI porque nenhuma spec desses tipos está sendo aprovada
+nesta rodada — fica registrado aqui pra não esquecer quando isso
+acontecer.
+
+**Verificação**: `npm run typecheck`, `npm run build` (produção) e
+`npm test` (145 testes) — todos limpos após as duas migrations novas e
+as mudanças em `lib/knowledge-spec.ts`/`aprovar.ts`/`obter.ts`. As 4
+specs continuam `status='rascunho'`, `pipeline_classificacao='amarelo'`
+— nenhuma foi aprovada nem publicada nesta rodada; aprovação continua
+exigindo ação humana explícita via `/api/knowledge-spec/aprovar`.
+
 ## Ainda pendente
 
 **Ingestão dos PDFs da pasta "Referências" do Drive** (46 arquivos): 13 já

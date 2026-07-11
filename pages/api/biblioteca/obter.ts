@@ -11,6 +11,8 @@ export type ConhecimentoCompleto = {
   resumo: string | null;
   objetivo: string | null;
   escopo: string | null;
+  tipo: string | null;
+  campos_especificos: Record<string, unknown> | null;
   definicao: string | null;
   indicacoes: string | null;
   contraindicacoes: string | null;
@@ -54,7 +56,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .from('knowledge_base')
     .select(`
       id, titulo, categoria, subcategoria, especialidade, resumo,
-      objetivo, escopo, definicao,
+      objetivo, escopo, tipo, campos_especificos, definicao,
       indicacoes, contraindicacoes, materiais, equipamentos, epis,
       preparacao, execucao_passos, procedimento,
       cuidados, alertas, complicacoes, condutas, registro, fundamentacao_cientifica,
