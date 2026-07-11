@@ -863,6 +863,19 @@ Todas as 2 resincronizadas em `knowledge_base`.
 
 **Total geral: 74 specs de 98 enriquecidas.**
 
+### Vigésima primeira rodada — Punção Arterial (RioSaúde POP.DEA.022)
+
+**Punção Arterial (Enfermeiro)** — POP.DEA.022 (RioSaúde, 2024, v03):
+Teste de Allen Modificado detalhado (5-10 flexões, <15s = positivo,
+negativo contraindica punção radial), ângulo por sítio (30°
+radial/45° braquial/90° femoral), seção pediátrica/neonatal própria,
+base legal real (Resolução COFEN nº 703/2022, que normatiza a punção
+arterial para gasometria como privativa do enfermeiro).
+
+Resincronizada em `knowledge_base`.
+
+**Total geral: 75 specs de 98 enriquecidas.**
+
 ### Ferramentas de extração avaliadas nesta sessão (usuário forneceu 4 zips)
 
 Testadas de verdade no mesmo PDF de 151 páginas pra comparação justa —
