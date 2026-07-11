@@ -753,6 +753,42 @@ Ambas resincronizadas em `knowledge_base`.
 
 **Total final da sessão: 61 specs de 98 enriquecidas.**
 
+### Décima sétima rodada — Centro Cirúrgico (5 specs) + Pós-Parto Imediato
+
+Usuário pediu pra continuar até os 98 sem parar. Reabri o Brunner &
+Suddarth (só tinha usado ~20 de 1152 páginas) e achei a seção
+"Manejo de enfermagem no período peroperatório" (p. 760-791) — uma
+seção dedicada de verdade, não disperso em capítulo de doença, cobrindo
+as 3 fases peroperatórias. Preencheu as **5 specs de Centro Cirúrgico
+que estavam 100% vazias**:
+
+- **Pré-Operatório Imediato**: checklist completo (jejum 8-10h, gorro,
+  remoção de prótese/joia, urinar antes, medicação pré-anestésica,
+  marcação do sítio cirúrgico).
+- **Intraoperatório**: verificação padronizada de identidade/
+  procedimento/sítio (AORN/Joint Commission), transporte e
+  acompanhamento contínuo.
+- **Pós-Operatório Imediato**: recepção na unidade após a UCPA,
+  passagem de plantão estruturada, frequência de sinais vitais (15min
+  x1h, 30min x2h), complicações potenciais (TVP, hematoma, infecção,
+  deiscência).
+- **Pós-Operatório Mediato**: técnica de troca de curativo cirúrgico
+  passo a passo, deambulação precoce, hipertermia maligna.
+- **URPA**: checklist de admissão na UCPA, manejo de obstrução
+  hipofaríngea, critérios reais de alta (função respiratória, SpO2,
+  PA estável, náusea controlada, dor controlada).
+
+Também achei, no `obstetricia.pdf` já catalogado (procurei de novo com
+termo diferente — "puerpério imediato" em vez de "pós-parto imediato",
+que tinha falhado numa rodada anterior), o capítulo "Assistência ao
+Puerpério" completo, com seção "CONDUTAS" dedicada — preencheu
+**Cuidados no Pós-Parto Imediato** (involução uterina, lóquios,
+protocolo de inibição de lactação, critério de alta hospitalar).
+
+Todas as 6 resincronizadas em `knowledge_base`.
+
+**Total geral: 67 specs de 98 enriquecidas.**
+
 ### Ferramentas de extração avaliadas nesta sessão (usuário forneceu 4 zips)
 
 Testadas de verdade no mesmo PDF de 151 páginas pra comparação justa —
