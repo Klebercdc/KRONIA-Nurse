@@ -1033,6 +1033,22 @@ continuam precisando de uma fonte alternativa com licença permissiva
 (CC BY, domínio público, ou POP sem cláusula NC) antes de serem
 enriquecidas.
 
+### Vigésima sexta rodada — Teste de Gravidez (POP Porto Alegre nº 20)
+
+**Teste de Gravidez – Registro de Enfermagem** (100% vazia exceto o
+guia de registro COFEN) — POP nº 20 (Porto Alegre, 2023, sem cláusula
+de licença restritiva): `definicao` (teste qualitativo de hCG urinário),
+`indicacoes` (atraso menstrual ≥7 dias), `materiais`, `execucao_passos`
+completo (9 passos — coleta, imersão da tira 5-8s, leitura em 5-10min,
+interpretação positivo/negativo), `cuidados`, `complicacoes` (falso-
+negativo por diluição/teste precoce) e `condutas` complementadas com o
+fluxo real de reteste em 48-72h e escalonamento pra Beta-hCG sanguíneo
+se persistir negativo com atraso menstrual mantido.
+
+Resincronizada em `knowledge_base`.
+
+**Total geral: 82 specs de 98 enriquecidas.**
+
 ## Ainda pendente
 
 **Ingestão dos PDFs da pasta "Referências" do Drive** (46 arquivos): 13 já
