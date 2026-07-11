@@ -1327,6 +1327,53 @@ Resincronizada em `knowledge_base`.
 
 **Total geral: 95 specs de 98 enriquecidas.**
 
+### Trigésima terceira rodada — Escala de Aldrete e Kroulik (parecer COREN-SP) + tentativa de Ramsay
+
+Usuário pediu pra avaliar se diretrizes de sociedade científica (AHA,
+AMIB, SOBECC) resolveriam alguma das 7 specs restantes.
+
+- **Escala de Aldrete e Kroulik modificada** — a tabela completa da
+  escala (5 domínios: atividade muscular, respiração, circulação,
+  consciência, saturação de O2; 0-2 pontos cada; corte de alta em 8)
+  **já estava presente** no trecho COFEN citado desde rodadas
+  anteriores, fonte original SOBECC 2022 — só nunca tinha virado
+  `execucao_passos` estruturado. Formatado agora. Complementado com o
+  **Parecer COREN-SP nº 017/2021** (achado nesta rodada, sem restrição
+  de licença — documento de câmara técnica de conselho profissional):
+  base legal completa (Lei nº 7.498/1986, Resolução COFEN nº 358/2009),
+  histórico do índice (Aldrete e Kroulik, 1970, atualizado 1995), e a
+  distinção real entre quem preenche a escala (equipe de enfermagem) e
+  quem decide a alta (ato médico, em avaliação conjunta com o
+  enfermeiro). Ganhou `execucao_passos` e `fundamentacao_cientifica`.
+- **SOBECC (Diretrizes de Práticas em Enfermagem Cirúrgica)**: é a
+  fonte original da tabela de Aldrete-Kroulik já usada, mas as
+  Diretrizes completas (8ª ed.) são publicação comercial vendida pela
+  sociedade (`sobecc.org.br/store`), sem PDF de acesso livre — não
+  disponível pra uso direto nesta sessão.
+- **Escala de Ramsay**: tentativa de achar a tabela completa (níveis
+  1-6) falhou — `portal.coren-sp.gov.br` (Parecer COREN-SP nº 008/2018,
+  que trata exatamente do tema) e `scielo.br` retornaram HTTP 403 tanto
+  via `curl` quanto via `WebFetch`, sem fallback de binário salvo desta
+  vez (diferente do padrão "WebFetch falha mas salva o PDF" que
+  funcionou noutros hosts governamentais). Um terceiro artigo (Online
+  Brazilian Journal of Nursing, UFF, baixado com sucesso) discute Ramsay
+  mas não reproduz a tabela nível-a-nível. **Não escrevi os 6 níveis de
+  memória** — seria inferir sem fonte, contra a Constituição de
+  Extração desta sessão. Continua vazia.
+- **AMIB**: cobre sedação/UTI (Ramsay/RASS), mas não achei diretriz de
+  acesso aberto com a tabela completa nesta rodada.
+- **AHA**: revisado mentalmente contra as 7 specs restantes (Ácido
+  Tricloroacético — já resolvida —, Coleta de Linfa/Hanseníase,
+  Miíase, Óbito, Escala de Ramsay, Controle Hídrico, Solicitação de
+  Exames) — nenhuma é do domínio cardiovascular/RCP da AHA. Sem
+  aplicação aqui.
+
+Resincronizada em `knowledge_base` (Escala de Aldrete e Kroulik).
+
+**Total geral: 96 specs de 98 enriquecidas.** Restam 6 sem fonte real
+disponível: Coleta de Linfa para Hanseníase, Miíase, Óbito, Escala de
+Ramsay, Controle Hídrico, Solicitação de Exames.
+
 ## Ainda pendente
 
 **Ingestão dos PDFs da pasta "Referências" do Drive** (46 arquivos): 13 já
