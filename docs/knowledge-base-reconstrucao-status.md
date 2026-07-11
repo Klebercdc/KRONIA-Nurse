@@ -996,6 +996,43 @@ anteriores).
 
 **Total geral: 81 specs de 98 enriquecidas.**
 
+### Vigésima quinta rodada — achado de licença: Manual de POP de Curitiba (excluído, NC)
+
+Buscando fonte pra **Tricotomia** (100% vazia), achei o *Manual de
+Procedimentos Operacionais Padrão — Módulo 2: Procedimentos
+Assistenciais* (Prefeitura de Curitiba, DAPS, 225 páginas, formato
+padronizado PASSOS/AÇÃO). Índice bateria em cheio com várias specs
+vazias: **Tricotomia** (POP 7.2), **Coleta de Urina de Usuário com
+Cateterismo Vesical** (POP 6.1, = Registro de Enfermagem — Coleta de
+Urina para Exames de Paciente Sondado), **Exame Clínico de Mamas**
+(POP 6.4), **Exame Preventivo de Câncer de Colo de Útero** (POP 6.3, =
+Coleta de Exame Citopatológico), **Realização de Eletrocardiograma**
+(POP 6.2), **Coleta de Teste Rápido para Tuberculose** (POP 6.15, texto
+completo já extraído localmente antes de eu perceber o problema).
+
+Ao ler a página de rosto, achei a cláusula: *"sendo permitida a
+reprodução parcial ou total desde que indicada a fonte **e sem fins
+comerciais**"* — uma restrição NC (NonCommercial) explícita, igual ao
+padrão já vetado nesta sessão pra OpenStax Microbiology/A&P 2ª ed.
+(`docs/constituicao-extracao-conhecimento.md` § Regra de licença: "NÃO
+usar, mesmo em fase não-comercial"). **Nenhum trecho desse manual foi
+usado para enriquecer nenhuma spec** — o texto extraído localmente foi
+descartado sem virar conteúdo em `knowledge_specs`. Diferente dos POPs
+da RioSaúde já usados nesta sessão (Classificação de Risco, Enteróclise,
+Punção Arterial etc.), que não têm cláusula de licença/reprodução
+alguma no rodapé — silêncio sobre reuso não é o mesmo que restrição NC
+explícita, mas o Curitiba tem a restrição explícita, então foi excluído
+por precaução, seguindo o mesmo protocolo de "achar antes de usar, não
+depois" já estabelecido pro caso KDIGO/OpenStax.
+
+**Total geral inalterado nesta rodada: 81 specs de 98 enriquecidas.**
+Tricotomia, Coleta de Urina de Paciente Sondado, Exame Clínico das
+Mamas, Coleta de Exame Citopatológico, Realização de ECG (sem spec
+própria no corpus) e Teste Rápido de Tuberculose (sem spec própria)
+continuam precisando de uma fonte alternativa com licença permissiva
+(CC BY, domínio público, ou POP sem cláusula NC) antes de serem
+enriquecidas.
+
 ## Ainda pendente
 
 **Ingestão dos PDFs da pasta "Referências" do Drive** (46 arquivos): 13 já
