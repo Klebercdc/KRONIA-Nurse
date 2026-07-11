@@ -285,6 +285,36 @@ Hidroeletrolítico; Chapter 5.1 (skin layers) → Curativos (explains why
 superficial vs. deep pressure injuries bleed differently, ties directly
 to the NPUAP staging already in that Spec).
 
+## Step 2e — OpenStax "Nursing" series (2024): name collision with OpenRN, but NC-licensed — do NOT use
+
+OpenStax launched a full 8-book nursing series in 2024/2025
+(partnership with the Texas Higher Education Coordinating Board):
+*Fundamentals of Nursing*, *Clinical Nursing Skills*,
+*Medical-Surgical Nursing*, *Maternal-Newborn Nursing*, *Nutrition for
+Nurses*, *Pharmacology for Nurses*, *Population Health*,
+*Psychiatric-Mental Health Nursing* (`openstax.org/subjects/nursing/`).
+
+**Every book in this series is licensed CC BY-NC-SA 4.0** (confirmed by
+fetching the license statement directly on two of the eight —
+`fundamentals-nursing/pages/preface` and
+`clinical-nursing-skills/pages/1-introduction` — both say "Creative
+Commons Attribution-NonCommercial-ShareAlike License"). Per this
+project's licensing rule
+(`docs/constituicao-extracao-conhecimento.md` § Regra de licença): **do
+not use any content from this series**, same as OpenStax
+Microbiology/Anatomy and Physiology 2e.
+
+**Do not confuse this with OpenRN.** The names are dangerously
+similar — OpenStax's *Clinical Nursing Skills* / *Fundamentals of
+Nursing* (2024, NC, Texas Higher Education Coordinating Board) is a
+**different publisher/program** from OpenRN's *Nursing Skills, 2nd
+Edition* / *Nursing Fundamentals* (Chippewa Valley Technical College,
+Ernstmeyer & Christman, CC BY 4.0, mirrored on NCBI Bookshelf — see
+Step 2b/2c above), which **is** safe to use. Before citing anything
+from a book with "nursing skills" or "nursing fundamentals" in the
+title, check which publisher/program it actually is, not just the
+title string.
+
 ## Step 3 — Known institution/document quality (update this list as you learn more)
 
 | Institution / source | Known quality | Notes |

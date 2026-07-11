@@ -1244,6 +1244,67 @@ Peritoneal, Aplicação de Calor e Frio, Tratamento de Pediculose — as
 outras 2 tocadas, Atendimento Antirrábico e Soro Antirrábico, já
 contavam antes, só ganharam profundidade).
 
+### Trigésima primeira rodada — achado de licença: série OpenStax Nursing (2024) é toda NC
+
+Usuário pediu pra reentrar na OpenStax e ver se tinha mais conteúdo
+aproveitável, além do "Anatomy and Physiology" 1ª ed. já usado. Achei
+que a OpenStax lançou uma **série completa de 8 livros de enfermagem em
+2024/2025** (parceria com o Texas Higher Education Coordinating Board):
+*Fundamentals of Nursing*, *Clinical Nursing Skills*, *Medical-Surgical
+Nursing*, *Maternal-Newborn Nursing*, *Nutrition for Nurses*,
+*Pharmacology for Nurses*, *Population Health*, *Psychiatric-Mental
+Health Nursing*.
+
+Verifiquei a licença antes de usar (regra já estabelecida nesta sessão)
+e confirmei em 2 dos 8 livros, direto na página: **toda a série é
+licenciada CC BY-NC-SA 4.0** (Não Comercial) — mesma categoria vetada
+do OpenStax Microbiology/A&P 2ª ed. **Nenhum conteúdo dessa série foi
+usado.**
+
+**Risco de confusão de nomes documentado**: os títulos são quase
+idênticos aos do OpenRN já usado extensivamente nesta sessão —
+"Clinical Nursing Skills" (OpenStax, 2024, NC, vetado) vs. "Nursing
+Skills, 2nd Edition" (OpenRN/Chippewa Valley Technical College, CC BY
+4.0, já usado em 20+ specs); "Fundamentals of Nursing" (OpenStax, NC,
+vetado) vs. "Nursing Fundamentals" (OpenRN, CC BY 4.0, já usado em 10+
+specs). São editoras/programas completamente diferentes com nomes que
+colidem. Documentado como novo § Step 2e em
+`.claude/skills/kronia-nurse-document-ingestion/SKILL.md`, junto do
+aviso já existente sobre OpenStax A&P 1ª vs. 2ª edição (§ Step 2d), pra
+nenhuma sessão futura citar a série errada por engano de nome.
+
+**Referências já usadas nesta sessão — separadas por status de
+licença** (visão consolidada, pra consulta rápida):
+
+- ✅ **Liberadas, já usadas**: OpenRN Nursing Skills 2ª ed. (CC BY 4.0),
+  OpenRN Nursing Fundamentals (CC BY 4.0), OpenStax Anatomy and
+  Physiology 1ª ed. (CC BY 4.0), Brunner & Suddarth 13ª ed. (copyright
+  tradicional, uso por extração factual como qualquer livro-texto
+  citado em base de conhecimento profissional — mesmo padrão do resto
+  do corpus), Wong: Fundamentos de Enfermagem Pediátrica 9ª ed.
+  (idem), Mosby's Drug Guide for Nursing Students 11ª ed. (idem),
+  Manual de Condutas em Obstetrícia (idem), SAE: Sistematização da
+  Assistência de Enfermagem (idem), Manual de Cuidados de Enfermagem
+  em Procedimentos de Intensivismo — UFCSPA (idem), os 2 livros de
+  estomaterapia (idem), POPs municipais/estaduais sem cláusula
+  restritiva (RioSaúde, Porto Alegre, SES-DF, SMS-RJ, HDT-UFT), COFEN/
+  COREN-SP (documentos oficiais de conselho profissional).
+- ❌ **Excluídas por licença NC, nenhum conteúdo usado**: OpenStax
+  Microbiology (CC BY-NC-SA), OpenStax Anatomy and Physiology 2ª ed.
+  (CC BY-NC-SA), Manual de Procedimentos Operacionais Padrão de
+  Curitiba/DAPS (cláusula "sem fins comerciais" explícita na capa),
+  Manual do Pé Diabético do Ministério da Saúde 2016 (CC BY-NC-SA,
+  apesar de ser publicação oficial do MS), **série completa OpenStax
+  Nursing 2024/2025** (CC BY-NC-SA, os 8 livros).
+- ❌ **Excluída por escopo/rascunho** (não é problema de licença): KDIGO
+  2026 AKI/AKD "PUBLIC REVIEW DRAFT" (rascunho não publicado).
+- 🚫 **Inacessível, não é problema de licença**: Scribd (Nurse
+  Anesthesia, Sass/Nagelhout/Elisha) — bloqueado por Cloudflare
+  "Client Challenge" (exige JS de navegador real; `curl`/`WebFetch` não
+  passam). Se o usuário conseguir baixar o PDF manualmente e subir no
+  Drive, processa normal — é um livro-texto profissional como os
+  outros, sem indicação de restrição de licença conhecida até agora.
+
 ## Ainda pendente
 
 **Ingestão dos PDFs da pasta "Referências" do Drive** (46 arquivos): 13 já
