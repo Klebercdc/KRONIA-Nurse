@@ -923,6 +923,27 @@ pulado por pressa:
   RAG nem confirmação humana de que a página citada é exatamente onde o
   conteúdo aparece no PDF original.
 
+### Vigésima segunda rodada — Classificação de Risco (RioSaúde POP.DEA.028)
+
+**Classificação de Risco — Registro de Enfermagem (privativo de
+Enfermeiro)** (Emergência, só tinha `registro`/`alertas`/`condutas`
+do guia COFEN) — POP.DEA.028 (RioSaúde, rev. 07, 2024): `definicao`
+formal (dispositivo da PNH, ancorado na Resolução COFEN nº 661/2021),
+protocolo de Manchester modificado com as 5 cores/tempos de espera
+(vermelho 0min/laranja 15min/amarelo 30min/verde 60min/azul 240min),
+`execucao_passos` completo (23 passos — chamada do paciente,
+preenchimento do sistema, aferição, classificação, pulseiras coloridas
+por risco/alergia/queda/AVC, acionamento de maqueiro por protocolo
+IAM/AVC, reclassificação, encaminhamento à Atenção Primária),
+`materiais` (pulseiras e etiquetas por cor, sistema TIMED, formulário
+de encaminhamento), `complicacoes` (atraso por subclassificação),
+`cuidados` (nenhum paciente dispensado sem classificação) e
+`condutas` complementadas (acionamento de maqueiro por protocolo).
+
+Resincronizada em `knowledge_base`.
+
+**Total geral: 76 specs de 98 enriquecidas.**
+
 ## Ainda pendente
 
 **Ingestão dos PDFs da pasta "Referências" do Drive** (46 arquivos): 13 já
