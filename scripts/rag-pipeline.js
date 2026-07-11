@@ -221,6 +221,22 @@ const PDF_METADATA = {
     ano: 2023,
     descricao: 'Temas em Enfermagem em Estomaterapia: Cuidado, Ensino e Trabalho (org. Norma Valéria Dantas de Oliveira Souza et al.)',
   },
+  // Item #16 de docs/pdf-triage-referencias-pendentes.md. 44MB/3092
+  // páginas — acima do limite de 10MB de download binário e do que
+  // read_file_content extrai por padrão (ver Step 5 de
+  // .claude/skills/kronia-nurse-document-ingestion/SKILL.md). Baixado
+  // por link direto (curl no endpoint de download do Drive, com o
+  // token de confirmação de "virus scan warning" para arquivo grande)
+  // e extraído por completo com PyMuPDF nesta sessão — usado pra
+  // enriquecer Fototerapia, Cuidados Imediatos com o RN, Teste do
+  // Pezinho e Ordenha Mamária.
+  'wong.pdf': {
+    tipo: 'Livro/Manual',
+    instituicao: 'Elsevier',
+    versao: '9ª edição',
+    ano: 2014,
+    descricao: 'Wong: Fundamentos de Enfermagem Pediátrica (Hockenberry e Wilson)',
+  },
 };
 
 let _supabase = null;

@@ -684,6 +684,52 @@ Ambas as 2 specs resincronizadas em `knowledge_base`.
 complementou 2 specs já contadas, sem abrir spec nova — por isso o
 total não mudou, só a profundidade).
 
+### Décima quinta rodada — wong.pdf: achado de contorno pro limite de 10MB
+
+Usuário pediu pra usar o `wong.pdf` (item #16 da triagem, *Wong:
+Fundamentos de Enfermagem Pediátrica*, Hockenberry e Wilson, Elsevier,
+9ª ed. 2014) — 44MB, confirmado pelo usuário como **3092 páginas**.
+Nem `download_file_content` (limite de 10MB) nem `read_file_content`
+(parou silenciosamente em ~180 de 3092 páginas, só front matter) davam
+conta. Achei um contorno real: o arquivo estava compartilhado por link
+("qualquer pessoa com o link"), o que permite baixar via `curl` direto
+(sem passar pela ferramenta MCP) — a primeira request retorna uma
+página de aviso de "não foi possível escanear vírus" pra arquivo
+grande, com um formulário oculto (`confirm`/`uuid`); repetir a request
+com esses parâmetros pro host de download baixa o PDF completo. Extração
+com PyMuPDF: 3092 páginas, 7,4M caracteres, ~5 segundos. Documentado
+como técnica reutilizável em
+`.claude/skills/kronia-nurse-document-ingestion/SKILL.md` § Step 5.
+
+Com o texto completo, achei conteúdo real e específico do Brasil pra 4
+specs de Neonatologia/Obstetrícia que estavam 100% vazias:
+
+- **Fototerapia** (p. 699-705): checklist completo de cuidado de
+  enfermagem — proteção ocular (fechar pálpebras antes do protetor,
+  checar a cada plantão), termorregulação, avaliação de bilirrubina a
+  cada 6-12h, o que registrar, efeitos colaterais (fezes esverdeadas,
+  rash, priapismo, efeito rebote), alerta contra luz solar direta.
+- **Cuidados Imediatos com o RN** (p. 520-521, 562-565): Índice de
+  Apgar (tabela completa dos 5 parâmetros), identificação (com o trecho
+  específico do Estatuto da Criança e do Adolescente sobre impressão
+  plantar/digital), profilaxia ocular (nitrato de prata conforme
+  Ministério da Saúde), vitamina K IM, vacina de hepatita B, segurança
+  contra sequestro de RN.
+- **Teste do Pezinho** (p. 565-567): base legal real (Portaria
+  GM/MS nº 822/2001, Programa Nacional de Triagem Neonatal), as 9
+  responsabilidades específicas do profissional de enfermagem segundo o
+  PNTN — direto pra `execucao_passos`.
+- **Ordenha Mamária** (p. 585-586, 707): duas indicações distintas com
+  técnica própria (ordenha precoce a cada 2-3h se RN não mama, ordenha a
+  cada 3-4h durante pausa por icterícia), alerta sobre não descongelar
+  leite humano em micro-ondas.
+
+Todas as 4 resincronizadas em `knowledge_base`. Entrada adicionada em
+`PDF_METADATA`; linha #16 do triage doc atualizada com dados
+confirmados (antes só estimativas).
+
+**Total final da sessão: 59 specs de 98 enriquecidas** — quase 60%.
+
 ### Ferramentas de extração avaliadas nesta sessão (usuário forneceu 4 zips)
 
 Testadas de verdade no mesmo PDF de 151 páginas pra comparação justa —

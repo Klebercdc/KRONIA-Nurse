@@ -344,6 +344,32 @@ folder and are worth avoiding:
   content). This is only detectable by cross-checking returned content
   against the expected filename/title before trusting it. Call it
   sequentially, or verify every result against its title.
+- **Real workaround for files over the 10MB MCP tool cap: download via
+  `curl` directly, if the file is link-shared.** Confirmed working this
+  session on `wong.pdf` (44MB, 3092 pages), which the user had shared as
+  a `drive.google.com/file/d/<ID>/view` link (i.e., "anyone with the
+  link" sharing, not restricted to the Drive account the MCP tools
+  authenticate as). Both `download_file_content` (10MB cap) and
+  `read_file_content` (silently truncates huge files, see below) fail on
+  a file this size — but a plain unauthenticated `curl` through Bash
+  works, because Drive serves a public "anyone with link" file without
+  needing the MCP tool's auth at all:
+  ```bash
+  # 1. First request returns a "can't scan for viruses" interstitial
+  #    for files this large, not the PDF itself:
+  curl -sL -o warning.html "https://drive.google.com/uc?export=download&id=<FILE_ID>"
+  # 2. Pull the confirm token + uuid out of the hidden form fields:
+  grep -o '<input[^>]*>' warning.html
+  # 3. Re-request with those params against the real download host:
+  curl -sL -o document.pdf "https://drive.usercontent.google.com/download?id=<FILE_ID>&export=download&confirm=t&uuid=<UUID_FROM_STEP_2>"
+  ```
+  This only works if the file is actually link-shared (test: does step 1
+  return a virus-scan HTML page, or a permission-denied page? the latter
+  means this won't work and you're back to the MCP tools / asking the
+  user for a smaller excerpt). Once downloaded, extraction is
+  instant — PyMuPDF read all 3092 pages / 7.4M characters of `wong.pdf`
+  in ~5 seconds, vastly more complete than the ~180-page partial extract
+  `read_file_content` gave for the same file (see below).
 - **Don't trust the Drive filename as the document title.** One file named
   `Manual para hemodiálise .pdf` turned out to actually contain "Resumos do
   XXXI Congresso Brasileiro de Nefrologia" — a completely different
