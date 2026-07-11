@@ -963,6 +963,39 @@ zero).
 
 **Total geral: 77 specs de 98 enriquecidas.**
 
+### Vigésima quarta rodada — OpenRN Nursing Fundamentals Chapter 2 (Communication/ISBARR)
+
+Reabri o OpenRN "Nursing Fundamentals" (NBK591823) com a numeração de
+capítulo correta (19 capítulos: Scope of Practice, Communication,
+Diverse Patients, Nursing Process, Safety Introduction, Cognitive
+Impairments, Sensory Impairments, Oxygenation, Infection, Integumentary,
+Comfort, Sleep and Rest, Mobility, Nutrition, Fluids and Electrolytes,
+Elimination, Grief and Loss, Spirituality, Care of the Older Adult — a
+numeração usada em rodadas anteriores desta sessão estava desalinhada
+com o índice real do livro). **Chapter 2 (Communication)** tem uma seção
+inteira sobre handoff/transferência de cuidado — framework **ISBARR**
+(Introdução, Situação, Antecedentes, Avaliação, Requisição/
+Recomendação, Repetição de confirmação), relato à beira do leito
+(bedside handoff) e relato de transferência entre setores/instituições
+— um único fragmento que alimentou **4 specs de comunicação/continuidade
+do cuidado que só tinham o guia de registro do COFEN** (REGRA 5):
+
+- **Passagem de Plantão (Livro)**: ganhou `definicao`, primeiro
+  `execucao_passos` real da spec (10 passos aplicando o ISBARR à beira
+  do leito) e `fundamentacao_cientifica`.
+- **Transferência Interna** e **Transferência Externa**: `definicao` e
+  `fundamentacao_cientifica` (relato de transferência entre
+  setores/instituições).
+- **Referência e Contrarreferência**: `fundamentacao_cientifica`
+  (mesmo princípio de comunicação estruturada aplicado à continuidade
+  entre níveis de atenção do SUS).
+
+Todas as 4 resincronizadas em `knowledge_base` (query de resync ganhou a
+seção FUNDAMENTAÇÃO CIENTÍFICA, ausente do template usado nas rodadas
+anteriores).
+
+**Total geral: 81 specs de 98 enriquecidas.**
+
 ## Ainda pendente
 
 **Ingestão dos PDFs da pasta "Referências" do Drive** (46 arquivos): 13 já
