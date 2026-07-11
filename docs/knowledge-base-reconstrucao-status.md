@@ -439,6 +439,35 @@ Respiratory/Abdominal/Musculoskeletal/Integumentary Assessment,
 Administration of Enteral Medications, Administration of Medications
 Via Other Routes, Specimen Collection — partes ainda não usadas).
 
+### Sétima rodada — decisão de licença + Chapter 1 + Chapter 4 (EPIs)
+
+Usuário confirmou: KRONIA Nurse **vai virar comercial, mas ainda não
+é**. Decisão: não usar Microbiology nem A&P 2e (CC BY-NC-SA) mesmo
+enquanto o produto não é comercial — o conteúdo entra na
+`knowledge_base` e continuaria lá depois da virada comercial, então
+usar agora só adiaria a violação, não evitaria. Se precisar de
+anatomia/fisiologia, usar só a 1ª edição de Anatomy and Physiology
+(CC BY puro). OpenRN nunca teve esse problema (sempre CC BY).
+
+- **Chapter 1 (General Survey)** → **Admissão do Paciente** (tinha só
+  `registro`, sem `execucao_passos`): modelo AIDET de abordagem,
+  checagem primária de estabilidade, avaliação sistemática (aparência,
+  comportamento, mobilidade, comunicação, sinais vitais completos).
+- **Chapter 4 (Aseptic Technique)** — conteúdo genérico (higienização
+  das mãos, ordem de paramentação/desparamentação de EPI, princípios de
+  campo estéril) que se aplica a várias specs já enriquecidas mas que
+  nunca tinham o campo `epis` preenchido (campo ficou vazio em toda
+  spec da sessão até aqui). Preenchido em **Sondagem Vesical**,
+  **Acesso Venoso Periférico**, **Curativos**, **Aspiração Traqueal** e
+  **Cuidados com Estomas** — cada um com o EPI certo pro nível de
+  técnica (estéril vs. limpa) daquele procedimento específico, não o
+  mesmo texto genérico repetido.
+
+Todas as 6 resincronizadas em `knowledge_base`.
+
+**Total geral: 33 specs de 98 enriquecidas nesta sessão** (32 + 1 nova,
+mais 5 que ganharam só o campo `epis` sobre spec já contada antes).
+
 ### Ferramentas de extração avaliadas nesta sessão (usuário forneceu 4 zips)
 
 Testadas de verdade no mesmo PDF de 151 páginas pra comparação justa —

@@ -85,6 +85,26 @@ Regra absoluta: nenhuma fonte é descartada por não ter técnica
 operacional — ela só pertence a outro tipo documental. Cada tipo
 enriquece partes diferentes da base, não as mesmas.
 
+## Regra de licença (2026-07-11, addendum)
+
+Toda fonte precisa ter a licença checada ANTES de virar conteúdo em
+`knowledge_specs`/`knowledge_base` — não depois. KRONIA Nurse ainda não
+é comercial, mas vai virar; conteúdo entra no banco e continua lá
+depois da virada, então "não é comercial ainda" não é motivo pra usar
+fonte `NC` (NonCommercial). Regra prática:
+
+- **CC BY** (ou domínio público): livre pra usar.
+- **CC BY-NC / CC BY-NC-SA**: NÃO usar, mesmo em fase não-comercial —
+  o conteúdo sobrevive à virada e teria que ser identificado e
+  removido depois, o que é retrabalho e risco de esquecer alguma linha.
+- Rascunho não publicado (ver caso KDIGO 2026 acima) é categoria
+  separada — não é problema de licença, é uso fora do escopo que o
+  próprio autor autorizou; mesmo tratamento: reportar antes de usar.
+- Quando duas edições da mesma obra têm licença diferente (ex.:
+  OpenStax Anatomy and Physiology 1ª ed. é CC BY; a 2ª ed. é
+  CC BY-NC-SA), preferir a edição com licença mais permissiva mesmo
+  que mais antiga.
+
 ## Regra mestra
 
 Nunca perguntar "este livro tem um capítulo igual à minha Spec?".
