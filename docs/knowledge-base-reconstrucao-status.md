@@ -1673,6 +1673,101 @@ specs continuam `status='rascunho'`, `pipeline_classificacao='amarelo'`
 — nenhuma foi aprovada nem publicada nesta rodada; aprovação continua
 exigindo ação humana explícita via `/api/knowledge-spec/aprovar`.
 
+### Trigésima nona rodada — metodologia busca-por-assunto + anti-alucinação, 3 categorias vazias preenchidas
+
+Usuário colou um prompt-metodologia (busca por assunto cruzando todos os
+documentos de uma vez, hierarquia de fontes Camada 1-3, triangulação
+obrigatória, citação com `fragmento_id` real + verificação mecânica
+antes de gravar) e definiu como padrão permanente pra toda criação de
+`knowledge_specs` daqui pra frente — não um pedido pontual.
+
+**Infraestrutura criada** (persistida, não é só processo mental desta
+sessão):
+
+1. `.claude/skills/kronia-nurse-knowledge-spec-search/SKILL.md` — a
+   metodologia completa como skill do projeto.
+2. `lib/knowledge-spec.ts`: `ReferenciaOficial.fragmento_id?: string` —
+   âncora mecânica (uuid real de `conhecimento_fragmentos.id`).
+3. `scripts/verificar_citacoes.py` — script portátil (roda fora do
+   sandbox, com `DATABASE_URL`) que confere `trecho_citado` contra
+   `conhecimento_fragmentos.conteudo` real (substring ou ≥90% similar).
+4. Migration `enable_pg_trgm` — habilita `similarity()` no Postgres do
+   projeto, usada tanto pelo script quanto pela verificação equivalente
+   via SQL direto que este agente usa em sessão (sem `DATABASE_URL`
+   local disponível neste sandbox).
+
+**Uso**: usuário pediu pra buscar as áreas (categorias) que ainda
+faltam no `knowledge_specs` e popular usando esse formato, verificando
+no Supabase. Antes de buscar fonte externa, cruzei o corpus já indexado
+(`conhecimento_documentos`/`conhecimento_fragmentos`, 13 documentos)
+contra as 17 categorias sem nenhum spec (mapeadas numa rodada anterior)
+e achei 3 com conteúdo real e suficiente — sem precisar inventar nada
+nem buscar na web:
+
+1. **Legislação** — RDC ANVISA nº 11/2014 (Boas Práticas de
+   Funcionamento para Serviços de Diálise), 24 fragmentos indexados,
+   texto legal completo. 11 citações com `fragmento_id` real, todas
+   aprovadas na verificação (`eh_substring = true`). `pipeline_
+   classificacao = 'verde'` (fonte única Camada 1, texto literal sem
+   ambiguidade).
+2. **Diretrizes Clínicas** — "Diretrizes para o Enfrentamento às
+   Situações de Emergência e/ou Estado de Calamidade Pública" (COFEN,
+   2022), 9 fragmentos. 8 citações, todas aprovadas. `verde`.
+3. **POPs** — "Estrutura de Normas, Rotinas e POP em Enfermagem"
+   (COREN-SE, modelo 2020) — spec definicional/estrutural (o que é
+   Norma, Rotina e POP, e quais campos de governança um POP exige), não
+   um procedimento clínico específico. 7 citações, todas aprovadas.
+   `amarelo` (fonte única Camada 2 — conselho regional, não nacional).
+
+**A verificação mecânica pegou um erro de verdade**: a primeira
+tentativa de citação da spec de Legislação usava um `fragmento_id`
+errado (copiado do fragmento anterior na sequência de busca, que não
+continha o trecho "Núcleo de Segurança do Paciente"). A checagem via
+SQL (`position(trecho in conteudo)`) reprovou a citação antes de
+qualquer gravação — corrigido pro `fragmento_id` certo, revalidado, só
+então gravado. Exatamente o cenário que o Passo 4 existe pra prevenir.
+
+**Achado registrado, não usado nesta rodada**: o documento-fonte da
+spec de POPs (`MODELO-NORMAS-ROTINAS-E-POP.pdf`) contém, além do
+modelo/conceituação, 22 exemplos de POPs técnicos completos e prontos
+(Administração de Imunobiológicos, Nebulização, via ID, via IM, Coleta
+de Glicemia Capilar, Curativo de Queimadura, Instalação de
+Monitorização Hemodinâmica, Reanimação Cardiopulmonar) — conteúdo real
+de enriquecimento pra categorias que **já têm** specs (Administração de
+Medicamentos, Feridas e Curativos, Monitorização, Emergência), fora do
+escopo desta rodada (preencher categoria vazia). Fica registrado pra
+uma rodada futura de enriquecimento.
+
+**Cobertura da varredura por assunto nas 11 categorias ainda
+realmente vazias** (Hemodinâmica, CME, UTI Adulto, Pediatria, Trauma,
+Oncologia, Saúde Mental, Cuidados Paliativos, Hemoterapia, Equipamentos,
+Educação Permanente — as outras 3 das 17 originais, Diagnósticos/
+Intervenções/Resultados de Enfermagem, já tinham rascunho da rodada
+anterior de Hemodiálise): rodei busca por palavra-chave nos 1913
+fragmentos indexados e **nenhuma delas retornou zero** — há de 2
+(Cuidados Paliativos) a 179 (Pediatria) fragmentos batendo. Isso ainda
+não significa fonte utilizável: a maior parte provavelmente vem de
+menções de passagem em documentos genéricos (Código de Ética, Guia de
+Registros) ou do `NANDA-I-2018_2020.pdf` (864 fragmentos, taxonomia sob
+copyright — não citável literalmente, mesma regra já aplicada às specs
+de Hemodiálise). Não abri esses resultados fragmento a fragmento nesta
+rodada — fica como próximo passo, não presumir que a categoria "tem
+fonte" só porque a busca por palavra-chave não voltou vazia.
+
+**Educação Permanente**: mesmo tendo 7 fragmentos batendo a busca, essa
+categoria foi explicitamente removida do escopo do produto em
+`context/kits/knowledge-engine-tipos-objeto.md` (item 14, "Educação
+Permanente — REMOVIDO"). Não criar spec aqui sem reconfirmar com o
+usuário se essa decisão do kit mudou.
+
+**Verificação no Supabase** (pedido explícito do usuário): reconsultei
+as 3 specs gravadas diretamente na tabela — `status='rascunho'` nas
+três, `categoria` correta, 26/26 referências (11+8+7) com `fragmento_id`
+real preenchido. Nenhuma foi aprovada nem publicada em `knowledge_base`.
+
+**Verificação de código**: `npm run typecheck` e `npm run build`
+limpos após adicionar `fragmento_id` em `ReferenciaOficial`.
+
 ## Ainda pendente
 
 **Ingestão dos PDFs da pasta "Referências" do Drive** (46 arquivos): 13 já

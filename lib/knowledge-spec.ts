@@ -64,6 +64,14 @@ export interface ReferenciaOficial {
   pagina?: string;
   url?: string;
   /**
+   * uuid real de conhecimento_fragmentos.id — âncora mecânica anti-alucinação.
+   * Quando presente, `trecho` DEVE ser cópia literal (substring ou ≥90%
+   * similar via pg_trgm) do `conteudo` dessa linha — verificável por SQL ou
+   * scripts/verificar_citacoes.py antes de gravar. Ausente em referências
+   * herdadas de fontes externas não indexadas em conhecimento_fragmentos.
+   */
+  fragmento_id?: string;
+  /**
    * Trecho bruto do fragmento RAG que fundamentou a referência — evidência de
    * trabalho interna (auditores comparam o rascunho contra ele), NUNCA o que é
    * exibido como citação. Ver `citacao_abnt`, montado por lib/abnt.ts a partir
