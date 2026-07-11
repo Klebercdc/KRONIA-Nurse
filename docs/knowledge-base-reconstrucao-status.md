@@ -821,6 +821,33 @@ Todas as 3 resincronizadas em `knowledge_base`.
 
 **Total geral: 70 specs de 98 enriquecidas.**
 
+### Décima nona rodada — POPs municipais/federais (Prova do Laço, Retirada de Pontos)
+
+Confirmando o padrão: WebFetch não consegue extrair texto de PDF
+"real" (não HTML) na maioria dos hosts governamentais — mas sempre
+salva o binário, que processo localmente com PyMuPDF. Dois POPs reais
+achados assim:
+
+- **Prova do Laço** (Hospital de Doenças Tropicais, UFT, POP.DENF.053,
+  2021): técnica completa — cálculo da PAM, tempo de garroteamento (5
+  min adulto/3 min criança), critério de positividade (20+ petéquias
+  adulto, 10+ criança), interrupção antecipada se positivo antes do
+  tempo.
+- **Retirada de Pontos** (Prefeitura de Porto Alegre, POP DGAPS nº 37,
+  2019): técnica completa e distinta pra sutura interrompida vs.
+  contínua/festonada, tabela de tempo médio de cicatrização por região
+  do corpo, alerta de que toda superfície exposta de sutura é
+  contaminada.
+
+`ebserh` (hospitais universitários federais) tem uma biblioteca de POP
+grande, mas parte do conteúdo retornou "Conteúdo Restrito" (exige
+login) — não é fonte confiável de acesso público, preferir prefeituras
+municipais e hospitais universitários com PDF direto.
+
+Todas as 2 resincronizadas em `knowledge_base`.
+
+**Total geral: 72 specs de 98 enriquecidas.**
+
 ### Ferramentas de extração avaliadas nesta sessão (usuário forneceu 4 zips)
 
 Testadas de verdade no mesmo PDF de 151 páginas pra comparação justa —
