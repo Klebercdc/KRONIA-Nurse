@@ -468,6 +468,28 @@ Todas as 6 resincronizadas em `knowledge_base`.
 **Total geral: 33 specs de 98 enriquecidas nesta sessão** (32 + 1 nova,
 mais 5 que ganharam só o campo `epis` sobre spec já contada antes).
 
+### Oitava rodada — Chapter 15 (medicação enteral) e Chapter 8 (Snellen)
+
+- **Chapter 15 (Administration of Enteral Medications)** →
+  **Os 13 Certos na Administração de Medicamentos** (tinha `alertas`/
+  `condutas`/`fundamentacao_cientifica` mas zero `execucao_passos` —
+  spec sobre um checklist que nunca tinha o passo a passo do próprio
+  checklist): passo a passo da checagem tripla (seleção → preparo →
+  beira do leito), mais nota de `fundamentacao_cientifica` comparando
+  os "6 rights" americanos (OpenRN) com os 13 certos brasileiros
+  (COFEN) — mesma lógica, escopo diferente. Também usado pra
+  complementar **Nutrição Enteral** e **Sondagem Enteral** com a regra
+  de trituração de medicamento pra sonda (nunca triturar revestimento
+  entérico/liberação prolongada; lavar com no mínimo 15 mL de água
+  antes/entre medicamentos).
+- **Chapter 8 (Eye and Ear Assessment)** → **Escala de Snellen**
+  (estava 100% vazia nesses campos): distância de 6 m do quadro,
+  técnica de testar cada olho, notação em fração (20/20 etc.).
+
+Todas as 4 resincronizadas em `knowledge_base`.
+
+**Total geral: 35 specs de 98 enriquecidas nesta sessão.**
+
 ### Ferramentas de extração avaliadas nesta sessão (usuário forneceu 4 zips)
 
 Testadas de verdade no mesmo PDF de 151 páginas pra comparação justa —
