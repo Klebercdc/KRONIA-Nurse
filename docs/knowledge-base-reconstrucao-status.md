@@ -613,6 +613,40 @@ metade). Restam capítulos do "Nursing Fundamentals" ainda não
 explorados (Nutrition, Infection, Integumentary, Sleep and Rest, Care
 of the Older Adult) que podem render mais specs numa próxima rodada.
 
+### Décima terceira rodada — últimos capítulos do "Nursing Fundamentals"
+
+Fechando os 19 capítulos deste segundo livro:
+
+- **Chapter 14 (Nutrition)** → **Auxílio na Dieta**: posicionamento
+  sentado antes de comer, higiene oral prévia, espessantes por grau de
+  disfagia (néctar/mel/pudim), abandono do "teste do sopro" (mesma
+  ressalva do Chapter 17 de Nursing Skills — reforça a fonte).
+- **Chapter 19 (Care of the Older Adult)** → **Alta** (segurança
+  ambiental no domicílio, reconciliação medicamentosa, encaminhamento a
+  recurso comunitário) e **Visita Domiciliar** (ferramenta SPICES —
+  Sono, Problemas de alimentação, Incontinência, Confusão, Evidência de
+  queda, Skin breakdown — como roteiro de avaliação domiciliar).
+- **Chapter 10 (Integumentary)** — revisado, mas só repete
+  estadiamento de Lesão por Pressão/Escala de Braden já cobertos por
+  outra fonte; sem técnica de higiene (banho, couro cabeludo, pés,
+  íntima) como o nome sugeria. Não usado.
+- **Chapter 9 (Infection)** — revisado, cadeia de infecção (6 elos)
+  é conteúdo real mas genérico demais pra qualquer Spec específica do
+  corpus (não achei "Precauções de Isolamento" nem afim na lista);
+  parte sobre precaução por contato/gotícula/aerossol não veio no
+  texto extraído. Não usado.
+- **Chapter 12 (Sleep and Rest)** e **Chapter 17 (Grief and Loss)** —
+  sem Spec de destino no corpus do KRONIA (não existe "registro de
+  sono" nem "registro de luto" na taxonomia atual). Não usados.
+
+Todas as 3 specs tocadas resincronizadas em `knowledge_base`.
+
+**Total final da sessão: 55 specs de 98 enriquecidas.** "Nursing
+Fundamentals" esgotado — dos 19 capítulos, 8 renderam conteúdo usável
+(Safety, Comfort, Mobility, Nutrition, Care of the Older Adult), os
+outros 11 ou não tinham Spec de destino no corpus, ou vieram finos
+demais pra usar sem forçar.
+
 ### Ferramentas de extração avaliadas nesta sessão (usuário forneceu 4 zips)
 
 Testadas de verdade no mesmo PDF de 151 páginas pra comparação justa —
