@@ -789,6 +789,38 @@ Todas as 6 resincronizadas em `knowledge_base`.
 
 **Total geral: 67 specs de 98 enriquecidas.**
 
+### Décima oitava rodada — fonte nova: POP de Testes Rápidos (SMS-RJ)
+
+`bvsms.saude.gov.br` (host oficial do Ministério da Saúde) bloqueou a
+conexão neste sandbox (curl direto: "connection reset by peer"; WebFetch:
+503) — tanto pra download quanto pra fetch, em duas tentativas com
+User-Agent diferente. Contornei buscando o mesmo conteúdo em outro
+mirror: achei o **Procedimento Operacional Padrão — Testes Rápidos**
+(Secretaria Municipal de Saúde do Rio de Janeiro, Gerência de
+Hepatites Virais e IST/AIDS, 2017), hospedado em `subpav.org`, que
+funcionou. O WebFetch não conseguiu extrair texto do PDF diretamente
+(retornou só a estrutura binária), mas salvou o binário — baixei esse
+arquivo salvo e processei localmente com PyMuPDF, como já vinha fazendo
+com os PDFs do Drive.
+
+Documento real, com fluxograma completo (Portaria MS nº 29/2013) pra
+HIV, sífilis e hepatites B/C — preencheu as **3 specs de testes
+rápidos que estavam vazias**:
+
+- **Teste Rápido para Sífilis**: teste treponêmico, indicação em
+  gestante (1º contato + 3º trimestre), fluxo pra VDRL confirmatório,
+  tratamento com penicilina benzatina.
+- **Teste Rápido de HIV**: fluxo TR1→TR2 (marcas diferentes),
+  discordância exige repetição/coleta laboratorial, carga viral
+  imediata em caso reagente.
+- **Teste Rápido para Hepatites**: HBsAg (hepatite B) e anti-HCV
+  (hepatite C), sempre exigem confirmação; ordem de coleta quando mais
+  de um teste no mesmo momento (Hepatite B primeiro).
+
+Todas as 3 resincronizadas em `knowledge_base`.
+
+**Total geral: 70 specs de 98 enriquecidas.**
+
 ### Ferramentas de extração avaliadas nesta sessão (usuário forneceu 4 zips)
 
 Testadas de verdade no mesmo PDF de 151 páginas pra comparação justa —
