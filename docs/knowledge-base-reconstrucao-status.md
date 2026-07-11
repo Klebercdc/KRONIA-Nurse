@@ -647,6 +647,43 @@ Fundamentals" esgotado — dos 19 capítulos, 8 renderam conteúdo usável
 outros 11 ou não tinham Spec de destino no corpus, ou vieram finos
 demais pra usar sem forçar.
 
+### Décima quarta rodada — OpenStax Anatomy and Physiology (1ª edição, CC BY)
+
+Usuário pediu pra seguir na OpenStax — usando **só a 1ª edição**
+(`openstax.org/books/anatomy-and-physiology`, CC BY 4.0, Rice
+University, 2016), nunca a 2ª edição nem o Microbiology (CC BY-NC-SA,
+vetados pela regra de licença desta sessão). Diferente do OpenRN, este
+livro é 28 capítulos de ciência básica (anatomia/fisiologia), não
+checklist de procedimento — serve principalmente pra `fundamentacao_
+cientifica`, campo que quase nenhuma Spec tinha preenchido.
+
+- **Chapter 26.1 (Body Fluids and Fluid Compartments)** →
+  **Balanço Hidroeletrolítico**: definição de fluido intracelular
+  (~60% da água corporal) vs. extracelular (plasma + intersticial),
+  mecanismo de deslocamento por osmose, papel da bomba de
+  sódio-potássio, edema como distúrbio de volume.
+- **Chapter 5.1 (Layers of the Skin)** → **Curativos**: correlação
+  anatômica com o estadiamento de lesão por pressão já registrado —
+  epiderme avascular (por que lesão superficial não sangra, estágio
+  1-2), derme vascularizada (por que lesão mais profunda sangra,
+  estágio 2-3), hipoderme/fáscia (estágio 4).
+
+`openstax.org` bloqueia fetch na página inicial (403/vazio, JS-only),
+mas páginas de capítulo/seção individuais (`/pages/<num>-<slug>`)
+funcionam normalmente — usar esse padrão de URL, não a raiz do livro.
+Tentativa de achar o slug exato da seção de uretra (Chapter 25, pra
+Sondagem Vesical) falhou (404) e não foi repetida por ora — 28
+capítulos de conteúdo majoritariamente não-procedural tornam essa
+fonte mais lenta por capítulo que o OpenRN; render bom só quando o
+capítulo bate com uma Spec já enriquecida que carece especificamente
+de `fundamentacao_cientifica`.
+
+Ambas as 2 specs resincronizadas em `knowledge_base`.
+
+**Total final da sessão: 55 specs de 98 enriquecidas** (a OpenStax
+complementou 2 specs já contadas, sem abrir spec nova — por isso o
+total não mudou, só a profundidade).
+
 ### Ferramentas de extração avaliadas nesta sessão (usuário forneceu 4 zips)
 
 Testadas de verdade no mesmo PDF de 151 páginas pra comparação justa —

@@ -252,6 +252,39 @@ Contenção no Leito and Condutas de Segurança ao Paciente. Chapter 16
 rehydration, no real procedure) — not used, per REGRA 11 don't force
 weak fragments into a Spec.
 
+## Step 2d — OpenStax Anatomy and Physiology: 1st edition only, license trap
+
+OpenStax publishes **two editions** of this title with **different
+licenses** — check which one before using anything:
+
+- `openstax.org/books/anatomy-and-physiology` (1st ed., 2016) — **CC BY
+  4.0**, safe for commercial use.
+- `openstax.org/books/anatomy-and-physiology-2e` — **CC BY-NC-SA**
+  (NonCommercial) — do NOT use per this project's licensing rule (see
+  `docs/constituicao-extracao-conhecimento.md` § Regra de licença),
+  since KRONIA Nurse will eventually be commercial and content baked in
+  now doesn't get automatically removed later. Same restriction applies
+  to OpenStax Microbiology (also CC BY-NC-SA) — don't use it either.
+
+`openstax.org`'s root/homepage returns an empty JS shell to WebFetch
+(client-rendered SPA) — don't bother fetching it directly. Individual
+chapter/section pages fetch fine:
+`https://openstax.org/books/anatomy-and-physiology/pages/<n>-introduction`
+for a chapter intro, `.../pages/<n>-<m>-<slug>` for a specific section
+(e.g. `26-1-body-fluids-and-fluid-compartments`) — fetch the preface
+page first to get the real unit/chapter list (28 chapters), then guess
+section slugs from the intro page's described subtopics; wrong guesses
+404 harmlessly, just retry with a different slug.
+
+Unlike OpenRN (procedure checklists — Tipo A), this book is anatomy/
+physiology background — Tipo C/D content, mainly useful for
+`fundamentacao_cientifica` on Specs that already have procedural
+content from another source but lack the "why" behind it. Confirmed
+this session: Chapter 26.1 (fluid compartments) → Balanço
+Hidroeletrolítico; Chapter 5.1 (skin layers) → Curativos (explains why
+superficial vs. deep pressure injuries bleed differently, ties directly
+to the NPUAP staging already in that Spec).
+
 ## Step 3 — Known institution/document quality (update this list as you learn more)
 
 | Institution / source | Known quality | Notes |
