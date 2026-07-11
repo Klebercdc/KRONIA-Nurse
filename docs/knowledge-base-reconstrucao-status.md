@@ -532,6 +532,52 @@ Todas as 3 resincronizadas em `knowledge_base`.
 
 **Total geral: 41 specs de 98 enriquecidas nesta sessão.**
 
+### Décima primeira rodada — últimos capítulos do OpenRN (23/23 revisados)
+
+Usuário pediu pra continuar até zerar os 23 capítulos. Últimos 6
+revisados:
+
+- **Chapter 9 (Cardiovascular Assessment)** → **finalmente preencheu
+  Balanço Hidroeletrolítico** (spec que eu tinha desistido de
+  enriquecer numa rodada anterior por falta de fonte genérica boa):
+  escala de graduação de edema (1+ a 4+), turgência jugular, pulsos
+  periféricos (escala 0-3), tempo de enchimento capilar, B3/galope como
+  sinal de sobrecarga de volume.
+- **Chapter 14 (Integumentary Assessment)** — complementou a mesma
+  Spec com um achado importante: turgor cutâneo NÃO é indicador
+  confiável de hidratação (principalmente em idoso, que tem
+  elasticidade da pele naturalmente menor) — vira `alertas`, corrige
+  prática comum equivocada.
+- **Chapter 10 (Respiratory Assessment)** → **Sinais Vitais**:
+  classificação de sons respiratórios adventícios (estertores, sibilos,
+  estridor, atrito pleural) e parâmetros de frequência respiratória
+  normal/bradipneia/taquipneia.
+- **Chapter 12 (Abdominal Assessment)** → **Sondagem Gástrica**:
+  técnica de ausculta de ruídos hidroaéreos (início no QID, sentido
+  horário) e interpretação (hiperativo = obstrução/gastroenterite;
+  hipoativo = constipação/pós-operatório/peritonite/íleo paralítico).
+- **Chapter 5 (Math Calculations)** → **Os 13 Certos** (checagem da
+  faixa de dose segura antes de administrar) e **Acesso Venoso
+  Periférico** (cálculo de taxa de infusão — gotas/min por gravidade ou
+  mL/h por bomba).
+- **Chapter 7 (Head and Neck Assessment)** — revisado, mas **sem
+  spec de destino real**: cobre linfonodo, tireoide, exame de
+  cavidade oral — nenhuma Spec do KRONIA é sobre exame de
+  cabeça/pescoço em si. Deixado de fora em vez de forçar encaixe em
+  spec não relacionada (ex.: Higiene Oral não é sobre avaliação
+  clínica, é sobre procedimento de higiene) — único capítulo dos 23
+  sem uso.
+
+Todas as 5 specs tocadas nesta rodada resincronizadas em
+`knowledge_base`.
+
+**Total final: 46 specs de 98 enriquecidas nesta sessão** (de um total
+de 98 specs ativas — quase a metade). **22 dos 23 capítulos do OpenRN
+usados** (só Chapter 7 sem spec de destino). Próxima fronteira real
+exigiria fonte nova (mais PDFs do Drive, ou preencher `escopo`/
+`equipamentos` que quase nenhuma spec tem ainda) — não mais o OpenRN,
+que está esgotado pra este corpus de specs.
+
 ### Ferramentas de extração avaliadas nesta sessão (usuário forneceu 4 zips)
 
 Testadas de verdade no mesmo PDF de 151 páginas pra comparação justa —
