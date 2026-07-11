@@ -9,13 +9,23 @@ export type ConhecimentoCompleto = {
   subcategoria: string | null;
   especialidade: string | null;
   resumo: string | null;
+  objetivo: string | null;
+  escopo: string | null;
+  definicao: string | null;
   indicacoes: string | null;
   contraindicacoes: string | null;
   materiais: string | null;
+  equipamentos: string | null;
+  epis: string | null;
   preparacao: string | null;
+  execucao_passos: string[] | null;
   procedimento: string | null;
   cuidados: string | null;
+  alertas: string | null;
   complicacoes: string | null;
+  condutas: string | null;
+  registro: string | null;
+  fundamentacao_cientifica: string | null;
   prevencao_eventos_adversos: string | null;
   pontos_criticos: string | null;
   observacoes: string | null;
@@ -44,8 +54,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .from('knowledge_base')
     .select(`
       id, titulo, categoria, subcategoria, especialidade, resumo,
-      indicacoes, contraindicacoes, materiais, preparacao, procedimento,
-      cuidados, complicacoes, prevencao_eventos_adversos, pontos_criticos,
+      objetivo, escopo, definicao,
+      indicacoes, contraindicacoes, materiais, equipamentos, epis,
+      preparacao, execucao_passos, procedimento,
+      cuidados, alertas, complicacoes, condutas, registro, fundamentacao_cientifica,
+      prevencao_eventos_adversos, pontos_criticos,
       observacoes, limitacoes, variacoes_institucionais, referencias,
       autor, data_revisao, cover_url, cover_credito, created_at, updated_at
     `)

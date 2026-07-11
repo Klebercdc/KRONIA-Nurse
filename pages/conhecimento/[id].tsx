@@ -13,15 +13,32 @@ function parseCredito(credito: string): { nome: string; link: string } | null {
   return { nome, link };
 }
 
-const SECOES: { chave: keyof ConhecimentoCompleto; titulo: string }[] = [
+type SecaoTexto = { chave: keyof ConhecimentoCompleto; titulo: string };
+
+/** Seções de texto simples ANTES da Execução — ordem espelha composeConteudoKnowledgeBase. */
+const SECOES_ANTES_EXECUCAO: SecaoTexto[] = [
   { chave: 'resumo', titulo: 'Resumo' },
+  { chave: 'definicao', titulo: 'Definição' },
+  { chave: 'objetivo', titulo: 'Objetivo' },
+  { chave: 'escopo', titulo: 'Escopo' },
   { chave: 'indicacoes', titulo: 'Indicações' },
   { chave: 'contraindicacoes', titulo: 'Contraindicações' },
   { chave: 'materiais', titulo: 'Materiais' },
+  { chave: 'equipamentos', titulo: 'Equipamentos' },
+  { chave: 'epis', titulo: 'EPIs' },
   { chave: 'preparacao', titulo: 'Preparo' },
-  { chave: 'procedimento', titulo: 'Passo a passo' },
+];
+
+/** 'execucao_passos' (array) e 'procedimento' (texto livre legado) — ver bloco de render dedicado, não cabem na lista genérica de string acima. */
+
+/** Seções de texto simples DEPOIS da Execução. */
+const SECOES_DEPOIS_EXECUCAO: SecaoTexto[] = [
   { chave: 'cuidados', titulo: 'Cuidados' },
+  { chave: 'alertas', titulo: 'Alertas' },
   { chave: 'complicacoes', titulo: 'Complicações' },
+  { chave: 'condutas', titulo: 'Condutas' },
+  { chave: 'registro', titulo: 'Registro' },
+  { chave: 'fundamentacao_cientifica', titulo: 'Fundamentação científica' },
   { chave: 'prevencao_eventos_adversos', titulo: 'Prevenção de eventos adversos' },
   { chave: 'pontos_criticos', titulo: 'Pontos críticos' },
   { chave: 'observacoes', titulo: 'Observações' },
@@ -29,6 +46,51 @@ const SECOES: { chave: keyof ConhecimentoCompleto; titulo: string }[] = [
   { chave: 'variacoes_institucionais', titulo: 'Variações institucionais' },
   { chave: 'referencias', titulo: 'Referências' },
 ];
+
+function CardSecaoTexto({ item, secoes }: { item: ConhecimentoCompleto; secoes: SecaoTexto[] }) {
+  return (
+    <>
+      {secoes.map(({ chave, titulo }) => {
+        const texto = item[chave];
+        if (!texto || typeof texto !== 'string' || !texto.trim()) return null;
+        return (
+          <div key={chave} className="card" style={{ marginBottom: 10 }}>
+            <p className="card-titulo">{titulo}</p>
+            <p style={{ fontSize: '0.88rem', lineHeight: 1.6, color: 'var(--color-ink)', whiteSpace: 'pre-wrap' }}>
+              {texto}
+            </p>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+/** Execução: usa execucao_passos (array, formato novo) quando disponível; cai para procedimento (texto livre legado) quando não há array. */
+function CardExecucao({ item }: { item: ConhecimentoCompleto }) {
+  const passos = Array.isArray(item.execucao_passos) ? item.execucao_passos.filter((p) => p?.trim()) : [];
+  if (passos.length > 0) {
+    return (
+      <div className="card" style={{ marginBottom: 10 }}>
+        <p className="card-titulo">Execução</p>
+        <ol style={{ fontSize: '0.88rem', lineHeight: 1.6, color: 'var(--color-ink)', margin: 0, paddingLeft: '1.2em' }}>
+          {passos.map((passo, i) => <li key={i} style={{ marginBottom: 4 }}>{passo}</li>)}
+        </ol>
+      </div>
+    );
+  }
+  if (item.procedimento?.trim()) {
+    return (
+      <div className="card" style={{ marginBottom: 10 }}>
+        <p className="card-titulo">Passo a passo</p>
+        <p style={{ fontSize: '0.88rem', lineHeight: 1.6, color: 'var(--color-ink)', whiteSpace: 'pre-wrap' }}>
+          {item.procedimento}
+        </p>
+      </div>
+    );
+  }
+  return null;
+}
 
 export default function ConhecimentoDetalhe() {
   const router = useRouter();
@@ -120,18 +182,9 @@ export default function ConhecimentoDetalhe() {
               )}
             </div>
 
-            {SECOES.map(({ chave, titulo }) => {
-              const texto = item[chave];
-              if (!texto || typeof texto !== 'string' || !texto.trim()) return null;
-              return (
-                <div key={chave} className="card" style={{ marginBottom: 10 }}>
-                  <p className="card-titulo">{titulo}</p>
-                  <p style={{ fontSize: '0.88rem', lineHeight: 1.6, color: 'var(--color-ink)', whiteSpace: 'pre-wrap' }}>
-                    {texto}
-                  </p>
-                </div>
-              );
-            })}
+            <CardSecaoTexto item={item} secoes={SECOES_ANTES_EXECUCAO} />
+            <CardExecucao item={item} />
+            <CardSecaoTexto item={item} secoes={SECOES_DEPOIS_EXECUCAO} />
 
             <p style={{ fontSize: '0.72rem', color: 'var(--color-ink-faint)', textAlign: 'center', marginTop: 8 }}>
               Atualizado em {formatarData(item.updated_at)}{item.autor ? ` · ${item.autor}` : ''}

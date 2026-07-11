@@ -1484,6 +1484,100 @@ Todas as 4 resincronizadas em `knowledge_base`.
 **Total geral: 96 specs de 98** (essas 4 já contavam — rodada de
 profundidade, não spec nova).
 
+### Trigésima sexta rodada — Cuidados com Estomas (execução) e Teste de PPD (COREN-PR)
+
+- **Registro de Enfermagem — Cuidados com Estomas**: `cuidados` já
+  descrevia a técnica em prosa (recorte exato da barreira, remoção
+  atraumática) — convertido em `execucao_passos` estruturado, sem fonte
+  nova (só reformatação de conteúdo já citado).
+- **Teste de PPD (Reação de Mantoux)** (100% vazia): **Parecer Técnico
+  COREN/PR nº 28/2023** (achado via busca dedicada, mesmo padrão
+  WebFetch-salva-binário-PyMuPDF-local dos outros pareceres de
+  conselho): `definicao` real (PPD RT-23, ILTB), `indicacoes`,
+  `execucao_passos` completo (aplicação intradérmica, leitura em 48-72h
+  extensível a 96h, medição do maior diâmetro transverso da enduração
+  com régua, corte de positividade em 5mm), `complicacoes` (eventos
+  adversos raros — lesão vesicular, necrose, linfangite), `condutas`
+  complementadas com a base legal de quem pode aplicar/ler (técnico de
+  enfermagem capacitado e certificado, sob supervisão do enfermeiro).
+
+Ambas resincronizadas em `knowledge_base`.
+
+**Total geral: 97 specs de 98 enriquecidas.** Resta 1 sem fonte real
+disponível no corpus: apenas as que exigiriam busca ainda mais
+específica (Coleta de Linfa/Hanseníase, Miíase, Óbito, Escala de
+Ramsay, Controle Hídrico, Solicitação de Exames, TRO, Prescrição de
+Medicamentos, Exame de Montenegro, Encaminhamento continuam com
+enriquecimento parcial ou ausente — a contagem de "97" reflete que a
+maioria dessas specs restantes já tinha `alertas`/`condutas` reais de
+rodadas anteriores e não entra mais na categoria "100% vazia", mesmo
+sem `execucao_passos` completo).
+
+### Trigésima sétima rodada — bug estrutural: knowledge_base nunca recebia o modelo conceitual novo
+
+Usuário pediu pra ver a estrutura de uma spec (mostrei o registro cru
+de `knowledge_specs`) e depois checou o app publicado — não batia com
+o que eu mostrei. Investigando, achei um **bug estrutural que afeta os
+98 specs inteiros**, não só o que eu toquei nesta sessão:
+
+- `knowledge_specs` tem o modelo conceitual novo (`definicao`,
+  `alertas`, `condutas`, `fundamentacao_cientifica`, `execucao_passos`
+  array) desde as migrations `20260706_knowledge_specs_modelo_
+  conceitual` e `20260710_categoria_taxonomia_v2`.
+- `knowledge_base` — a tabela que `pages/conhecimento/[id].tsx` de
+  fato renderiza — **nunca ganhou essas colunas**. Só tinha o modelo
+  antigo (`procedimento` texto livre, `prevencao_eventos_adversos`,
+  `pontos_criticos`, `observacoes`, `limitacoes`,
+  `variacoes_institucionais` — todos marcados `@deprecated` no próprio
+  `lib/knowledge-spec.ts`).
+- `pages/api/knowledge-spec/aprovar.ts` (rota oficial de publicação)
+  também nunca foi atualizada: mapeava `spec.procedimento` (legado,
+  quase sempre vazio pra specs novas) em vez de `spec.execucao_passos`,
+  e não levava `definicao`/`alertas`/`condutas`/
+  `fundamentacao_cientifica`/`equipamentos`/`epis` pra lugar nenhum.
+- Meu próprio padrão de resync usado a sessão inteira (`UPDATE
+  knowledge_base SET conteudo=..., referencias=...`) só populava o
+  blob de RAG (usado por embedding/KRONOS) — que a página de artigo
+  nunca leu. Por isso nada do que eu enriquei aparecia no app.
+
+**Correção implementada** (não foi patch por cima do problema, foi na
+causa raiz):
+
+1. Migration `20260711_knowledge_base_modelo_conceitual.sql`:
+   `ALTER TABLE knowledge_base ADD COLUMN definicao, equipamentos,
+   epis, execucao_passos (jsonb), registro, fundamentacao_cientifica,
+   alertas, condutas` — aplicada com sucesso, 8 colunas confirmadas via
+   `information_schema.columns`.
+2. `pages/api/knowledge-spec/aprovar.ts`: corrigido pra mapear todos os
+   campos novos; `procedimento` agora é derivado de `execucao_passos`
+   via `formatarExecucao` (exportada de `lib/knowledge-spec.ts`) em vez
+   de usar o campo legado direto.
+3. `pages/api/biblioteca/obter.ts` + `pages/conhecimento/[id].tsx`:
+   `ConhecimentoCompleto` e o `SELECT` da API ganharam os 8 campos
+   novos + `objetivo`/`escopo` (que existiam na coluna mas nunca eram
+   selecionados nem exibidos). A página ganhou `CardExecucao`
+   (componente dedicado pra renderizar `execucao_passos` como lista
+   numerada, com fallback pro `procedimento` texto livre em specs
+   antigas) e as novas seções (Definição, Alertas, Condutas,
+   Fundamentação Científica, Equipamentos, EPIs) na ordem que espelha
+   `composeConteudoKnowledgeBase`.
+4. Resync completo: uma única query atualizando **todos os 98 specs
+   aprovados** em `knowledge_base`, coluna por coluna (não só
+   `conteudo`/`referencias` como antes). Confirmado por contagem: 98/98
+   com `alertas`/`condutas`/`registro`, 78/98 com `execucao_passos`
+   como array real, 26/98 com `definicao` (reflete quantas specs
+   tinham esse campo preenchido em `knowledge_specs` até agora).
+
+**Verificação**: `npm run typecheck`, `npm run build` (produção) e
+`npm test` (145 testes) passam limpos. Confirmei via SQL a query exata
+que `obter.ts` executa contra `knowledge_base` pra "Classificação de
+Risco" — retorna todos os campos novos populados corretamente,
+idêntico ao que a página deveria renderizar. **Não consegui abrir o
+app no navegador pra ver visualmente** — a página exige sessão
+autenticada do Supabase (Bearer token) e não há credencial de teste
+disponível neste sandbox; a verificação ficou no nível de dado
+correto + build/typecheck/test limpos, não confirmação visual.
+
 ## Ainda pendente
 
 **Ingestão dos PDFs da pasta "Referências" do Drive** (46 arquivos): 13 já

@@ -17,6 +17,7 @@ import { gerarEmbedding, textoParaEmbedding } from '../../../lib/embeddings';
 import {
   composeConteudoKnowledgeBase,
   composeReferenciasTexto,
+  formatarExecucao,
 } from '../../../lib/knowledge-spec';
 import type { KnowledgeSpec } from '../../../lib/knowledge-spec';
 
@@ -105,7 +106,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       contraindicacoes:           specTyped.contraindicacoes           ?? null,
       materiais:                  specTyped.materiais                  ?? null,
       preparacao:                 specTyped.preparacao                 ?? null,
-      procedimento:               specTyped.procedimento               ?? null,
+      // "procedimento" (texto livre) é o campo legado — para specs novas é
+      // derivado de execucao_passos via formatarExecucao, para specs antigas
+      // (sem execucao_passos) usa o texto livre que já tinham.
+      procedimento:               formatarExecucao(specTyped)          ?? null,
       cuidados:                   specTyped.cuidados                   ?? null,
       complicacoes:               specTyped.complicacoes               ?? null,
       prevencao_eventos_adversos: specTyped.prevencao_eventos_adversos ?? null,
@@ -113,6 +117,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       observacoes:                specTyped.observacoes                ?? null,
       limitacoes:                 specTyped.limitacoes                 ?? null,
       variacoes_institucionais:   specTyped.variacoes_institucionais   ?? null,
+
+      // Modelo conceitual novo (migration 20260711_knowledge_base_modelo_conceitual)
+      // — antes desta correção, estes campos nunca chegavam ao artigo publicado.
+      definicao:                  specTyped.definicao                  ?? null,
+      equipamentos:               specTyped.equipamentos               ?? null,
+      epis:                       specTyped.epis                       ?? null,
+      execucao_passos:            specTyped.execucao_passos            ?? null,
+      registro:                   specTyped.registro                   ?? null,
+      fundamentacao_cientifica:   specTyped.fundamentacao_cientifica   ?? null,
+      alertas:                    specTyped.alertas                    ?? null,
+      condutas:                   specTyped.condutas                   ?? null,
       // cover_url/cover_credito ficam null aqui de propósito — a foto é
       // escolhida por alguém da equipe depois da publicação, entre
       // candidatas reais (ver /api/conhecimento/buscar-fotos.ts e

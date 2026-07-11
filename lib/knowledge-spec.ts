@@ -263,7 +263,7 @@ export const CLASSIFICACAO_LABEL: Record<ClassificacaoPipeline, string> = {
 };
 
 /** Formata o array de passos da Execução como texto numerado, ou usa o campo legado "procedimento" se não houver array. */
-function formatarExecucao(spec: KnowledgeSpec): string | undefined {
+export function formatarExecucao(spec: KnowledgeSpec): string | undefined {
   if (Array.isArray(spec.execucao_passos) && spec.execucao_passos.length > 0) {
     return spec.execucao_passos.map((passo, i) => `${i + 1}. ${passo}`).join('\n');
   }
