@@ -1085,6 +1085,67 @@ são specs novas). Entrada adicionada em `PDF_METADATA`
 **Total geral inalterado: 82 specs de 98 enriquecidas** (profundidade
 aumentada em 3 delas).
 
+### Vigésima oitava rodada — método "esqueleto genérico + fonte real" e 4 specs novas
+
+Usuário corrigiu o método após o achado do manual de Curitiba (rodada
+25): não é preciso descartar o *problema* que aquele manual resolvia
+(specs sem nenhuma técnica) — é preciso separar **esqueleto genérico**
+(higienizar as mãos, reunir material, calçar EPI, posicionar o
+paciente, descartar perfurocortante, registrar — sequência universal de
+qualquer procedimento de enfermagem, não é expressão autoral de
+nenhuma fonte específica, não precisa citação) de **conteúdo específico
+do procedimento** (técnica exata, ângulos, sítios, critérios clínicos —
+esse sim precisa de fonte real, com licença compatível, citada). Nunca
+usar a estrutura do Curitiba mesmo como "esqueleto emprestado" citando
+outra fonte por cima — isso seria atribuir a um livro um conteúdo que
+não veio dele. Confirmado com o usuário antes de aplicar
+(`AskUserQuestion`).
+
+Com o método, 4 specs 100% vazias ganharam conteúdo técnico real de
+fontes licenciadas de verdade:
+
+- **Tricotomia**: esqueleto próprio (não copiado de nenhuma fonte) +
+  achado real do **Brunner & Suddarth** (p. 773, já usado extensivamente
+  nesta sessão): remoção de pelos deve ser feita **imediatamente antes**
+  do procedimento, com **cortador elétrico** (não lâmina) — reduz risco
+  de microabrasão/infecção. Mesma recomendação já achada antes no
+  manual de intensivismo pra CVC, agora generalizada corretamente pra
+  a Spec de tricotomia geral.
+- **Registro de Enfermagem — Coleta de Urina para Exames de Paciente
+  Sondado**: **OpenRN Nursing Skills, Chapter 21 (Facilitation of
+  Elimination)** — técnica real de coleta estéril pela porta de
+  amostragem do cateter (sampling port), sem desconectar o sistema
+  fechado: limpar a porta com álcool, pinçar o tubo 10-15min se não
+  houver urina disponível, aspirar 10-30mL com seringa Luer-lock,
+  nunca coletar da bolsa coletora (contaminada).
+- **Exame Clínico das Mamas (Enfermeiro)**: **Protocolo de Atenção à
+  Saúde da SES-DF — Detecção Precoce do Câncer de Mama** (Portaria
+  SES-DF nº 287/2016, documento público de governo estadual, sem
+  cláusula NC): faixas etárias de rastreamento, critérios de risco
+  elevado/muito elevado, técnica completa do exame (inspeção
+  estática/dinâmica, palpação em decúbito dorsal com polpas digitais,
+  expressão mamilar), achados sugestivos de malignidade, tabela BI-RADS.
+- **Registro de Enfermagem na Coleta de Exame Citopatológico**:
+  **Protocolo de Atenção à Saúde da SES-DF — Condutas para o
+  Rastreamento do Câncer do Colo do Útero na Atenção Primária** (CPPAS,
+  2022, mesmo tipo de fonte pública estadual): faixa etária 25-64 anos,
+  periodicidade, contraindicações reais (não serve pra diagnóstico de
+  corrimento/DST), técnica completa (esfregaço dividido ecto/
+  endocérvice, fixação em álcool 92-96% por 3h, por que não usar
+  fixador em spray), critério de repetição por amostra não
+  representativa.
+
+Ambos os documentos da SES-DF foram baixados via WebFetch (que não
+extraiu texto de nenhum dos dois — retornou só estrutura binária — mas
+salvou o binário local, processado com PyMuPDF, mesmo padrão já usado
+o resto da sessão pra hosts governamentais). `bvsms.saude.gov.br` e o
+mirror `bvs.saude.gov.br` seguem bloqueados neste sandbox (confirmado
+de novo nesta rodada).
+
+Todas as 4 resincronizadas em `knowledge_base`.
+
+**Total geral: 86 specs de 98 enriquecidas.**
+
 ## Ainda pendente
 
 **Ingestão dos PDFs da pasta "Referências" do Drive** (46 arquivos): 13 já
