@@ -944,6 +944,25 @@ Resincronizada em `knowledge_base`.
 
 **Total geral: 76 specs de 98 enriquecidas.**
 
+### Vigésima terceira rodada — Enteróclise (RioSaúde POP.DEA.011)
+
+**Enteróclise — Registro de Enfermagem** (100% vazia exceto o guia de
+registro COFEN) — POP.DEA.011 (RioSaúde, v04, 2024): `definicao` real
+(distinção enteróclise ≥500mL vs. clister/enema <500mL),
+`indicacoes`/`contraindicacoes` completas (a Spec nunca tinha tido
+`contraindicacoes` preenchida), `materiais` (sonda retal, solução,
+lidocaína gel, EPI), `execucao_passos` completo (15 passos — conferência
+de prescrição, posição de Sims, introdução da sonda com distância por
+faixa etária, instilação, tempo de retenção, registro), `cuidados` e
+`complicacoes` novos, `condutas` complementadas.
+
+Resincronizada em `knowledge_base` (query ajustada para incluir a seção
+CONTRAINDICAÇÕES, ausente do template usado nas rodadas anteriores
+porque nenhuma spec tocada até aqui tinha esse campo preenchido do
+zero).
+
+**Total geral: 77 specs de 98 enriquecidas.**
+
 ## Ainda pendente
 
 **Ingestão dos PDFs da pasta "Referências" do Drive** (46 arquivos): 13 já
