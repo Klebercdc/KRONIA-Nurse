@@ -575,8 +575,43 @@ Todas as 5 specs tocadas nesta rodada resincronizadas em
 de 98 specs ativas — quase a metade). **22 dos 23 capítulos do OpenRN
 usados** (só Chapter 7 sem spec de destino). Próxima fronteira real
 exigiria fonte nova (mais PDFs do Drive, ou preencher `escopo`/
-`equipamentos` que quase nenhuma spec tem ainda) — não mais o OpenRN,
-que está esgotado pra este corpus de specs.
+`equipamentos` que quase nenhuma spec tem ainda) — não mais o
+"Nursing Skills" do OpenRN, que estava esgotado pra este corpus.
+
+### Décima segunda rodada — segundo livro do OpenRN: "Nursing Fundamentals"
+
+Ao esgotar "Nursing Skills", busquei se existia livro-irmão do OpenRN
+(mesmo autor/editora/licença CC BY 4.0) — achei **"Nursing
+Fundamentals"** (Ernstmeyer & Christman, CVTC, 2021, NCBI Bookshelf
+`NBK591823`, 19 capítulos, slug diferente:
+`/books/n/openrnnf/<capitulo>/`, não `openrnns2e`). Cobre conceito/ADL
+(mobilidade, conforto, segurança, sono, eliminação) em vez de checklist
+de procedimento — preenche exatamente as Specs de "Fundamentos de
+Enfermagem" que `Nursing Skills` não alcançava. Documentado em
+`.claude/skills/kronia-nurse-document-ingestion/SKILL.md` § Step 2c.
+
+- **Chapter 13 (Mobility)** → **Mudança de Decúbito** (reposicionar a
+  cada 2h, avaliação de risco antes) e **Estímulo à Deambulação**
+  (técnica com cinto de transferência/gait belt, complicações da
+  imobilidade que a deambulação previne — TVP, pneumonia, perda de 20%
+  de força muscular por semana).
+- **Chapter 11 (Comfort)** → **Controle da Dor** (escala numérica,
+  PQRSTU, FLACC pra criança/não comunicativo, PAINAD pra demência
+  avançada) e **Massagem de Conforto** (como medida não farmacológica).
+- **Chapter 5 (Safety Introduction)** → **Contenção no Leito**
+  (indicação só após alternativa menos restritiva falhar, avaliação
+  médica em até 1h, o que documentar) e **Condutas de Segurança ao
+  Paciente** (rondas de hora em hora, cama baixa, campainha ao alcance).
+- **Chapter 16 (Elimination)** testado pra Enteróclise/TRO — fonte
+  fina demais (uma frase cada, sem procedimento real); não usado, pra
+  não forçar conteúdo fraco (REGRA 11).
+
+Todas as 6 specs tocadas resincronizadas em `knowledge_base`.
+
+**Total final da sessão: 52 specs de 98 enriquecidas** (mais da
+metade). Restam capítulos do "Nursing Fundamentals" ainda não
+explorados (Nutrition, Infection, Integumentary, Sleep and Rest, Care
+of the Older Adult) que podem render mais specs numa próxima rodada.
 
 ### Ferramentas de extração avaliadas nesta sessão (usuário forneceu 4 zips)
 

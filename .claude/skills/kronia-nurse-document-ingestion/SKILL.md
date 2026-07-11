@@ -223,6 +223,35 @@ verbatim; cite with `instituicao: 'CHIPPEWA VALLEY TECHNICAL COLLEGE (OPEN
 RN)'` and keep the original chapter URL in the reference's `url` field for
 traceability (REGRA 12 da Constituição).
 
+## Step 2c — OpenRN "Nursing Fundamentals" (sister book to Nursing Skills)
+
+Same authors/publisher/license as Step 2b (Ernstmeyer & Christman,
+Chippewa Valley Technical College, CC BY 4.0), but a **different book**
+covering ADL/comfort/safety/mobility concepts rather than procedural
+checklists — useful for `Fundamentos de Enfermagem` category Specs that
+`Nursing Skills` doesn't reach (positioning, ambulation, pain scales,
+restraints, fall prevention). NCBI Bookshelf ID `NBK591823`
+(2021 edition), chapter URL pattern
+`https://www.ncbi.nlm.nih.gov/books/n/openrnnf/<chapterslug>/`
+(different book-id segment than `openrnns2e` — don't reuse the Nursing
+Skills slug prefix). 19 chapters: Scope of Practice, Communication,
+Diverse Patients, Nursing Process, Safety Introduction, Cognitive
+Impairments, Sensory Impairments, Oxygenation, Infection, Integumentary,
+Comfort, Sleep and Rest, Mobility, Nutrition, Fluids and Electrolytes,
+Elimination, Grief and Loss, Spirituality, Care of the Older Adult.
+
+Confirmed this session: Chapter 13 (Mobility) → repositioning frequency
+(2h), ambulation/gait-belt technique, immobility complications (DVT,
+pneumonia, 20%/week muscle loss) — used for Mudança de Decúbito and
+Estímulo à Deambulação. Chapter 11 (Comfort) → pain scales (numeric,
+FLACC, PAINAD) and PQRSTU — used for Controle da Dor and Massagem de
+Conforto. Chapter 5 (Safety Introduction) → restraint indications/
+monitoring/documentation and fall-prevention basics — used for
+Contenção no Leito and Condutas de Segurança ao Paciente. Chapter 16
+(Elimination) tested but too thin (one sentence each on enema/oral
+rehydration, no real procedure) — not used, per REGRA 11 don't force
+weak fragments into a Spec.
+
 ## Step 3 — Known institution/document quality (update this list as you learn more)
 
 | Institution / source | Known quality | Notes |
