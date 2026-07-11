@@ -1181,6 +1181,69 @@ Todas as 5 resincronizadas em `knowledge_base`.
 
 **Total geral: 91 specs de 98 enriquecidas.**
 
+### Trigésima rodada — auditoria dos .txt já extraídos (sem novo download)
+
+Usuário pediu auditoria: verificar se algum PDF já baixado nesta sessão
+tinha conteúdo pras specs ainda vazias que eu não tinha aproveitado.
+Em vez de baixar de novo, usei `grep` direto nos `.txt` já extraídos no
+scratchpad (`brunner.txt`, `wong_full.txt`, `intensivismo.txt`,
+`obstetricia.txt`, `sae.txt`, `mosby.txt`, etc.) — bem mais rápido que
+reabrir cada PDF. Achados reais:
+
+- **Registro de Enfermagem — Diálise Peritoneal** (100% vazia): Brunner
+  & Suddarth (p. 916-918) tem a seção de Peritonite — não é o passo a
+  passo da sessão de diálise em si, mas é conhecimento real e citável
+  sobre a complicação mais grave associada à DP (líquido turvo, dor,
+  antibioticoterapia imediata, remoção do cateter se sem resposta em
+  5 dias). Ganhou `definicao` e `complicacoes` reais.
+- **Aplicação de Calor e Frio** (só tinha `contraindicacoes` de uma
+  rodada anterior): Brunner (p. 752-753, 959) tem calor superficial pra
+  lombalgia e frio/compressa fria pra prurido como exemplos reais de
+  indicação — ganhou `indicacoes` e `cuidados`.
+- **Tratamento de Pediculose** (100% vazia): achei um capítulo completo
+  e real no **wong_full.txt** (p. 2608-2612) — fisiopatologia do
+  Pediculus humanus capitis, manifestações, diagnóstico (lêndeas vs.
+  caspa), conduta terapêutica completa (permetrina 1% como escolha em
+  criança, piretrina como alternativa, malation 0,5% como terceira
+  linha com contraindicação <2 anos), técnica de aplicação (proteção
+  ocular, pente fino, retratamento em 7-10 dias), e alerta real sobre
+  remédios caseiros (vaselina, vinagre etc.) não serem eficazes e
+  aumentarem risco de infecção secundária por S. aureus. Ganhou
+  `definicao`, `materiais`, `contraindicacoes`, `execucao_passos`
+  completo, `cuidados` e `alertas` complementados — spec mais completa
+  desta rodada.
+- **Atendimento Antirrábico** e **Administração de Soro Antirrábico
+  Humano** (já tinham registro COFEN rico, mas nada de fundamentação):
+  wong_full.txt (p. 2438) tem conteúdo real sobre raiva (contexto
+  americano, então usei só os princípios universais, não datas/
+  esquemas específicos dos EUA): lavar a ferida com água e sabão o
+  quanto antes, evitar sutura quando possível, e o conceito de
+  imunização passiva (soro = anticorpos pré-formados) vs. ativa
+  (vacina) — ambas usadas juntas na profilaxia pós-exposição.
+
+**Buscas sem resultado usável** (termos verificados em todos os `.txt`
+compliant do corpus, sem achado real o bastante pra citar): Ácido
+Tricloroacético (0 ocorrência em todo o corpus), Coleta de Linfa para
+Hanseníase (só menção de lista de doenças, sem técnica), Miíase (0
+ocorrência), Registro de Enfermagem — Óbito / declaração de óbito /
+morte encefálica (só 1 menção de passagem em Brunner, sem processo),
+Escala de Aldrete e Kroulik (0 ocorrência em nenhum livro do corpus,
+nem no Wong pediátrico), Escala de Ramsay (só nome citado ao lado de
+RASS num contexto de cateter peridural, sem os níveis 1-6 da escala em
+lugar nenhum), Controle Hídrico (balanço hídrico só aparece como item
+de plano de cuidado — "realizar BH de 12/12h" — em várias specs de
+doença específica, nunca como técnica de mensuração em si), Solicitação
+de Exames (0 ocorrência com conteúdo processual). Continuam vazias,
+sem fonte real disponível no corpus atual — não forcei conteúdo fraco
+nem inventei.
+
+Todas as 5 specs tocadas resincronizadas em `knowledge_base`.
+
+**Total geral: 94 specs de 98 enriquecidas** (91 + 3 novas: Diálise
+Peritoneal, Aplicação de Calor e Frio, Tratamento de Pediculose — as
+outras 2 tocadas, Atendimento Antirrábico e Soro Antirrábico, já
+contavam antes, só ganharam profundidade).
+
 ## Ainda pendente
 
 **Ingestão dos PDFs da pasta "Referências" do Drive** (46 arquivos): 13 já
