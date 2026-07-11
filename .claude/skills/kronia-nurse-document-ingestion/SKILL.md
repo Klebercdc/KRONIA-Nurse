@@ -315,6 +315,36 @@ from a book with "nursing skills" or "nursing fundamentals" in the
 title, check which publisher/program it actually is, not just the
 title string.
 
+## Step 2f — "Manual de Cuidados de Enfermagem em Procedimentos de Intensivismo" (UFCSPA): CC BY-NC-ND, do NOT use
+
+This book (Souza, Viégas, Caregnato, orgs., Editora UFCSPA, 2020 —
+`Manual-de-Cuidados-de-Enfermagem-em-Procedimentos-de-Intensivismo.pdf`)
+was used extensively early in this session (before the licensing rule
+was formalized) to enrich 4 Specs — Pressão Arterial Média (PAM),
+Pressão Venosa Central (PVC), Nutrição Parenteral, Hemodiálise — under
+the assumption it was a normal copyrighted textbook like Brunner/Wong/
+Mosby. **It is not.** Checking the publisher's own catalog page
+(`editora.ufcspa.edu.br/index.php/editora/catalog/book/95`) shows it is
+licensed **Creative Commons Attribution-NonCommercial-NoDerivatives 4.0
+International (CC BY-NC-ND)** — even more restrictive than the CC
+BY-NC-SA already excluded elsewhere in this project (ND forbids
+derivative works entirely, not just commercial ones).
+
+**Do not cite or extract content from this book for any Spec.** The 4
+Specs above were rewritten in a later session round using alternative
+compliant sources for the same subjects (federal/state hospital POPs:
+HULW-UFPB POP.UTI.001 for PAM, Instituto Nacional de Cardiologia
+POP.ENF.018 for PVC, HABF-ES POP.HABF.007/028 for Nutrição
+Parenteral/cateter de hemodiálise) — proof that "um procedimento pode
+ser referenciado por 3-4 fontes diferentes" (a Spec isn't tied to one
+book) applies here too: losing an excluded source doesn't mean losing
+the Spec's content, it means finding who else says the same thing.
+
+If a Drive link or filename references "Intensivismo" / "UFCSPA" /
+"Cuidados de Enfermagem em Procedimentos" again in a future session,
+check this section before using it — the finding above already answers
+the license question, no need to re-verify from scratch.
+
 ## Step 3 — Known institution/document quality (update this list as you learn more)
 
 | Institution / source | Known quality | Notes |

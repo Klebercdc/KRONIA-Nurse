@@ -1374,6 +1374,79 @@ Resincronizada em `knowledge_base` (Escala de Aldrete e Kroulik).
 disponível: Coleta de Linfa para Hanseníase, Miíase, Óbito, Escala de
 Ramsay, Controle Hídrico, Solicitação de Exames.
 
+### Trigésima quarta rodada — correção retroativa: Manual de Intensivismo (UFCSPA) era CC BY-NC-ND
+
+Usuário mandou o Drive do `Manual-de-Cuidados-de-Enfermagem-em-
+Procedimentos-de-Intensivismo.pdf` de novo (o mesmo arquivo já usado
+desde o início desta sessão). O Drive só devolveu o HTML da página de
+download da Editora UFCSPA, mas os metadados desse HTML revelaram o
+que eu nunca tinha checado: a licença real do livro. Confirmado direto
+na página do catálogo da editora
+(`editora.ufcspa.edu.br/index.php/editora/catalog/book/95`): **Creative
+Commons Attribution-NonCommercial-NoDerivatives 4.0 (CC BY-NC-ND)** —
+mais restritiva ainda que o CC BY-NC-SA já vetado (ND proíbe até obra
+derivada, não só uso comercial).
+
+**Problema retroativo real**: esse livro foi usado desde a primeira
+leva de enriquecimento profundo desta sessão (antes da regra de
+licença existir formalmente) pra 4 Specs — **Pressão Arterial Média
+(PAM)**, **Pressão Venosa Central (PVC)**, **Nutrição Parenteral**,
+**Hemodiálise** — sem nunca checar a licença antes de usar, quebrando
+o próprio protocolo "achar antes de usar" que a sessão adotou depois.
+
+Usuário confirmou a correção com uma instrução mais ampla: "procedimento
+pode ser referenciado por 3-4 referências do banco, não fica preso a um
+livro". Em vez de só remover e deixar vazio, busquei fonte alternativa
+compatível pro mesmo assunto em cada uma das 4:
+
+- **PAM**: reconstruída com **HULW-UFPB POP.UTI.001** (Monitorização da
+  Pressão Arterial Invasiva com Transdutor de Pressão — base legal
+  Resolução COFEN nº 390/2011, técnica completa de instalação/
+  zeragem/leitura) + **HU-UFSC POP NEPEN/DE/HU** (Punção Arterial pra
+  PAM — ângulos por sítio, tempo máximo de cateter, troca de solução).
+- **PVC**: reconstruída com **Instituto Nacional de Cardiologia
+  POP.ENF.018** (Ministério da Saúde — base legal Pareceres COREN-RO
+  001/2013 e COREN-DF 03/2015, técnica completa: preparo, zeragem a
+  cada 12h, mensuração a cada 2h, retirada do sistema).
+- **Nutrição Parenteral**: reconstruída com **HABF-ES POP.HABF.007**
+  (Hospital Estadual Alberto Bordignon Fioravante, Espírito Santo —
+  técnica completa de instalação, cuidados de conservação/proteção da
+  luz, via exclusiva, incompatibilidades medicamentosas reais).
+- **Hemodiálise**: reconstruída com **HABF-ES POP.HABF.028** (Auxiliar
+  na Passagem do Cateter Venoso Central — cobre especificamente cateter
+  de hemodiálise duplo/triplo lúmen com foto, técnica de auxílio à
+  inserção, complicações nas primeiras 24h).
+
+Todas as 4 fontes novas são POPs públicos de hospital
+universitário/estadual, sem cláusula de licença restritiva encontrada
+(busquei "reprodução"/"licença"/"creative commons" no texto completo de
+cada uma, sem ocorrência). Um POP de outra instituição (FCECON-AM, achado
+na mesma busca) foi **descartado sem uso** por ter a cláusula explícita
+"Documento exclusivo à Fundação CECON. Proibida a reprodução." — mesmo
+tratamento dado ao Curitiba e ao Pé Diabético.
+
+**Achado curioso**: o próprio POP.HABF.028 (Espírito Santo) cita
+"Manual-de-Cuidados-de-Enfermagem-em-Procedimentos-de-Intensivismo.pdf"
+na sua lista de referências — ou seja, o hospital estadual também usou
+aquele livro como base ao escrever o próprio POP. Isso não é problema:
+o conteúdo citado aqui vem do texto do POP.HABF.028 em si (documento
+público, sem restrição própria), não copiado diretamente do livro
+NC-ND — a cadeia de influência de uma fonte não se propaga
+automaticamente pra quem a cita e depois publica algo novo sob outra
+licença.
+
+Ações de limpeza: entrada em `PDF_METADATA`
+(`scripts/rag-pipeline.js`) marcada com `excluido_licenca: true` e
+comentário explicando o motivo, pra `npm run rag:pipeline` nunca
+indexar esse arquivo se rodar no futuro. Novo § Step 2f adicionado em
+`.claude/skills/kronia-nurse-document-ingestion/SKILL.md` documentando
+o achado, pra qualquer sessão futura que receba esse mesmo arquivo de
+novo não precisar re-verificar a licença do zero.
+
+**Total geral inalterado: 96 specs de 98 enriquecidas** (as 4 specs
+já contavam no total — essa rodada foi correção de fonte, não
+enriquecimento novo).
+
 ## Ainda pendente
 
 **Ingestão dos PDFs da pasta "Referências" do Drive** (46 arquivos): 13 já

@@ -171,6 +171,13 @@ const PDF_METADATA = {
     versao: null,
     ano: 2020,
     descricao: 'Manual de Cuidados de Enfermagem em Procedimentos de Intensivismo (Souza, Viégas e Caregnato, orgs.)',
+    // EXCLUÍDO — licença CC BY-NC-ND 4.0 (confirmada em
+    // editora.ufcspa.edu.br/index.php/editora/catalog/book/95), viola a
+    // regra de licença do projeto (docs/constituicao-extracao-conhecimento.md
+    // § Regra de licença). NÃO usar como fonte de `conhecimento_fragmentos`
+    // nem em enriquecimento manual de knowledge_specs. Ver
+    // .claude/skills/kronia-nurse-document-ingestion/SKILL.md § Step 2f.
+    excluido_licenca: true,
   },
   // Usado manualmente pra enriquecer Cuidados no Pré-Parto/Sala de Parto
   // (item #14 de docs/pdf-triage-referencias-pendentes.md).
