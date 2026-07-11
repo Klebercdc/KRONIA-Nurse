@@ -1937,6 +1937,45 @@ real dos 98 registros, que só o usuário tem. Não tentei corrigir.
 de `licenca` testado com INSERT real (rejeita NC, aceita CC BY). As 2
 specs corrigidas reconfirmadas via SELECT direto nas duas tabelas.
 
+### Quadragésima segunda rodada — auditoria completa com a skill nova + prompt master
+
+Usuário pediu pra rodar a skill `kronia-nurse-knowledge` de verdade
+numa auditoria das 3 tabelas (`knowledge_specs`, `knowledge_base`,
+`conhecimento_documentos`), depois pediu o resultado formalizado como
+"prompt master de auditoria" reutilizável.
+
+**Resultado da auditoria**:
+- `knowledge_specs`: 4/5 regras de consistência limpas. Único achado:
+  o já conhecido `status=aprovado sem aprovado_por/knowledge_base_id`
+  (98/98).
+- `knowledge_base`: limpo em spec órfão, publicado-sem-aprovação-viva,
+  título/categoria vazio, título duplicado, fonte bloqueada residual e
+  desalinhamento tipo/campos_especificos. Um falso positivo próprio
+  (5 registros "publicado mas spec não aprovada") corrigido ao notar
+  que esqueci o filtro `deleted_at is null` — os 5 são specs
+  arquivadas cujo `knowledge_base` já estava soft-deleted no mesmo
+  timestamp, comportamento correto, não bug. **Achado novo real**:
+  embedding nulo em 98/98 linhas vivas — a migration fundadora
+  (`20260630_schema_completo.sql`) documenta em comentário que "todo
+  conteúdo aqui... tem embedding" e cria índice `ivfflat` pra isso;
+  `aprovar.ts` gera o embedding em toda aprovação real. Terceiro sinal
+  independente (com `knowledge_base_id` e `aprovado_por`) de que os 98
+  specs não passaram pela rota real de aprovação. Confirmado que isso
+  não afeta o KRONOS hoje — a busca semântica dele lê
+  `conhecimento_fragmentos`, não `knowledge_base`.
+- `conhecimento_documentos`: 100% limpo — sem hash duplicado, sem
+  `ativo=true` com zero fragmentos, sem violação de allowlist de
+  licença, e nenhum dos 3 nomes já excluídos (UFCSPA + 2 Atena)
+  aparece como ativo. `licenca` classificada: 0/13 (débito conhecido,
+  não é bug — não fiz backfill sem verificar cada documento).
+
+**Prompt master**: `references/06-auditoria-consistencia.md` reescrito
+de "query de consistência só de knowledge_specs" pra um prompt completo
+e autocontido cobrindo as 3 tabelas, com regra explícita de quando
+corrigir na hora (bug mecânico reversível) vs. só reportar (qualquer
+coisa que precise da história do dado ou reverta aprovação em massa),
+e a lição do falso positivo documentada pra não repetir.
+
 ## Ainda pendente
 
 **Ingestão dos PDFs da pasta "Referências" do Drive** (46 arquivos): 13 já

@@ -24,7 +24,7 @@ nada sozinha — aprovação clínica é sempre humana, através de
 | Vai gravar um `knowledge_specs` e precisa evitar citação inventada | `references/03-anti-alucinacao.md` + rodar `scripts/verificar_citacoes.py` |
 | Vai gravar o registro final | `references/04-gravacao-schema.md` |
 | Precisa decidir **quais assuntos** pesquisar (planejamento, cobertura, backlog) | `references/05-geracao-de-assuntos.md` |
-| Quer auditar a base inteira, não só a spec que está criando agora | `references/06-auditoria-consistencia.md` |
+| Quer auditar a base inteira (`knowledge_specs`, `knowledge_base`, `conhecimento_documentos`), não só a spec que está criando agora | `references/06-auditoria-consistencia.md` — prompt master de auditoria, pronto pra copiar e rodar |
 
 ## Fluxo resumido
 
