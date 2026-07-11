@@ -848,6 +848,21 @@ Todas as 2 resincronizadas em `knowledge_base`.
 
 **Total geral: 72 specs de 98 enriquecidas.**
 
+### Vigésima rodada — Aspiração Oral e Banho (POPs Porto Alegre/RioSaúde)
+
+- **Aspiração Oral** (POP nº 45 — Porto Alegre, 2023): técnica completa
+  de aspiração naso/orofaríngea E de cânula de traqueostomia, com
+  pressão por faixa etária, limite de 10s, sequência
+  traqueostomia→nasal→oral, cita a Resolução COFEN 0557/2017.
+- **Higiene do Paciente – Banho** (POP.DEA.018 — RioSaúde, 2025):
+  3 técnicas completas (banho no leito, aspersão semi-dependente,
+  aspersão independente), riscos associados (queda, extubação
+  acidental, hipotermia), regra dos 2 profissionais no banho no leito.
+
+Todas as 2 resincronizadas em `knowledge_base`.
+
+**Total geral: 74 specs de 98 enriquecidas.**
+
 ### Ferramentas de extração avaliadas nesta sessão (usuário forneceu 4 zips)
 
 Testadas de verdade no mesmo PDF de 151 páginas pra comparação justa —
