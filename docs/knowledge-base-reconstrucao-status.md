@@ -1305,6 +1305,28 @@ licença** (visão consolidada, pra consulta rápida):
   Drive, processa normal — é um livro-texto profissional como os
   outros, sem indicação de restrição de licença conhecida até agora.
 
+### Trigésima segunda rodada — Ácido Tricloroacético (POP Antônio Carlos/SC)
+
+**Registro de Enfermagem na Aplicação de Ácido Tricloroacético em
+Lesões Condilomatosas** (100% vazia, zero ocorrência em todo o corpus
+até esta rodada) — achada via busca dedicada: **POP ENF nº 45 —
+Cauterização de Verruga Anogenital** (Prefeitura de Antônio Carlos/SC,
+2023, sem cláusula restritiva). Documento cita a base legal real
+(Parecer Técnico COREN/SC nº 006/2013, que respalda o Enfermeiro
+habilitado a realizar o procedimento): `definicao`, `indicacoes`
+(inclusive uso seguro em gestante), `contraindicacoes` (critérios reais
+de encaminhamento à atenção secundária — lesão >1cm, lesão vaginal
+interna/colo uterino, sem melhora), `materiais`, `execucao_passos`
+completo (ângulo de aplicação de 90°, ponto de parada pelo
+branqueamento "branco-neve"), `cuidados` (neutralização da dor com
+bicarbonato/talco, taxa de recidiva real de até 36%, orientações de
+retorno) e `condutas` complementadas com o critério real de decisão em
+gestante (janela de tempo até o parto).
+
+Resincronizada em `knowledge_base`.
+
+**Total geral: 95 specs de 98 enriquecidas.**
+
 ## Ainda pendente
 
 **Ingestão dos PDFs da pasta "Referências" do Drive** (46 arquivos): 13 já
