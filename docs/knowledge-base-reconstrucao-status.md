@@ -730,6 +730,29 @@ confirmados (antes só estimativas).
 
 **Total final da sessão: 59 specs de 98 enriquecidas** — quase 60%.
 
+### Décima sexta rodada — mais 2 specs do wong.pdf
+
+Neonatologia (3 specs) já estava esgotada; Obstetrícia não rendeu
+(Wong é livro de enfermagem *pediátrica*, sem seção de puerpério
+materno — testei "fundo uterino"/"involução uterina"/"lóquios" e não
+achei nada, então **Cuidados no Pós-Parto Imediato ficou de fora**, sem
+forçar). Encontrei mais 2 specs fora dessas categorias que bateram:
+
+- **Retirada de Corpo Estranho** (Emergência, 100% vazia): quadro real
+  de "Tratamento de Emergência" pra corpo estranho ocular — examinar
+  levantando a pálpebra, remover só o que está móvel com gaze
+  umedecida, nunca irrigar nem tentar remover objeto penetrante. Fonte
+  só cobre o olho (não achei conteúdo de ouvido/nariz); documentado como
+  exemplo específico, não generalizado além do que a fonte de fato traz.
+- **Medida Antropométrica** (Fundamentos de Enfermagem, 100% vazia):
+  técnica completa de comprimento (decúbito dorsal), altura (em pé,
+  estadiômetro), peso (calibração da balança, dupla checagem) e
+  perímetro cefálico (fita não elástica, acima das sobrancelhas).
+
+Ambas resincronizadas em `knowledge_base`.
+
+**Total final da sessão: 61 specs de 98 enriquecidas.**
+
 ### Ferramentas de extração avaliadas nesta sessão (usuário forneceu 4 zips)
 
 Testadas de verdade no mesmo PDF de 151 páginas pra comparação justa —
