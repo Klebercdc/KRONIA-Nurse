@@ -320,6 +320,24 @@ folder and are worth avoiding:
   cases in practice. It doesn't give you a page count, so page counts stay
   "not determined" for those until someone re-opens the file with a proper
   download.
+- **`read_file_content` is fine for triage but not a substitute for full
+  extraction on a genuinely huge book.** Confirmed on `wong.pdf` (*Wong:
+  Fundamentos de Enfermagem Pediátrica*, 9ª ed., 44MB, ~3000 pages):
+  `read_file_content` returned 425K chars that only covered the front
+  matter + Chapters 1-4 (~180 of ~3000 pages) before stopping — no error,
+  no truncation warning, it just silently stops partway through. There's
+  no offset/page-range parameter on the Drive tool itself to ask for a
+  later chapter; the only levers (`offset`/`limit`) apply to re-reading
+  the *already-saved* local text file, not to fetching more of the
+  original from Drive. `download_file_content` also fails outright (over
+  the 10MB cap) and this sandbox has no authenticated `curl`/Drive-API
+  path to fetch the raw bytes another way. **Net effect: a >~15-20MB,
+  many-hundred-page book is not fully reachable with the current
+  toolset** — you'll only ever see its first chunk, whatever that
+  happens to cover. Don't force-fit content from those first pages into
+  Specs the later (unreachable) chapters were actually meant for; report
+  the gap and ask the user for a smaller excerpt or a direct download
+  link instead of pretending the partial extract is representative.
 - **Never call `read_file_content` in parallel across multiple files in one
   batch** — a batch of 10 parallel calls once returned content **swapped
   between 4 different files** (each file's title didn't match its returned
