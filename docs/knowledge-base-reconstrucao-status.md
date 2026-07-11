@@ -1447,6 +1447,43 @@ novo não precisar re-verificar a licença do zero.
 já contavam no total — essa rodada foi correção de fonte, não
 enriquecimento novo).
 
+### Trigésima quinta rodada — mapa de cobertura por Área Clínica + 4 specs de Sondas e Drenos
+
+Usuário pediu mapa das 36 Áreas Clínicas (taxonomia do produto) contra
+os 98 specs reais: 19 áreas têm spec, 17 não têm nenhuma (Hemodinâmica,
+CME, UTI Adulto, Pediatria, Trauma, Oncologia, Saúde Mental, Cuidados
+Paliativos, Hemoterapia, Equipamentos, Diagnósticos/Intervenções/
+Resultados de Enfermagem, POPs, Diretrizes Clínicas, Legislação,
+Educação Permanente — essas últimas 6 provavelmente são tipo de fonte/
+objeto de conhecimento, não tópico de procedimento, a confirmar com o
+usuário antes de criar spec nova). Criar spec nova é fora do escopo
+deste processo (normalmente rodaria pelo Redator automático, que
+precisa de `GROQ_API_KEY` indisponível neste sandbox) — usuário instruiu
+pular esse buraco por ora e focar nas specs fracas dentro dos 98
+existentes.
+
+Fechei os 4 gaps de **Sondas e Drenos** que tinham `cuidados`/
+`complicacoes` mas nenhum `execucao_passos`:
+
+- **Drenos**, **Irrigação de Sonda Vesical e Bexiga**: esqueleto
+  genérico próprio (técnica asséptica, avaliação antes/depois, sistema
+  fechado) — sem fonte externa nova pro esqueleto em si.
+- **Troca de Selo d'Água** e **Drenagem de Tórax**: esqueleto +
+  conteúdo real do **Brunner & Suddarth** (capítulos de derrame
+  pleural e pneumotórax, já citados nesses specs desde uma rodada
+  anterior, só nunca virou `execucao_passos`/`alertas` completo):
+  sítio de inserção real por tipo (pneumotórax 2º EIC; hemotórax 4º-5º
+  EIC linha axilar média), limiares reais de indicação cirúrgica
+  (>200mL/h sustentado ou >1.500mL inicial), e a técnica de emergência
+  de descompressão por agulha calibre 14 no pneumotórax hipertensivo —
+  conhecimento real e citável, mesmo sendo nível médico/emergencial,
+  vira `alertas` úteis pro enfermeiro reconhecer a gravidade.
+
+Todas as 4 resincronizadas em `knowledge_base`.
+
+**Total geral: 96 specs de 98** (essas 4 já contavam — rodada de
+profundidade, não spec nova).
+
 ## Ainda pendente
 
 **Ingestão dos PDFs da pasta "Referências" do Drive** (46 arquivos): 13 já
