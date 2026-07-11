@@ -1146,6 +1146,41 @@ Todas as 4 resincronizadas em `knowledge_base`.
 
 **Total geral: 86 specs de 98 enriquecidas.**
 
+### Vigésima nona rodada — 5 specs de higiene (esqueleto genérico + Brunner pontual)
+
+Aplicando o método confirmado com o usuário: esqueleto de higiene é
+sequência universal (higienizar as mãos, reunir material, avaliar antes,
+executar, reavaliar, descartar, registrar) — não é expressão autoral de
+nenhuma fonte específica, escrita direto sem citação. Onde achei
+conteúdo técnico específico citável, usei:
+
+- **Higiene Oral**: esqueleto + achado real do **Brunner & Suddarth**
+  (p. 345-346, contexto de paciente com risco de sangramento/AVC
+  hemorrágico): higiene oral com swab de esponja em vez de escova,
+  enxágue com solução salina ou bicarbonato, evitar swabs de limão-
+  glicerina/peróxido/colutório comercial — vira `cuidados` pra paciente
+  de risco aumentado de sangramento ou inconsciente.
+- **Cuidados com os Pés**, **Higiene Íntima**, **Higiene do Couro
+  Cabeludo**, **Banho de Assento**: só esqueleto genérico (sem fonte
+  externa citável encontrada com conteúdo específico compatível).
+
+**Achado de licença adicional**: ao buscar fonte pra "Cuidados com os
+Pés" (pé diabético), achei o *Manual do Pé Diabético: Estratégias para
+o Cuidado da Pessoa com Doença Crônica* (Ministério da Saúde, 2016) —
+mas a página de rosto declara **Licença Creative Commons Atribuição —
+Não Comercial — Compartilhamento pela mesma licença 4.0** (CC BY-NC-SA),
+a mesma categoria vetada nesta sessão (mesmo sendo Ministério da Saúde,
+não muda a licença declarada). **Nenhum conteúdo desse manual foi
+usado.** Não achei fonte alternativa compatível com o mesmo conteúdo
+específico de pé diabético (monofilamento, protocolo de rastreamento),
+então a Spec ficou só com o esqueleto de higiene geral dos pés — sem
+o conteúdo clínico específico de pé diabético, que fica pendente de
+fonte compatível futura.
+
+Todas as 5 resincronizadas em `knowledge_base`.
+
+**Total geral: 91 specs de 98 enriquecidas.**
+
 ## Ainda pendente
 
 **Ingestão dos PDFs da pasta "Referências" do Drive** (46 arquivos): 13 já
