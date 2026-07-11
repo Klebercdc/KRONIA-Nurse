@@ -67,8 +67,9 @@ export interface ReferenciaOficial {
    * uuid real de conhecimento_fragmentos.id — âncora mecânica anti-alucinação.
    * Quando presente, `trecho` DEVE ser cópia literal (substring ou ≥90%
    * similar via pg_trgm) do `conteudo` dessa linha — verificável por SQL ou
-   * scripts/verificar_citacoes.py antes de gravar. Ausente em referências
-   * herdadas de fontes externas não indexadas em conhecimento_fragmentos.
+   * por .claude/skills/kronia-nurse-knowledge/scripts/verificar_citacoes.py
+   * antes de gravar. Ausente em referências herdadas de fontes externas não
+   * indexadas em conhecimento_fragmentos.
    */
   fragmento_id?: string;
   /**

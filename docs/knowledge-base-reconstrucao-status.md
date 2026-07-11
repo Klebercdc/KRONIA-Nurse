@@ -1768,6 +1768,71 @@ real preenchido. Nenhuma foi aprovada nem publicada em `knowledge_base`.
 **Verificação de código**: `npm run typecheck` e `npm run build`
 limpos após adicionar `fragmento_id` em `ReferenciaOficial`.
 
+### Quadragésima rodada — consolidação da skill de conhecimento (kronia-nurse-knowledge)
+
+Usuário enviou um zip (`kronianurseknowledgeatualizado.zip`) com uma versão
+mais completa da metodologia busca-por-assunto, aparentemente produzida em
+paralelo por outra sessão/agente — 5 arquivos de referência (licenciamento,
+busca+triangulação, anti-alucinação, gravação, geração de assuntos/backlog)
+mais um script de verificação mais maduro que o meu (normaliza acento/caixa
+antes de comparar, poda automaticamente as citações reprovadas, usa o
+client `supabase-py` em vez de conexão Postgres direta).
+
+**Analisei antes de aplicar** e achei dois problemas que exigiam correção,
+não adoção direta:
+
+1. **Conflito de licenciamento real**: o arquivo `01-licenciamento-e-fontes`
+   do zip tratava CC BY-NC-ND como "ingerível para uso interno não
+   comercial" e listava como **aprovados** o Manual de Intensivismo (UFCSPA)
+   e dois guias de Estomaterapia (Atena) — todos CC BY-NC-ND. O manual
+   UFCSPA já tinha sido **encontrado e removido** desta mesma base numa
+   rodada anterior (Trigésima quarta) por causa dessa exata licença. Adotar
+   o zip como veio teria reintroduzido uma fonte já excluída por decisão
+   explícita do usuário (nunca usar CC BY-NC/NC-ND/NC-SA, mesmo pra uso
+   interno, porque o produto vai ficar comercial e o conteúdo persiste).
+2. **Nota desatualizada sobre `tipo`**: o arquivo de gravação do zip dizia
+   que `resultado_enfermagem` era "dívida técnica, fora de escopo" — já
+   tinha sido implementado nesta sessão (Trigésima oitava rodada).
+
+**Decisão do usuário** (perguntado antes de mexer): consolidar numa skill
+só, corrigindo os dois problemas.
+
+**O que foi feito**:
+- `.claude/skills/kronia-nurse-knowledge-spec-search/` (a skill que eu
+  tinha criado) removida — substituída por
+  `.claude/skills/kronia-nurse-knowledge/`, com a estrutura de 5 arquivos
+  do zip.
+- `01-licenciamento-e-fontes.md`: UFCSPA e os 2 guias Atena movidos de
+  "Aprovados" pra "Bloqueados", com nota explicando o porquê; adicionada
+  seção explícita "sem exceção uso interno" pra evitar o mesmo erro de
+  novo; nota de que a mesma editora pode publicar títulos com licenças
+  diferentes (não generalizar por editora).
+- `04-gravacao-schema.md`: nota de `tipo` corrigida pra refletir os 3
+  valores reais hoje (`procedimento`/`diagnostico_enfermagem`/
+  `resultado_enfermagem`); nota sobre "Educação Permanente" estar fora do
+  escopo do produto apesar de constar na constraint do banco.
+- `03-anti-alucinacao.md`: padronizado o nome do campo pra `trecho` (não
+  `trecho_citado`) pra bater com `ReferenciaOficial` real em
+  `lib/knowledge-spec.ts`; documentados os dois métodos de verificação
+  (script portátil com `supabase-py`, ou SQL direto via `pg_trgm` quando
+  não há `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` no ambiente, como
+  neste sandbox).
+- `scripts/verificar_citacoes.py`: script antigo (repo-root, psycopg2)
+  removido; versão nova vive dentro da skill
+  (`.claude/skills/kronia-nurse-knowledge/scripts/`), com as melhorias do
+  zip (normalização, auto-poda, client Supabase) mas usando os nomes de
+  variável de ambiente já padronizados no projeto (`SUPABASE_URL` +
+  `SUPABASE_SERVICE_ROLE_KEY`, iguais a `scripts/rag-pipeline.js`) em vez
+  de `SUPABASE_KEY`, e aceitando tanto `trecho` quanto `trecho_citado` por
+  compatibilidade.
+- `lib/knowledge-spec.ts`: comentário de `ReferenciaOficial.fragmento_id`
+  atualizado pro caminho novo do script.
+
+**Verificação**: `npm run typecheck` limpo depois da mudança de comentário.
+Nenhum outro código do repo referenciava o caminho antigo do script (só a
+documentação histórica deste arquivo, que fica como registro do que
+aconteceu na época).
+
 ## Ainda pendente
 
 **Ingestão dos PDFs da pasta "Referências" do Drive** (46 arquivos): 13 já
