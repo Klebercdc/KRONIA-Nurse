@@ -514,6 +514,24 @@ Todas as 3 resincronizadas em `knowledge_base`.
 
 **Total geral: 38 specs de 98 enriquecidas nesta sessão.**
 
+### Décima rodada — Chapter 2 (Health History) e Chapter 13 (Musculoesquelético)
+
+- **Chapter 2 (Health History)** → **Consulta de Enfermagem**
+  (já tinha `indicacoes`/`registro` da SAE, mas nunca `execucao_passos`):
+  8 passos cobrindo dados demográficos, mnemônico PQRSTU pro motivo da
+  consulta, histórico atual/pregresso/familiar, padrões funcionais de
+  saúde, revisão de sistemas e técnica de entrevista.
+- **Chapter 13 (Musculoskeletal Assessment)** → **Imobilização** (100%
+  vazia): contratura como complicação de imobilidade (substituição de
+  tecido elástico por fibroso), amplitude de movimento passiva como
+  cuidado preventivo. **Escala de Queda de Morse** (100% vazia nesses
+  campos): pergunta padronizada de triagem de queda prévia, passo a
+  passo de aplicação da escala, reavaliação após queda/mudança clínica.
+
+Todas as 3 resincronizadas em `knowledge_base`.
+
+**Total geral: 41 specs de 98 enriquecidas nesta sessão.**
+
 ### Ferramentas de extração avaliadas nesta sessão (usuário forneceu 4 zips)
 
 Testadas de verdade no mesmo PDF de 151 páginas pra comparação justa —
