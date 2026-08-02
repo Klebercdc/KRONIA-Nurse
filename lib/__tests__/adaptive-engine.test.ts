@@ -29,6 +29,7 @@ import {
   SETOR_CLINICA_MEDICA,
   SETOR_NEFROLOGIA,
   SETOR_UTI,
+  SETORES,
   TITULOS_DE_BLOCO,
   getSchemaAdaptativo,
   schemaEvolucaoGeral,
@@ -54,9 +55,16 @@ function percorrer(schema: Schema, respostasDesejadas: Record<string, string | n
 const NUCLEO_SEM_RAMOS = {
   consciencia: 'Consciente e orientado',
   temperatura: 36.5,
+  resp_avaliacao: 'Eupneico, em ar ambiente',
+  circ_avaliacao: 'Pulsos cheios, perfusão adequada, sem edema',
+  dig_avaliacao: 'Abdome normal, evacuações presentes',
+  nutri_dieta: 'Via oral, aceitação total',
+  loco_mobilidade: 'Deambula sem auxílio',
+  genito_diurese: 'Espontânea, características habituais',
   dispositivos: 'AVP em MSD nº 20',
   tem_dor: false,
   tem_curativo: false,
+  tem_diagnostico_enfermagem: false,
 };
 
 // ─── condicaoSatisfeita ─────────────────────────────────────────────────────
@@ -136,7 +144,7 @@ describe('ramificação por setor', () => {
   test('Clínica Médica abre o bloco de escalas e cuidados', () => {
     const ids = idsVisiveis(SETOR_CLINICA_MEDICA);
     expect(ids).toContain('cm_news2_aplicado');
-    expect(ids).toContain('cm_mobilidade');
+    expect(ids).toContain('loco_mobilidade'); // promovido a universal — todo setor pergunta
     expect(ids).not.toContain('hd_vias_permeaveis');
   });
 
@@ -169,6 +177,72 @@ describe('ramificação por setor', () => {
     expect(ids).not.toContain('cm_news2_aplicado');
     expect(ids).not.toContain('po_aldrete_atividade');
     expect(ids).not.toContain('uti_via_aerea');
+  });
+});
+
+// ─── Núcleo universal — 7 sistemas exigidos pelo COFEN (Guia CTLN, 8.1) ────
+// "Discriminar, sequencialmente, o estado geral, considerando: neurológico,
+// respiratório, circulatório, digestivo, nutricional, locomotor e
+// geniturinário" — vale pra toda Evolução, não só pra um setor.
+
+describe('núcleo universal — 7 sistemas COFEN', () => {
+  const SETE_SISTEMAS = [
+    'consciencia', // neurológico
+    'resp_avaliacao', // respiratório
+    'circ_avaliacao', // circulatório
+    'dig_avaliacao', // digestivo
+    'nutri_dieta', // nutricional
+    'loco_mobilidade', // locomotor
+    'genito_diurese', // geniturinário
+  ];
+
+  test('os 7 sistemas aparecem independentemente do setor', () => {
+    for (const setor of SETORES) {
+      const ids = perguntasVisiveis(schemaEvolucaoGeral, { setor }).map((p) => p.id);
+      for (const sistema of SETE_SISTEMAS) expect(ids).toContain(sistema);
+    }
+  });
+
+  test('os 7 sistemas aparecem mesmo sem setor definido', () => {
+    const ids = perguntasVisiveis(schemaEvolucaoGeral, pular({}, 'setor')).map((p) => p.id);
+    for (const sistema of SETE_SISTEMAS) expect(ids).toContain(sistema);
+  });
+
+  test('diagnóstico de enfermagem: sem resposta ou negado gera a frase de ausência, nunca omite a seção', () => {
+    const negado = percorrer(schemaEvolucaoGeral, {
+      setor: SETOR_CLINICA_MEDICA,
+      ...NUCLEO_SEM_RAMOS,
+      tem_diagnostico_enfermagem: false,
+    });
+    const doc = gerarDocumento(schemaEvolucaoGeral, negado, TITULOS_DE_BLOCO);
+    expect(doc.texto).toContain('Sem diagnóstico de enfermagem registrado nesta evolução.');
+  });
+
+  test('diagnóstico de enfermagem: só pergunta o rótulo quando o enfermeiro confirma que existe um', () => {
+    const semDiagnostico = percorrer(schemaEvolucaoGeral, { setor: SETOR_CLINICA_MEDICA, ...NUCLEO_SEM_RAMOS });
+    expect(perguntasVisiveis(schemaEvolucaoGeral, semDiagnostico).map((p) => p.id))
+      .not.toContain('diagnostico_enfermagem_qual');
+
+    const comDiagnostico = percorrer(schemaEvolucaoGeral, {
+      setor: SETOR_CLINICA_MEDICA,
+      ...NUCLEO_SEM_RAMOS,
+      tem_diagnostico_enfermagem: true,
+      diagnostico_enfermagem_qual: 'Integridade tissular prejudicada',
+    });
+    const doc = gerarDocumento(schemaEvolucaoGeral, comDiagnostico, TITULOS_DE_BLOCO);
+    expect(doc.texto).toContain('Diagnóstico de enfermagem: Integridade tissular prejudicada.');
+  });
+
+  test('diagnóstico de enfermagem nunca é inferido — pulado vira (CONFERIR), nunca gera rótulo sozinho', () => {
+    const { tem_diagnostico_enfermagem: _omitido, ...nucleoSemDiagnostico } = NUCLEO_SEM_RAMOS;
+    const estado = percorrer(schemaEvolucaoGeral, {
+      setor: SETOR_CLINICA_MEDICA,
+      ...nucleoSemDiagnostico,
+    }); // tem_diagnostico_enfermagem fica de fora do mapa — percorrer() pula essa pergunta
+    const doc = gerarDocumento(schemaEvolucaoGeral, estado, TITULOS_DE_BLOCO);
+    const secaoDiagnostico = doc.secoes.find((s) => s.titulo === 'Diagnóstico de enfermagem');
+    expect(secaoDiagnostico).toBeDefined();
+    expect(secaoDiagnostico!.trechos.some((t) => t.conferir)).toBe(true);
   });
 });
 
