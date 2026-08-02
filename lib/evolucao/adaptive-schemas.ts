@@ -45,6 +45,7 @@ export const SETORES = [
 export const TITULOS_DE_BLOCO: Record<string, string> = {
   contexto: 'Contexto do plantão',
   nucleo: 'Avaliação geral',
+  diagnostico: 'Diagnóstico de enfermagem',
   dor: 'Avaliação da dor',
   curativo: 'Avaliação da lesão e curativo',
   cateterhd: 'Cateter de hemodiálise',
@@ -91,6 +92,8 @@ export function blocoContexto(): Pergunta[] {
 export function blocoNucleo(gate?: Condicao): Pergunta[] {
   return portao(
     [
+      // Sistema 1/7 — Neurológico. Fonte COFEN 8.1: discriminar o estado
+      // neurológico sequencialmente com os demais sistemas.
       {
         id: 'consciencia',
         texto: 'Qual o nível de consciência?',
@@ -103,7 +106,7 @@ export function blocoNucleo(gate?: Condicao): Pergunta[] {
           'Não responsivo',
         ],
         bloco: 'nucleo',
-        frase: (v) => `Encontra-se ${String(v).toLowerCase()}.`,
+        frase: (v) => `Neurológico: encontra-se ${String(v).toLowerCase()}.`,
       },
       {
         id: 'temperatura',
@@ -117,6 +120,93 @@ export function blocoNucleo(gate?: Condicao): Pergunta[] {
         ajuda: 'Registre o valor aferido. O documento não converte valor em rótulo clínico.',
         frase: (v) => `Temperatura axilar aferida em ${fmtNumero(Number(v), 1)} °C.`,
       },
+      // Sistema 2/7 — Respiratório.
+      {
+        id: 'resp_avaliacao',
+        texto: 'Como está o padrão respiratório?',
+        tipo: 'opcao',
+        opcoes: [
+          'Eupneico, em ar ambiente',
+          'Em oxigenoterapia suplementar',
+          'Taquipneico ou com esforço respiratório',
+          'Ausculta com ruídos adventícios (roncos, sibilos ou estertores)',
+        ],
+        bloco: 'nucleo',
+        frase: (v) => `Respiratório: ${String(v).toLowerCase()}.`,
+      },
+      // Sistema 3/7 — Circulatório.
+      {
+        id: 'circ_avaliacao',
+        texto: 'Como está a circulação periférica?',
+        tipo: 'opcao',
+        opcoes: [
+          'Pulsos cheios, perfusão adequada, sem edema',
+          'Pulsos finos ou perfusão lentificada',
+          'Edema periférico presente',
+          'Extremidades frias ou cianóticas',
+        ],
+        bloco: 'nucleo',
+        frase: (v) => `Circulatório: ${String(v).toLowerCase()}.`,
+      },
+      // Sistema 4/7 — Digestivo.
+      {
+        id: 'dig_avaliacao',
+        texto: 'Como está o abdome e o trânsito intestinal?',
+        tipo: 'opcao',
+        opcoes: [
+          'Abdome normal, evacuações presentes',
+          'Abdome distendido',
+          'Ausência de evacuação há mais de 48 horas',
+          'Náusea ou vômito presente',
+        ],
+        bloco: 'nucleo',
+        frase: (v) => `Digestivo: ${String(v).toLowerCase()}.`,
+      },
+      // Sistema 5/7 — Nutricional.
+      {
+        id: 'nutri_dieta',
+        texto: 'Como está a aceitação alimentar?',
+        tipo: 'opcao',
+        opcoes: [
+          'Via oral, aceitação total',
+          'Via oral, aceitação parcial',
+          'Via oral, recusa alimentar',
+          'Jejum',
+          'Nutrição enteral por sonda',
+          'Nutrição parenteral',
+        ],
+        bloco: 'nucleo',
+        frase: (v) => `Nutricional: ${String(v).toLowerCase()}.`,
+      },
+      // Sistema 6/7 — Locomotor.
+      {
+        id: 'loco_mobilidade',
+        texto: 'Qual o grau de mobilidade?',
+        tipo: 'opcao',
+        opcoes: [
+          'Deambula sem auxílio',
+          'Deambula com auxílio',
+          'Restrito ao leito, muda de decúbito sozinho',
+          'Restrito ao leito, dependente para mudança de decúbito',
+        ],
+        bloco: 'nucleo',
+        frase: (v) => `Locomotor: ${String(v).toLowerCase()}.`,
+      },
+      // Sistema 7/7 — Geniturinário.
+      {
+        id: 'genito_diurese',
+        texto: 'Como está a diurese?',
+        tipo: 'opcao',
+        opcoes: [
+          'Espontânea, características habituais',
+          'Sondagem vesical de demora',
+          'Oligúria ou anúria — comunicado à equipe',
+          'Alteração de cor, odor ou aspecto',
+        ],
+        bloco: 'nucleo',
+        frase: (v) => `Geniturinário: ${String(v).toLowerCase()}.`,
+      },
+      // Procedimentos invasivos — fonte COFEN 8.1 lista à parte dos 7 sistemas.
       {
         id: 'dispositivos',
         texto: 'Quais dispositivos invasivos estão instalados?',
@@ -138,6 +228,26 @@ export function blocoNucleo(gate?: Condicao): Pergunta[] {
         tipo: 'bool',
         bloco: 'nucleo',
         frase: (v) => (sn(v) ? '' : 'Pele íntegra, sem lesões ou curativos no momento da avaliação.'),
+      },
+      // Diagnóstico de Enfermagem — Resolução COFEN nº 358/2009, art. 6º: campo
+      // legalmente obrigatório da Evolução. Nunca inferido: só entra se o
+      // próprio enfermeiro nomear o diagnóstico; caso contrário, o documento
+      // declara a ausência de registro, nunca omite a seção.
+      {
+        id: 'tem_diagnostico_enfermagem',
+        texto: 'Há diagnóstico de enfermagem definido para este paciente?',
+        tipo: 'bool',
+        bloco: 'diagnostico',
+        frase: (v) => (sn(v) ? '' : 'Sem diagnóstico de enfermagem registrado nesta evolução.'),
+      },
+      {
+        id: 'diagnostico_enfermagem_qual',
+        texto: 'Qual o diagnóstico de enfermagem?',
+        tipo: 'texto',
+        showIf: { tem_diagnostico_enfermagem: true },
+        bloco: 'diagnostico',
+        ajuda: 'Registre apenas o diagnóstico já definido pelo enfermeiro — nunca inferido a partir de valores isolados.',
+        frase: (v) => `Diagnóstico de enfermagem: ${v}.`,
       },
     ],
     gate,
@@ -428,43 +538,6 @@ export function blocoClinicaMedica(gate?: Condicao): Pergunta[] {
         showIf: { cm_morse_aplicado: true },
         bloco: 'clinica_medica',
         frase: (v) => `Escala de Morse (risco de queda): ${fmtNumero(Number(v))} pontos.`,
-      },
-      {
-        id: 'cm_dieta',
-        texto: 'Como está a aceitação da dieta?',
-        tipo: 'opcao',
-        opcoes: [
-          'Via oral, aceitação total',
-          'Via oral, aceitação parcial',
-          'Via oral, recusa alimentar',
-          'Jejum',
-          'Nutrição enteral por sonda',
-          'Nutrição parenteral',
-        ],
-        bloco: 'clinica_medica',
-        frase: (v) => `Dieta: ${String(v).toLowerCase()}.`,
-      },
-      {
-        id: 'cm_eliminacoes',
-        texto: 'Como estão as eliminações?',
-        tipo: 'texto',
-        bloco: 'clinica_medica',
-        ajuda: 'Ex.: diurese espontânea, clara; evacuação ausente há 2 dias.',
-        frase: (v) => `Eliminações: ${v}.`,
-      },
-      {
-        id: 'cm_mobilidade',
-        texto: 'Qual o grau de mobilidade?',
-        tipo: 'opcao',
-        opcoes: [
-          'Deambula sem auxílio',
-          'Deambula com auxílio',
-          'Permanece em poltrona',
-          'Restrito ao leito, muda de decúbito sozinho',
-          'Restrito ao leito, dependente para mudança de decúbito',
-        ],
-        bloco: 'clinica_medica',
-        frase: (v) => `Mobilidade: ${String(v).toLowerCase()}.`,
       },
     ],
     gate,
@@ -1009,6 +1082,10 @@ const FONTE_RASS =
   'SESSLER, C. N. et al. Chest, 2002; ELY, E. W. et al. JAMA, 2003 (Richmond Agitation-Sedation Scale).';
 const FONTE_GLASGOW = 'TEASDALE, G.; JENNETT, B. Assessment of coma and impaired consciousness, 1974.';
 const FONTE_13_CERTOS = 'COFEN. Os 13 Certos na Administração de Medicamentos.';
+const FONTE_COFEN_REGISTRO =
+  'COFEN, Câmara Técnica de Legislação e Normas (CTLN). Guia de Recomendações para ' +
+  'Registro de Enfermagem no Prontuário do Paciente, seção 8.1 (Evolução de ' +
+  'Enfermagem — Res. Cofen nº 358/2009).';
 
 export const schemaCurativo: Schema = {
   id: 'curativo',
@@ -1063,6 +1140,7 @@ export const schemaEvolucaoGeral: Schema = {
   nome: 'Evolução',
   titulo: 'Evolução de Enfermagem',
   fontes: [
+    FONTE_COFEN_REGISTRO,
     FONTE_COREN_ANOTACAO,
     FONTE_PORTO,
     FONTE_POTTER,
