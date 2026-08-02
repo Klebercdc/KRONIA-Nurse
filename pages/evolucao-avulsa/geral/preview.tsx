@@ -136,11 +136,7 @@ export default function EvolucaoGeralPreviewPage() {
         ))}
       </div>
 
-      <p style={{ fontSize: '0.72rem', color: 'var(--color-ink-faint)', marginBottom: 20 }}>
-        Fontes: {doc.fontes.join(' · ')}
-      </p>
-
-      <button className="btn btn-primario btn-bloco" onClick={handleCopiar} style={{ marginBottom: 10 }}>
+      <button className="btn btn-primario btn-bloco" onClick={handleCopiar} style={{ marginBottom: 24, marginTop: 16 }}>
         {copiado ? (
           <span style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
             <IconCheck />

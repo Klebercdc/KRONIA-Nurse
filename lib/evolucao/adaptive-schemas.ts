@@ -46,6 +46,7 @@ export const TITULOS_DE_BLOCO: Record<string, string> = {
   contexto: 'Contexto do plantão',
   nucleo: 'Avaliação geral',
   diagnostico: 'Diagnóstico de enfermagem',
+  plano: 'Plano de cuidados e continuidade',
   dor: 'Avaliação da dor',
   curativo: 'Avaliação da lesão e curativo',
   cateterhd: 'Cateter de hemodiálise',
@@ -92,6 +93,16 @@ export function blocoContexto(): Pergunta[] {
 export function blocoNucleo(gate?: Condicao): Pergunta[] {
   return portao(
     [
+      // Segurança do paciente — RDC nº 63/2011 (ANVISA), art. 8º: mecanismo
+      // de identificação do paciente é a primeira das estratégias listadas.
+      {
+        id: 'identificacao_conferida',
+        texto: 'A identificação do paciente foi conferida (pulseira e iniciais)?',
+        tipo: 'bool',
+        ajuda: 'Conferência à beira do leito, conforme protocolo institucional. O registro aqui nunca inclui nome completo, CPF ou outro dado identificável — só a confirmação de que foi feita.',
+        bloco: 'nucleo',
+        frase: (v) => (sn(v) ? 'Identificação do paciente conferida.' : 'Identificação do paciente não conferida neste turno.'),
+      },
       // Sistema 1/7 — Neurológico. Fonte COFEN 8.1: discriminar o estado
       // neurológico sequencialmente com os demais sistemas.
       {
@@ -107,6 +118,47 @@ export function blocoNucleo(gate?: Condicao): Pergunta[] {
         ],
         bloco: 'nucleo',
         frase: (v) => `Neurológico: encontra-se ${String(v).toLowerCase()}.`,
+      },
+      // Sinais vitais — Guia COFEN de Registro (Anotações de Enfermagem,
+      // regra 13): valores exatos aferidos, nunca termos vagos como
+      // "normotenso/normocárdico".
+      {
+        id: 'pressao_arterial',
+        texto: 'Qual a pressão arterial aferida?',
+        tipo: 'texto',
+        bloco: 'nucleo',
+        ajuda: 'Formato PAS x PAD, ex.: 120x80 mmHg.',
+        frase: (v) => `PA ${v} mmHg.`,
+      },
+      {
+        id: 'frequencia_cardiaca',
+        texto: 'Qual a frequência cardíaca aferida?',
+        tipo: 'numero',
+        min: 20,
+        max: 220,
+        unidade: 'bpm',
+        bloco: 'nucleo',
+        frase: (v) => `FC ${fmtNumero(Number(v))} bpm.`,
+      },
+      {
+        id: 'frequencia_respiratoria',
+        texto: 'Qual a frequência respiratória aferida?',
+        tipo: 'numero',
+        min: 4,
+        max: 60,
+        unidade: 'irpm',
+        bloco: 'nucleo',
+        frase: (v) => `FR ${fmtNumero(Number(v))} irpm.`,
+      },
+      {
+        id: 'saturacao_o2',
+        texto: 'Qual a saturação periférica de O₂ aferida?',
+        tipo: 'numero',
+        min: 50,
+        max: 100,
+        unidade: '%',
+        bloco: 'nucleo',
+        frase: (v) => `SpO₂ ${fmtNumero(Number(v))}%.`,
       },
       {
         id: 'temperatura',
@@ -206,6 +258,16 @@ export function blocoNucleo(gate?: Condicao): Pergunta[] {
         bloco: 'nucleo',
         frase: (v) => `Geniturinário: ${String(v).toLowerCase()}.`,
       },
+      // Pele — Guia COFEN de Registro (Anotações de Enfermagem, regra 3e):
+      // coloração da pele entra nas condições gerais observadas.
+      {
+        id: 'pele_coloracao',
+        texto: 'Qual a coloração da pele?',
+        tipo: 'opcao',
+        opcoes: ['Normocorada', 'Pálida', 'Cianótica', 'Ictérica'],
+        bloco: 'nucleo',
+        frase: (v) => `Pele ${String(v).toLowerCase()}.`,
+      },
       // Procedimentos invasivos — fonte COFEN 8.1 lista à parte dos 7 sistemas.
       {
         id: 'dispositivos',
@@ -248,6 +310,49 @@ export function blocoNucleo(gate?: Condicao): Pergunta[] {
         bloco: 'diagnostico',
         ajuda: 'Registre apenas o diagnóstico já definido pelo enfermeiro — nunca inferido a partir de valores isolados.',
         frase: (v) => `Diagnóstico de enfermagem: ${v}.`,
+      },
+      // Orientações — Guia COFEN de Registro (Anotações de Enfermagem, regra
+      // 4): orientações ao paciente/família entram nas anotações.
+      {
+        id: 'orientacoes_fornecidas',
+        texto: 'Foram fornecidas orientações ao paciente ou à família neste turno?',
+        tipo: 'bool',
+        bloco: 'plano',
+        frase: (v) => (sn(v) ? '' : 'Sem orientações registradas neste turno.'),
+      },
+      {
+        id: 'orientacoes_quais',
+        texto: 'Quais orientações foram fornecidas?',
+        tipo: 'texto',
+        showIf: { orientacoes_fornecidas: true },
+        bloco: 'plano',
+        frase: (v) => `Orientações fornecidas: ${v}.`,
+      },
+      // Fechamento — COFEN 8.1: "resumo sucinto dos resultados dos cuidados
+      // prescritos e os problemas a serem abordados nas 24 horas
+      // subsequentes" + "deve constar os problemas novos identificados".
+      {
+        id: 'problema_novo',
+        texto: 'Foi identificado algum problema novo neste turno?',
+        tipo: 'bool',
+        bloco: 'plano',
+        frase: (v) => (sn(v) ? '' : 'Sem problema novo identificado neste turno.'),
+      },
+      {
+        id: 'problema_novo_qual',
+        texto: 'Qual foi o problema novo identificado?',
+        tipo: 'texto',
+        showIf: { problema_novo: true },
+        bloco: 'plano',
+        frase: (v) => `Problema novo identificado: ${v}.`,
+      },
+      {
+        id: 'plano_pendencias',
+        texto: 'Quais cuidados ou avaliações ficam pendentes para as próximas 24 horas?',
+        tipo: 'texto',
+        bloco: 'plano',
+        ajuda: 'Ex.: reavaliar curativo no próximo turno, aguardar resultado de exame, repetir aferição.',
+        frase: (v) => `Pendências para as próximas 24 horas: ${v}.`,
       },
     ],
     gate,
@@ -300,7 +405,10 @@ export function blocoDor(gate?: Condicao): Pergunta[] {
 
 // ── Bloco: curativo / lesão ──────────────────────────────────────────────────
 // Fontes: Porto & Porto, Anamnese e Exame Físico (cap. 20); Potter & Perry,
-// Fundamentos de Enfermagem (cap. 48); Coren-SP, Anotações de Enfermagem.
+// Fundamentos de Enfermagem (cap. 48); Coren-SP, Anotações de Enfermagem;
+// COFEN/CTLN, Guia de Recomendações para Registro de Enfermagem, seção 9.20
+// (Curativos) — dimensão, odor, desbridamento, tipo de curativo e dor ao
+// procedimento vêm desta seção.
 // Estadiamento conforme NPUAP/EPUAP/PPPIA (2016).
 
 const ESTAGIOS_LPP = [
@@ -349,6 +457,14 @@ export function blocoCurativo(gate?: Condicao): Pergunta[] {
         frase: (v) => `Localização: ${v}.`,
       },
       {
+        id: 'curativo_dimensao',
+        texto: 'Qual a dimensão da lesão?',
+        tipo: 'texto',
+        bloco: 'curativo',
+        ajuda: 'Ex.: 3,5 cm x 2 cm. Fonte: Guia COFEN de Registro — "local da lesão e sua dimensão".',
+        frase: (v) => `Dimensão: ${v}.`,
+      },
+      {
         id: 'curativo_leito',
         texto: 'Qual o aspecto do leito da ferida?',
         tipo: 'opcao',
@@ -383,12 +499,34 @@ export function blocoCurativo(gate?: Condicao): Pergunta[] {
         frase: (v) => `Aspecto do exsudato: ${String(v).toLowerCase()}.`,
       },
       {
+        id: 'curativo_odor',
+        texto: 'Há odor na lesão?',
+        tipo: 'bool',
+        bloco: 'curativo',
+        frase: (v) => (sn(v) ? 'Odor presente na lesão.' : 'Sem odor perceptível na lesão.'),
+      },
+      {
         id: 'curativo_bordas',
         texto: 'Como estão as bordas da lesão?',
         tipo: 'opcao',
         opcoes: ['Aderidas e íntegras', 'Maceradas', 'Descoladas', 'Epibolia (bordas enroladas)'],
         bloco: 'curativo',
         frase: (v) => `Bordas ${String(v).toLowerCase()}.`,
+      },
+      {
+        id: 'curativo_desbridamento',
+        texto: 'Há necessidade de desbridamento?',
+        tipo: 'bool',
+        bloco: 'curativo',
+        frase: (v) => (sn(v) ? 'Necessidade de desbridamento identificada.' : ''),
+      },
+      {
+        id: 'curativo_tipo_cobertura',
+        texto: 'Qual o tipo de curativo aplicado?',
+        tipo: 'opcao',
+        opcoes: ['Oclusivo', 'Aberto', 'Simples', 'Compressivo', 'Com dreno'],
+        bloco: 'curativo',
+        frase: (v) => `Curativo do tipo ${String(v).toLowerCase()}.`,
       },
       {
         id: 'curativo_conduta',
@@ -398,6 +536,16 @@ export function blocoCurativo(gate?: Condicao): Pergunta[] {
         ajuda: 'Ex.: limpeza com SF 0,9%, hidrofibra com prata, cobertura secundária.',
         frase: (v) => `Realizado curativo: ${v}.`,
       },
+      {
+        id: 'curativo_dor_procedimento',
+        texto: 'Qual o nível de dor do paciente durante o procedimento (0 a 10)?',
+        tipo: 'numero',
+        min: 0,
+        max: 10,
+        bloco: 'curativo',
+        ajuda: 'Fonte: Guia COFEN de Registro — avalia necessidade de analgesia prévia em trocas futuras.',
+        frase: (v) => `Dor referida durante o procedimento: ${fmtNumero(Number(v))}/10.`,
+      },
     ],
     gate,
   );
@@ -405,11 +553,21 @@ export function blocoCurativo(gate?: Condicao): Pergunta[] {
 
 // ── Bloco: cateter de hemodiálise ────────────────────────────────────────────
 // Fonte: Manual de Cuidados de Enfermagem em Procedimentos de Intensivismo
-// (UFCSPA, 2020), cap. 14.
+// (UFCSPA, 2020), cap. 14; COFEN/CTLN, Guia de Recomendações para Registro
+// de Enfermagem, seção 9.35 (Hemodiálise) — tipo de sessão e troca de
+// capilar vêm desta seção.
 
 export function blocoCateterHD(gate?: Condicao): Pergunta[] {
   return portao(
     [
+      {
+        id: 'hd_tipo_sessao',
+        texto: 'A sessão é de rotina ou caso agudo?',
+        tipo: 'opcao',
+        opcoes: ['Rotina', 'Caso agudo'],
+        bloco: 'cateterhd',
+        frase: (v) => `Sessão de hemodiálise de ${String(v).toLowerCase()}.`,
+      },
       {
         id: 'hd_vias_permeaveis',
         texto: 'As duas vias do cateter estão pérvias?',
@@ -455,6 +613,13 @@ export function blocoCateterHD(gate?: Condicao): Pergunta[] {
           v === 'Sem sinais flogísticos'
             ? 'Sítio de inserção sem sinais flogísticos.'
             : `Sítio de inserção com ${String(v).toLowerCase()}.`,
+      },
+      {
+        id: 'hd_troca_capilar',
+        texto: 'Houve troca de capilar (dialisador) durante a sessão?',
+        tipo: 'bool',
+        bloco: 'cateterhd',
+        frase: (v) => (sn(v) ? 'Realizada troca de capilar durante a sessão.' : ''),
       },
       {
         id: 'hd_intercorrencia_sessao',
@@ -741,10 +906,12 @@ export function blocoUTI(gate?: Condicao): Pergunta[] {
 }
 
 // ── Bloco: medicação ─────────────────────────────────────────────────────────
-// Fonte: "Os 13 Certos na Administração de Medicamentos" (COFEN) — spec
+// Fontes: "Os 13 Certos na Administração de Medicamentos" (COFEN) — spec
 // canônica da knowledge base deste projeto, com a checagem tripla (seleção,
 // preparo, beira do leito). Regra de trituração para sonda enteral conforme o
-// mesmo material (OpenRN, Administration of Enteral Medications).
+// mesmo material (OpenRN, Administration of Enteral Medications). Local de
+// aplicação e lateralidade conforme COFEN/CTLN, Guia de Recomendações para
+// Registro de Enfermagem, seção 9.3 (Administração de Medicamentos).
 
 export function blocoMedicacao(gate?: Condicao): Pergunta[] {
   return portao(
@@ -773,6 +940,7 @@ export function blocoMedicacao(gate?: Condicao): Pergunta[] {
           'Endovenosa',
           'Intramuscular',
           'Subcutânea',
+          'Intradérmica',
           'Sublingual',
           'Inalatória',
           'Tópica',
@@ -781,6 +949,30 @@ export function blocoMedicacao(gate?: Condicao): Pergunta[] {
         ],
         bloco: 'medicacao',
         frase: (v) => `Via: ${String(v).toLowerCase()}.`,
+      },
+      {
+        id: 'med_local_parenteral',
+        texto: 'Qual o local de aplicação?',
+        tipo: 'opcao',
+        opcoes: [
+          'Glúteo', 'Deltoide', 'Vasto lateral', // IM
+          'Antebraço', 'Dorso da mão', 'Região cefálica', 'Membro inferior', // EV
+          'Abdome', 'Região posterior do braço', 'Coxa', // SC
+          'Face interna do antebraço', 'Face externa do braço', // ID
+        ],
+        showIf: { med_via: ['Endovenosa', 'Intramuscular', 'Subcutânea', 'Intradérmica'] },
+        bloco: 'medicacao',
+        ajuda: 'Fonte: Guia COFEN de Registro — local varia conforme a via.',
+        frase: (v) => `Local de aplicação: ${String(v).toLowerCase()}.`,
+      },
+      {
+        id: 'med_lateralidade',
+        texto: 'De que lado foi aplicado?',
+        tipo: 'opcao',
+        opcoes: ['Direito', 'Esquerdo'],
+        showIf: { med_via: ['Endovenosa', 'Intramuscular', 'Subcutânea', 'Intradérmica'] },
+        bloco: 'medicacao',
+        frase: (v) => `Lado ${String(v).toLowerCase()}.`,
       },
       {
         id: 'med_trituracao',
@@ -1086,12 +1278,15 @@ const FONTE_COFEN_REGISTRO =
   'COFEN, Câmara Técnica de Legislação e Normas (CTLN). Guia de Recomendações para ' +
   'Registro de Enfermagem no Prontuário do Paciente, seção 8.1 (Evolução de ' +
   'Enfermagem — Res. Cofen nº 358/2009).';
+const FONTE_ANVISA_SEGURANCA =
+  'ANVISA. RDC nº 63/2011, art. 8º (estratégias de segurança do paciente — ' +
+  'identificação do paciente).';
 
 export const schemaCurativo: Schema = {
   id: 'curativo',
   nome: 'Curativo',
   titulo: 'Anotação de Enfermagem — Curativo',
-  fontes: [FONTE_PORTO, FONTE_POTTER, FONTE_NPUAP, FONTE_COREN_ANOTACAO],
+  fontes: [FONTE_PORTO, FONTE_POTTER, FONTE_NPUAP, FONTE_COREN_ANOTACAO, FONTE_COFEN_REGISTRO],
   perguntas: blocoCurativo(),
 };
 
@@ -1107,7 +1302,7 @@ export const schemaCateterHD: Schema = {
   id: 'cateterhd',
   nome: 'Cateter HD',
   titulo: 'Anotação de Enfermagem — Cateter de Hemodiálise',
-  fontes: [FONTE_UFCSPA],
+  fontes: [FONTE_UFCSPA, FONTE_COFEN_REGISTRO],
   perguntas: blocoCateterHD(),
 };
 
@@ -1115,7 +1310,7 @@ export const schemaMedicacao: Schema = {
   id: 'medicacao',
   nome: 'Medicação',
   titulo: 'Anotação de Enfermagem — Administração de Medicamento',
-  fontes: [FONTE_13_CERTOS],
+  fontes: [FONTE_13_CERTOS, FONTE_COFEN_REGISTRO],
   perguntas: blocoMedicacao(),
 };
 
@@ -1141,6 +1336,7 @@ export const schemaEvolucaoGeral: Schema = {
   titulo: 'Evolução de Enfermagem',
   fontes: [
     FONTE_COFEN_REGISTRO,
+    FONTE_ANVISA_SEGURANCA,
     FONTE_COREN_ANOTACAO,
     FONTE_PORTO,
     FONTE_POTTER,
