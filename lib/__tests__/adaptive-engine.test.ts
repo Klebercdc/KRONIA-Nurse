@@ -35,6 +35,8 @@ import {
   schemaEvolucaoGeral,
   schemaMedicacao,
   schemaIntercorrencia,
+  schemaCurativo,
+  schemaCateterHD,
 } from '../evolucao/adaptive-schemas';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -53,7 +55,12 @@ function percorrer(schema: Schema, respostasDesejadas: Record<string, string | n
 }
 
 const NUCLEO_SEM_RAMOS = {
+  identificacao_conferida: true,
   consciencia: 'Consciente e orientado',
+  pressao_arterial: '120x80',
+  frequencia_cardiaca: 78,
+  frequencia_respiratoria: 16,
+  saturacao_o2: 97,
   temperatura: 36.5,
   resp_avaliacao: 'Eupneico, em ar ambiente',
   circ_avaliacao: 'Pulsos cheios, perfusão adequada, sem edema',
@@ -61,10 +68,14 @@ const NUCLEO_SEM_RAMOS = {
   nutri_dieta: 'Via oral, aceitação total',
   loco_mobilidade: 'Deambula sem auxílio',
   genito_diurese: 'Espontânea, características habituais',
+  pele_coloracao: 'Normocorada',
   dispositivos: 'AVP em MSD nº 20',
   tem_dor: false,
   tem_curativo: false,
   tem_diagnostico_enfermagem: false,
+  orientacoes_fornecidas: false,
+  problema_novo: false,
+  plano_pendencias: 'Reavaliar sinais vitais no próximo turno.',
 };
 
 // ─── condicaoSatisfeita ─────────────────────────────────────────────────────
@@ -343,6 +354,49 @@ describe('ramificação clínica', () => {
     expect(perguntasVisiveis(schemaMedicacao, oral).map((p) => p.id)).not.toContain('med_trituracao');
   });
 
+  test('medicação: local e lateralidade só existem para vias parenterais (COFEN 9.3)', () => {
+    for (const via of ['Endovenosa', 'Intramuscular', 'Subcutânea', 'Intradérmica']) {
+      const estado = percorrer(schemaMedicacao, { med_via: via });
+      const ids = perguntasVisiveis(schemaMedicacao, estado).map((p) => p.id);
+      expect(ids).toContain('med_local_parenteral');
+      expect(ids).toContain('med_lateralidade');
+    }
+    for (const via of ['Via oral', 'Retal', 'Sublingual', 'Inalatória', 'Tópica']) {
+      const estado = percorrer(schemaMedicacao, { med_via: via });
+      const ids = perguntasVisiveis(schemaMedicacao, estado).map((p) => p.id);
+      expect(ids).not.toContain('med_local_parenteral');
+      expect(ids).not.toContain('med_lateralidade');
+    }
+  });
+
+  test('curativo: dimensão, odor, desbridamento, tipo de cobertura e dor ao procedimento (COFEN 9.20)', () => {
+    const estado = percorrer(schemaCurativo, {
+      curativo_tipo: 'Ferida operatória',
+      curativo_dimensao: '3,5 cm x 2 cm',
+      curativo_odor: false,
+      curativo_desbridamento: false,
+      curativo_tipo_cobertura: 'Oclusivo',
+      curativo_dor_procedimento: 2,
+    });
+    const doc = gerarDocumento(schemaCurativo, estado, TITULOS_DE_BLOCO);
+    expect(doc.texto).toContain('Dimensão: 3,5 cm x 2 cm.');
+    expect(doc.texto).toContain('Sem odor perceptível na lesão.');
+    expect(doc.texto).toContain('Curativo do tipo oclusivo.');
+    expect(doc.texto).toContain('Dor referida durante o procedimento: 2/10.');
+    expect(doc.texto).not.toContain('Necessidade de desbridamento');
+  });
+
+  test('cateter HD: tipo de sessão e troca de capilar (COFEN 9.35)', () => {
+    const estado = percorrer(schemaCateterHD, {
+      hd_tipo_sessao: 'Caso agudo',
+      hd_vias_permeaveis: true,
+      hd_troca_capilar: true,
+    });
+    const doc = gerarDocumento(schemaCateterHD, estado, TITULOS_DE_BLOCO);
+    expect(doc.texto).toContain('Sessão de hemodiálise de caso agudo.');
+    expect(doc.texto).toContain('Realizada troca de capilar durante a sessão.');
+  });
+
   test('intercorrência: cada tipo abre só o seu ramo', () => {
     const queda = percorrer(schemaIntercorrencia, { int_tipo: 'Queda' });
     const idsQueda = perguntasVisiveis(schemaIntercorrencia, queda).map((p) => p.id);
@@ -440,6 +494,8 @@ describe('gerarDocumento', () => {
       med_nome: 'Ceftriaxona',
       med_dose: '1 g',
       med_via: 'Endovenosa',
+      med_local_parenteral: 'Antebraço',
+      med_lateralidade: 'Direito',
       med_horario: '14:00',
       med_checagem_tripla: true,
       med_administrado: true,
