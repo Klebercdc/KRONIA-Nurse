@@ -330,6 +330,55 @@ export function calcularRASS(valores: number[]): ResultadoEscala {
   }
 }
 
+// Índice de Aldrete e Kroulik modificado — recuperação pós-anestésica (SRPA).
+// Aldrete JA, Kroulik D (1970), revisado 1995; tabela conforme SOBECC (2022).
+// Parecer COREN-SP nº 017/2021: a equipe de enfermagem APLICA a escala; a alta da
+// SRPA é ato médico, em avaliação conjunta com o enfermeiro — o escore nunca
+// autoriza alta por si só (ver `calcularAldrete`, que não emite decisão de alta).
+export const ALDRETE_CAMPOS: CampoEscala[] = [
+  { chave: 'atividade', label: 'Atividade muscular', opcoes: [
+    { label: 'Move os 4 membros voluntariamente ou sob comando', valor: 2 },
+    { label: 'Move 2 membros', valor: 1 },
+    { label: 'Incapaz de mover os membros', valor: 0 },
+  ]},
+  { chave: 'respiracao', label: 'Respiração', opcoes: [
+    { label: 'Respira profundamente e tosse livremente', valor: 2 },
+    { label: 'Dispneia ou respiração limitada', valor: 1 },
+    { label: 'Apneia', valor: 0 },
+  ]},
+  { chave: 'circulacao', label: 'Circulação (PA vs. nível pré-anestésico)', opcoes: [
+    { label: 'PA ± 20% do nível pré-anestésico', valor: 2 },
+    { label: 'PA ± 20–49% do nível pré-anestésico', valor: 1 },
+    { label: 'PA ± 50% do nível pré-anestésico', valor: 0 },
+  ]},
+  { chave: 'consciencia', label: 'Consciência', opcoes: [
+    { label: 'Completamente desperto', valor: 2 },
+    { label: 'Desperta ao chamado', valor: 1 },
+    { label: 'Não responde', valor: 0 },
+  ]},
+  { chave: 'saturacao', label: 'Saturação de O₂', opcoes: [
+    { label: 'SpO₂ > 92% em ar ambiente', valor: 2 },
+    { label: 'Necessita O₂ para manter SpO₂ > 90%', valor: 1 },
+    { label: 'SpO₂ < 90% mesmo com O₂ suplementar', valor: 0 },
+  ]},
+];
+
+/**
+ * Aldrete-Kroulik modificado: 5 domínios × 0–2 pts, total 0–10.
+ * O corte de 8 é o critério publicado de recuperação anestésica adequada — NÃO é
+ * uma liberação de alta. `risco` descreve o estado; a decisão permanece médica
+ * (Parecer COREN-SP nº 017/2021).
+ */
+export function calcularAldrete(valores: number[]): ResultadoEscala {
+  const total = valores.reduce((a, b) => a + b, 0);
+  let risco: string;
+  let nivel: NivelRisco;
+  if (total <= 4) { risco = 'Recuperação insuficiente (≤ 4) — manter monitorização intensiva'; nivel = 'alto'; }
+  else if (total < 8) { risco = 'Recuperação parcial (5–7) — permanece em observação na SRPA'; nivel = 'medio'; }
+  else { risco = 'Critério de recuperação anestésica atingido (≥ 8) — alta da SRPA é decisão médica'; nivel = 'baixo'; }
+  return { total, risco, nivel };
+}
+
 /** Ramsay: Ramsay et al. BMJ 1974. Escala 1–6. Cada nível é um estado — não somar. */
 export function calcularRamsay(valores: number[]): ResultadoEscala {
   const nivel = valores[0];
