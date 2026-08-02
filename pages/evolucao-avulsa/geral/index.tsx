@@ -167,7 +167,7 @@ function PerguntaCard({
       marginBottom: 16,
     }}>
       <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-ink-faint)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
-        {pergunta.bloco}
+        {TITULOS_DE_BLOCO[pergunta.bloco] ?? pergunta.bloco}
       </p>
       <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-ink)', marginBottom: 4 }}>
         {pergunta.texto}
