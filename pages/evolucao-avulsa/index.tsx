@@ -87,6 +87,30 @@ export default function EvolucaoAvulsaPage() {
         <h1 className="tela-titulo" style={{ flex: 1 }}>Evolução avulsa</h1>
       </div>
 
+      {/* Motor adaptativo — entry point */}
+      <button
+        onClick={() => router.push('/evolucao-avulsa/geral')}
+        style={{
+          display: 'block',
+          width: '100%',
+          textAlign: 'left',
+          background: 'var(--color-clinical-tint)',
+          border: '1px solid var(--color-clinical)',
+          borderRadius: 14,
+          padding: '14px 16px',
+          marginBottom: 20,
+          cursor: 'pointer',
+          fontFamily: 'var(--font-body)',
+        }}
+      >
+        <p style={{ fontWeight: 700, color: 'var(--color-clinical)', marginBottom: 2 }}>
+          Evolução — motor adaptativo
+        </p>
+        <p style={{ fontSize: '0.8rem', color: 'var(--color-ink-muted)' }}>
+          Pergunta por pergunta, ajusta pelo setor do plantão e pelas respostas anteriores.
+        </p>
+      </button>
+
       {/* Search */}
       <div style={{ position: 'relative', marginBottom: 16 }}>
         <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
