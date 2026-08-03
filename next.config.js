@@ -7,10 +7,10 @@ const nextConfig = {
   reactStrictMode: true,
   async redirects() {
     return [
-      // Fluxo React substituído pelo HTML estático (public/evolucao-facil.html).
-      // Redirect não-permanente: qualquer link/favorito antigo cai na tela real.
-      { source: '/evolucao-avulsa/geral', destination: '/evolucao-facil.html', permanent: false },
-      { source: '/evolucao-avulsa/geral/preview', destination: '/evolucao-facil.html', permanent: false },
+      // Fluxo React substituído pelo HTML estático. Redirect não-permanente:
+      // qualquer link/favorito antigo cai na tela real (front door: nova-evolucao.html).
+      { source: '/evolucao-avulsa/geral', destination: '/nova-evolucao.html', permanent: false },
+      { source: '/evolucao-avulsa/geral/preview', destination: '/nova-evolucao.html', permanent: false },
     ];
   },
   images: {
