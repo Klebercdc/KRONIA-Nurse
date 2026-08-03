@@ -87,9 +87,9 @@ export default function EvolucaoAvulsaPage() {
         <h1 className="tela-titulo" style={{ flex: 1 }}>Evolução avulsa</h1>
       </div>
 
-      {/* Motor adaptativo — entry point */}
-      <button
-        onClick={() => router.push('/evolucao-avulsa/geral')}
+      {/* Motor adaptativo — entry point (arquivo estático, chrome próprio) */}
+      <a
+        href="/evolucao-facil.html"
         style={{
           display: 'block',
           width: '100%',
@@ -101,15 +101,16 @@ export default function EvolucaoAvulsaPage() {
           marginBottom: 20,
           cursor: 'pointer',
           fontFamily: 'var(--font-body)',
+          textDecoration: 'none',
         }}
       >
         <p style={{ fontWeight: 700, color: 'var(--color-clinical)', marginBottom: 2 }}>
           Evolução — motor adaptativo
         </p>
         <p style={{ fontSize: '0.8rem', color: 'var(--color-ink-muted)' }}>
-          Pergunta por pergunta, ajusta pelo setor do plantão e pelas respostas anteriores.
+          Setores completos (UTI, Clínica Médica, Cirúrgica, Hemodiálise, Saúde Mental, Puerpério, Centro Cirúrgico, Emergência), dispositivos em lista e alerta de valor fora do normal.
         </p>
-      </button>
+      </a>
 
       {/* Search */}
       <div style={{ position: 'relative', marginBottom: 16 }}>
