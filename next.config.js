@@ -5,6 +5,14 @@ const supabaseHostname = process.env.NEXT_PUBLIC_SUPABASE_URL
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  async redirects() {
+    return [
+      // Fluxo React substituído pelo HTML estático (public/evolucao-facil.html).
+      // Redirect não-permanente: qualquer link/favorito antigo cai na tela real.
+      { source: '/evolucao-avulsa/geral', destination: '/evolucao-facil.html', permanent: false },
+      { source: '/evolucao-avulsa/geral/preview', destination: '/evolucao-facil.html', permanent: false },
+    ];
+  },
   images: {
     remotePatterns: [
       {
