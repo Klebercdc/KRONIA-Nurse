@@ -89,7 +89,7 @@ export default function EvolucaoAvulsaPage() {
 
       {/* Motor adaptativo — entry point (arquivo estático, chrome próprio) */}
       <a
-        href="/evolucao-facil.html"
+        href="/nova-evolucao.html"
         style={{
           display: 'block',
           width: '100%',

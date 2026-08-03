@@ -1422,6 +1422,12 @@ function copyText(){
   });
 }
 
+// Chegando de /nova-evolucao.html com setor já escolhido — pula a tela "Escolha o setor".
+const setorParam = new URLSearchParams(window.location.search).get('setor');
+if (setorParam && SETORES.some(s => s.key === setorParam)) {
+  state.setor = setorParam;
+}
+
 renderAll();
 </script>
 </body>
