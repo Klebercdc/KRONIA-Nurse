@@ -95,7 +95,7 @@ export default function EvolucaoFormPage() {
         return;
       }
       sessionStorage.setItem(`evolucao-resultado-${tipoId}`, json.documento ?? '');
-      router.push(`/evolucao-avulsa/${tipoId}/preview${pacienteId ? `?paciente=${encodeURIComponent(pacienteId)}` : ''}`);
+      router.push(`/evoluir/${tipoId}/preview${pacienteId ? `?paciente=${encodeURIComponent(pacienteId)}` : ''}`);
     } catch {
       setErro('Falha de rede. Tente novamente.');
     } finally {
@@ -164,7 +164,7 @@ export default function EvolucaoFormPage() {
                 const json = await resp.json() as { documento?: string; erro?: string };
                 if (!resp.ok || json.erro) { setErro(json.erro ?? 'Erro.'); return; }
                 sessionStorage.setItem(`evolucao-resultado-${tipoId}`, json.documento ?? '');
-                router.push(`/evolucao-avulsa/${tipoId}/preview${pacienteId ? `?paciente=${encodeURIComponent(pacienteId)}` : ''}`);
+                router.push(`/evoluir/${tipoId}/preview${pacienteId ? `?paciente=${encodeURIComponent(pacienteId)}` : ''}`);
               } catch {
                 setErro('Falha de rede.');
               } finally {
