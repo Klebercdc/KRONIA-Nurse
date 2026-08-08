@@ -54,14 +54,46 @@ export interface EventoTurno {
   ts: number;
 }
 
+/**
+ * Evolução gerada e guardada no turno.
+ *
+ * Não existe evolução "avulsa": toda evolução pertence a um paciente. O
+ * vínculo é `patientId`, e o rótulo legível vem do `leito` do paciente
+ * (que já é leito OU codinome — nunca nome real ou CPF).
+ *
+ * Guardar é o que permite gerar várias no mesmo plantão e depois exportar
+ * uma a uma ou todas juntas. Antes disso o resultado vivia em sessionStorage
+ * numa chave por TIPO, então duas evoluções do mesmo tipo se sobrescreviam.
+ */
+export interface EvolucaoSalva {
+  id: string;
+  /** Paciente dono da evolução. Obrigatório — não existe evolução sem dono. */
+  patientId: string;
+  /** Id em DOC_TYPES. */
+  tipoId: string;
+  /** Nome do tipo no momento da geração, para o histórico não quebrar se o
+   *  catálogo mudar depois. */
+  tipoNome: string;
+  /** Texto final, já com as edições manuais do enfermeiro. */
+  texto: string;
+  /** Exibição, formato HH:MM. */
+  hora: string;
+  /** Epoch ms — ordenação. */
+  ts: number;
+  /** true = o enfermeiro editou o texto depois de gerado. */
+  editado?: boolean;
+}
+
 export interface Turno {
   iniciadoEm: number;
   pacientes: Paciente[];
   eventos: EventoTurno[];
+  /** Ausente em turnos salvos antes desta versão — tratar como []. */
+  evolucoes?: EvolucaoSalva[];
 }
 
 export function turnoVazio(): Turno {
-  return { iniciadoEm: Date.now(), pacientes: [], eventos: [] };
+  return { iniciadoEm: Date.now(), pacientes: [], eventos: [], evolucoes: [] };
 }
 
 export function uid(): string {

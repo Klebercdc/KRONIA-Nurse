@@ -132,6 +132,20 @@ export const TIPOS_GLOBAIS: string[] = DOC_TYPES.filter(
       d.grupo === 'transferencia'),
 ).map((d) => d.id);
 
+/**
+ * Intercorrências têm entrada própria na tela, fora da lista de setores.
+ * Motivo: são urgentes e não devem exigir navegar setor → tipo. Continuam
+ * também dentro de cada setor (são globais) — a entrada própria é atalho,
+ * não exclusividade.
+ */
+export const TIPOS_INTERCORRENCIA: string[] = DOC_TYPES.filter(
+  (d) => d.grupo === 'intercorrencia',
+).map((d) => d.id);
+
+export function tiposIntercorrencia(): DocType[] {
+  return DOC_TYPES.filter((d) => d.grupo === 'intercorrencia');
+}
+
 /** Setores efetivamente exibidos hoje. */
 export function setoresVisiveis(): Setor[] {
   return SETORES.filter((s) => !s.pendenteValidacao);

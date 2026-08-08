@@ -1227,3 +1227,51 @@ input[type="date"]:focus {
 .reg-label { font-size: 0.9rem; font-weight: 600; color: var(--color-ink); }
 .reg-hint { font-size: 0.75rem; color: var(--color-ink-muted); margin-top: 1px; line-height: 1.35; }
 .sheet-acoes { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+
+/* ── Atalho de intercorrência (tela Evoluir) ─────── */
+/* Tratamento próprio, fora da lista de setores: é urgente e não deve exigir
+   navegar setor → tipo. Tom de alerta, não de erro — nada aconteceu ainda. */
+.intercorrencia-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: var(--color-warn-tint);
+  border: 1px solid var(--color-warn);
+  border-radius: 14px;
+  padding: 13px 14px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+.intercorrencia-card:active { transform: scale(0.98); }
+
+.intercorrencia-icone {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.intercorrencia-icone svg { width: 20px; height: 20px; color: var(--color-warn-ink); }
+.intercorrencia-card .setor-desc { color: var(--color-warn-ink); }
+
+/* ── Seleção de paciente no bottom sheet ─────────── */
+.sheet-paciente {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-line);
+}
+
+/* ── Texto de evolução guardada ──────────────────── */
+.evolucao-texto {
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--color-ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+}

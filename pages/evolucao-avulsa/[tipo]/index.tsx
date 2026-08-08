@@ -8,6 +8,9 @@ import { getSupabaseBrowser } from '../../../lib/supabase-browser';
 export default function EvolucaoFormPage() {
   const router = useRouter();
   const tipoId = router.query.tipo as string | undefined;
+  /** Dono da evolução, vindo da tela de setor. Repassado ao preview, que guarda
+   *  o resultado no turno — não existe evolução sem paciente. */
+  const pacienteId = (router.query.paciente as string | undefined) ?? '';
 
   const docType = tipoId ? getDocType(tipoId) : undefined;
   const schema = tipoId ? getFieldSchema(tipoId) : undefined;
@@ -92,7 +95,7 @@ export default function EvolucaoFormPage() {
         return;
       }
       sessionStorage.setItem(`evolucao-resultado-${tipoId}`, json.documento ?? '');
-      router.push(`/evolucao-avulsa/${tipoId}/preview`);
+      router.push(`/evolucao-avulsa/${tipoId}/preview${pacienteId ? `?paciente=${encodeURIComponent(pacienteId)}` : ''}`);
     } catch {
       setErro('Falha de rede. Tente novamente.');
     } finally {
@@ -161,7 +164,7 @@ export default function EvolucaoFormPage() {
                 const json = await resp.json() as { documento?: string; erro?: string };
                 if (!resp.ok || json.erro) { setErro(json.erro ?? 'Erro.'); return; }
                 sessionStorage.setItem(`evolucao-resultado-${tipoId}`, json.documento ?? '');
-                router.push(`/evolucao-avulsa/${tipoId}/preview`);
+                router.push(`/evolucao-avulsa/${tipoId}/preview${pacienteId ? `?paciente=${encodeURIComponent(pacienteId)}` : ''}`);
               } catch {
                 setErro('Falha de rede.');
               } finally {

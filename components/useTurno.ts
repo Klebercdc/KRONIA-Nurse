@@ -9,7 +9,7 @@
  */
 import { useEffect, useState, useCallback } from 'react';
 import {
-  Turno, Paciente, EventoTurno, Complexidade,
+  Turno, Paciente, EventoTurno, EvolucaoSalva, Complexidade,
   turnoVazio, uid, horaAgora,
 } from '../lib/types';
 import { carregarTurno, salvarTurno, encerrarTurno as apagarStorage } from '../lib/storage';
@@ -68,9 +68,33 @@ export function useTurno() {
     setTurno((t) => ({
       pacientes: t.pacientes.filter((p) => p.id !== id),
       eventos: t.eventos.filter((e) => e.patientId !== id),
+      // Evolução não existe sem dono: some junto com o paciente.
+      evolucoes: (t.evolucoes ?? []).filter((ev) => ev.patientId !== id),
       iniciadoEm: t.iniciadoEm,
     }));
   }, []);
+
+  /**
+   * Cria o paciente se o rótulo ainda não existir e devolve o id.
+   * Fluxo de clique: o enfermeiro escolhe um paciente da lista ou digita um
+   * rótulo novo (leito, codinome ou iniciais) — nunca nome real ou CPF.
+   */
+  const garantirPaciente = useCallback((leito: string): string => {
+    const rotulo = leito.trim();
+    if (!rotulo) return '';
+    const existente = turno.pacientes.find(
+      (p) => p.leito.toLowerCase() === rotulo.toLowerCase(),
+    );
+    if (existente) return existente.id;
+
+    const id = uid();
+    setTurno((t) =>
+      t.pacientes.some((p) => p.leito.toLowerCase() === rotulo.toLowerCase())
+        ? t
+        : { ...t, pacientes: [...t.pacientes, { id, leito: rotulo, dx: '', complexidade: 'intermediarios' }] },
+    );
+    return id;
+  }, [turno.pacientes]);
 
   const editarPaciente = useCallback((id: string, leito: string, dx: string, complexidade: Complexidade) => {
     setTurno((t) => ({
@@ -160,6 +184,34 @@ export function useTurno() {
     }));
   }, []);
 
+  // ---- Evoluções geradas ----
+  // Guardadas no turno para poder gerar várias no mesmo plantão e exportar
+  // uma a uma ou todas juntas. Não existe evolução sem paciente.
+  const salvarEvolucao = useCallback(
+    (patientId: string, tipoId: string, tipoNome: string, texto: string): string => {
+      const id = uid();
+      const nova: EvolucaoSalva = {
+        id, patientId, tipoId, tipoNome, texto, hora: horaAgora(), ts: Date.now(),
+      };
+      setTurno((t) => ({ ...t, evolucoes: [...(t.evolucoes ?? []), nova] }));
+      return id;
+    },
+    [],
+  );
+
+  const atualizarEvolucao = useCallback((id: string, texto: string) => {
+    setTurno((t) => ({
+      ...t,
+      evolucoes: (t.evolucoes ?? []).map((ev) =>
+        ev.id === id ? { ...ev, texto, editado: true } : ev,
+      ),
+    }));
+  }, []);
+
+  const excluirEvolucao = useCallback((id: string) => {
+    setTurno((t) => ({ ...t, evolucoes: (t.evolucoes ?? []).filter((ev) => ev.id !== id) }));
+  }, []);
+
   // ---- Encerramento ----
   /** Apaga toda a memória local. Chamar só depois que o enfermeiro confirmou
    *  ter copiado os documentos gerados — não há undo. */
@@ -175,10 +227,14 @@ export function useTurno() {
     adicionarPaciente,
     removerPaciente,
     editarPaciente,
+    garantirPaciente,
     atualizarComplexidade,
     capturar,
     editarEvento,
     excluirEvento,
+    salvarEvolucao,
+    atualizarEvolucao,
+    excluirEvolucao,
     encerrarPlantao,
   };
 }
