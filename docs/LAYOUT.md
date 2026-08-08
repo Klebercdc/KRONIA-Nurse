@@ -198,15 +198,14 @@ ação opcional à direita.
 1. Header identitário      saudação + primeiro nome | avatar-iniciais → /perfil
 2. Stat cards              [Pacientes] [Registros]            grid 1fr 1fr
 3. Ações rápidas           [+ Novo registro] [Pacientes]      grid 1fr 1fr
-                           primário            secundário
+                           primário → /evoluir   secundário
 4. .kronos-grid            [Escalas] [KRONOS]                 grid 1fr 1fr
                            variante linha: ícone 28px + label à direita
-5. Card "Evolução avulsa"  ícone 36px + título/subtítulo + chevron → /evolucao-avulsa
-6. Card "Encerrar turno"   fundo clinical-tint, texto à esquerda + botão
+5. Card "Encerrar turno"   fundo clinical-tint, texto à esquerda + botão
                            primário "Gerar evolução" → /encerramento
-7. Atividade recente       .card > .card-titulo + .evento-linha[]
+6. Atividade recente       .card > .card-titulo + .evento-linha[]
                            (hora mono | leito + texto | badge "Registrado")
-8. Estado vazio            só quando eventos == 0 — card centrado, ícone 48px
+7. Estado vazio            só quando eventos == 0 — card centrado, ícone 48px
 ```
 
 ### `/pacientes` (`pages/pacientes.tsx`)

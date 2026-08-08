@@ -82,7 +82,7 @@ export default function EvolucaoPreviewPage() {
       <Layout>
         <div className="estado-vazio">
           <p>Documento não encontrado. Preencha o formulário novamente.</p>
-          <button className="btn btn-primario" style={{ marginTop: 12 }} onClick={() => router.push(`/evolucao-avulsa/${tipoId}`)}>
+          <button className="btn btn-primario" style={{ marginTop: 12 }} onClick={() => router.push(`/evoluir/${tipoId}`)}>
             Voltar ao formulário
           </button>
         </div>
@@ -233,7 +233,7 @@ export default function EvolucaoPreviewPage() {
           <button
             className="btn btn-secundario btn-bloco"
             style={{ marginBottom: 24 }}
-            onClick={() => router.push('/evolucao-avulsa')}
+            onClick={() => router.push('/evoluir')}
           >
             Outros tipos de documento
           </button>

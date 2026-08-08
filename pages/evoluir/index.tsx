@@ -15,17 +15,17 @@ import {
   TriangleAlert,
   type LucideIcon,
 } from 'lucide-react';
-import Layout from '../components/Layout';
-import { useTurno } from '../components/useTurno';
+import Layout from '../../components/Layout';
+import { useTurno } from '../../components/useTurno';
 import {
   setoresPorGrupo,
   tiposDoSetor,
   tiposIntercorrencia,
   getSetor,
   type Setor,
-} from '../lib/evolucao/setores';
-import { getFieldSchema, hasSchema } from '../lib/evolucao/field-schemas';
-import type { DocType } from '../lib/evolucao/document-types';
+} from '../../lib/evolucao/setores';
+import { getFieldSchema, hasSchema } from '../../lib/evolucao/field-schemas';
+import type { DocType } from '../../lib/evolucao/document-types';
 
 const ICONES: Record<string, LucideIcon> = {
   activity: Activity,
@@ -133,7 +133,7 @@ export default function Evoluir() {
     if (!tipoSelecionado) return;
     const id = criandoPaciente ? garantirPaciente(novoRotulo) : pacienteId;
     if (!id) return;
-    router.push(`/evolucao-avulsa/${tipoSelecionado}?paciente=${encodeURIComponent(id)}`);
+    router.push(`/evoluir/${tipoSelecionado}?paciente=${encodeURIComponent(id)}`);
   }
 
   const favoritosVisiveis = grupos
