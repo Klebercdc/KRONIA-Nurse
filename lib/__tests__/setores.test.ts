@@ -6,6 +6,7 @@
  * para tipo inexistente.
  */
 import { DOC_TYPES } from '../evolucao/document-types';
+import { FIELD_SCHEMAS } from '../evolucao/field-schemas';
 import {
   SETORES,
   TIPOS_GLOBAIS,
@@ -57,13 +58,10 @@ describe('integridade do mapeamento de setores', () => {
 });
 
 describe('setores pendentes de validação clínica', () => {
-  it('mantém Pediatria e UTI Neonatal ocultos até liberação', () => {
-    const ocultos = SETORES.filter((s) => s.pendenteValidacao).map((s) => s.id);
-    expect(ocultos).toEqual(['pediatria', 'neonatal']);
-
+  it('exibe Pediatria e UTI Neonatal — liberados com fonte COFEN', () => {
     const visiveis = setoresVisiveis().map((s) => s.id);
-    expect(visiveis).not.toContain('pediatria');
-    expect(visiveis).not.toContain('neonatal');
+    expect(visiveis).toContain('pediatria');
+    expect(visiveis).toContain('neonatal');
   });
 
   it('não expõe setor pendente no agrupamento da tela', () => {
@@ -71,6 +69,52 @@ describe('setores pendentes de validação clínica', () => {
     for (const s of SETORES.filter((x) => x.pendenteValidacao)) {
       expect(naTela).not.toContain(s.id);
     }
+  });
+});
+
+describe('faixas de referência não são embutidas em lugar nenhum', () => {
+  // Trava de projeto: min/max só pode existir como limite da própria escala,
+  // nunca como "valor normal" por idade. Faixa de referência transformaria
+  // número em rótulo clínico, que é o que o produto proíbe.
+  const LIMITES_DE_ESCALA = new Set([
+    'glasgow',        // 3–15, definição da escala
+    'dor_procedimento', // 0–10, definição da escala
+    'peso_g',         // min 0, sanidade de unidade
+    'dias_vida',
+    'comprimento',
+    'perimetro_cefalico',
+    'perimetro_toracico',
+  ]);
+
+  it('nenhum campo novo introduz min/max fora de limite de escala', () => {
+    const suspeitos: string[] = [];
+    for (const schema of FIELD_SCHEMAS) {
+      for (const campo of schema.campos) {
+        const temLimite = campo.min !== undefined || campo.max !== undefined;
+        if (temLimite && !LIMITES_DE_ESCALA.has(campo.id)) {
+          suspeitos.push(`${schema.tipoId}/${campo.id}`);
+        }
+      }
+    }
+    expect(suspeitos).toEqual([]);
+  });
+
+  it('sinais vitais de pediatria e neonatal são texto livre, sem classificação', () => {
+    for (const tipoId of ['evolucao_pediatrica', 'evolucao_neonatal']) {
+      const schema = FIELD_SCHEMAS.find((s) => s.tipoId === tipoId);
+      const sv = schema?.campos.find((c) => c.id === 'sinais_vitais');
+      expect(sv?.type).toBe('textarea');
+      expect(sv?.min).toBeUndefined();
+      expect(sv?.max).toBeUndefined();
+      expect(sv?.hint).toContain('não classifica');
+    }
+  });
+
+  it('registra o peso neonatal em gramas, não em quilos', () => {
+    const schema = FIELD_SCHEMAS.find((s) => s.tipoId === 'evolucao_neonatal');
+    const peso = schema?.campos.find((c) => c.id === 'peso_g');
+    expect(peso?.unit).toBe('g');
+    expect(peso?.required).toBe(true);
   });
 });
 

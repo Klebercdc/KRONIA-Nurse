@@ -11,6 +11,7 @@ import {
   Ribbon,
   Search,
   Siren,
+  Smile,
   Stethoscope,
   TriangleAlert,
   type LucideIcon,
@@ -34,6 +35,7 @@ const ICONES: Record<string, LucideIcon> = {
   droplets: Droplets,
   ribbon: Ribbon,
   siren: Siren,
+  smile: Smile,
   baby: Baby,
 };
 

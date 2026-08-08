@@ -39,7 +39,7 @@ describe('registro de campos a conferir', () => {
   it('conta as pendências abertas — atualizar ao liberar cada campo', () => {
     // Este número é proposital: baixar exige mexer no registro, o que torna a
     // liberação de um campo clínico uma mudança visível no diff.
-    expect(pendentes()).toHaveLength(8);
+    expect(pendentes()).toHaveLength(6);
   });
 });
 
