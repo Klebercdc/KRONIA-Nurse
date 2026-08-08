@@ -1,17 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../../../components/Layout';
+import { useTurno } from '../../../components/useTurno';
 import { getDocType } from '../../../lib/evolucao/document-types';
 
 export default function EvolucaoPreviewPage() {
   const router = useRouter();
   const tipoId = router.query.tipo as string | undefined;
+  const pacienteId = (router.query.paciente as string | undefined) ?? '';
+
+  const { carregado, salvarEvolucao, atualizarEvolucao } = useTurno();
 
   const docType = tipoId ? getDocType(tipoId) : undefined;
   const [documento, setDocumento] = useState('');
   const [copiado, setCopiado] = useState(false);
   const [editando, setEditando] = useState(false);
   const [textoEditado, setTextoEditado] = useState('');
+  /** Id da evolução já guardada nesta visita — evita duplicar ao remontar. */
+  const evolucaoIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!tipoId) return;
@@ -21,6 +27,26 @@ export default function EvolucaoPreviewPage() {
       setTextoEditado(resultado);
     }
   }, [tipoId]);
+
+  // Guarda no turno assim que o documento existe e há paciente. Auto-salvar
+  // (em vez de exigir um botão) é o que permite gerar várias no plantão sem
+  // risco de perder uma por esquecimento. A chave em sessionStorage sobrevive
+  // a remontagem e a refresh, então recarregar a página não duplica.
+  useEffect(() => {
+    if (!carregado || !tipoId || !pacienteId || !documento || !docType) return;
+    if (evolucaoIdRef.current) return;
+
+    const chave = `evolucao-salva-${tipoId}-${pacienteId}`;
+    const jaSalva = sessionStorage.getItem(chave);
+    if (jaSalva) {
+      evolucaoIdRef.current = jaSalva;
+      return;
+    }
+
+    const id = salvarEvolucao(pacienteId, tipoId, docType.nome, documento);
+    evolucaoIdRef.current = id;
+    sessionStorage.setItem(chave, id);
+  }, [carregado, tipoId, pacienteId, documento, docType, salvarEvolucao]);
 
   async function handleCopiar() {
     const texto = editando ? textoEditado : documento;
@@ -37,6 +63,8 @@ export default function EvolucaoPreviewPage() {
   function handleSalvarEdicao() {
     setDocumento(textoEditado);
     if (tipoId) sessionStorage.setItem(`evolucao-resultado-${tipoId}`, textoEditado);
+    // A edição humana vence: propaga para a evolução guardada no turno.
+    if (evolucaoIdRef.current) atualizarEvolucao(evolucaoIdRef.current, textoEditado);
     setEditando(false);
   }
 
@@ -44,8 +72,9 @@ export default function EvolucaoPreviewPage() {
     if (tipoId) {
       sessionStorage.removeItem(`evolucao-resultado-${tipoId}`);
       sessionStorage.removeItem(`evolucao-draft-${tipoId}`);
+      if (pacienteId) sessionStorage.removeItem(`evolucao-salva-${tipoId}-${pacienteId}`);
     }
-    router.push(`/evolucao-avulsa/${tipoId}`);
+    router.push('/evoluir');
   }
 
   if (!documento && tipoId) {

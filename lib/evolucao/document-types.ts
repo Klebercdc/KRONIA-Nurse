@@ -238,15 +238,21 @@ export const DOC_TYPES: DocType[] = [
   },
   {
     id: 'sae_sistematizacao',
-    nome: 'SAE — Sistematização',
+    nome: 'Processo de Enfermagem',
     grupo: 'especifico',
-    contexto: 'Sistematização da Assistência de Enfermagem (SAE) conforme COFEN. Estruturar APENAS o conteúdo fornecido nos campos nas seções correspondentes.',
+    contexto: 'Processo de Enfermagem conforme Resolução COFEN nº 736/2024. Estruturar APENAS o conteúdo fornecido nos campos nas seções correspondentes.',
   },
   {
     id: 'contra_referencia',
     nome: 'Contra-referência / Resumo',
     grupo: 'especifico',
     contexto: 'Documento de contra-referência para UBS/APS com resumo da internação. Registrar condição de alta e recomendações de continuidade APENAS conforme informadas nos campos.',
+  },
+  {
+    id: 'avaliacao_ferida_ostomia',
+    nome: 'Avaliação de Ferida/Ostomia',
+    grupo: 'especifico',
+    contexto: 'Avaliação de ferida, lesão por pressão ou estoma, válida em qualquer setor. Os itens seguem o COFEN, Registros de Enfermagem no Exercício da Profissão, §6.26 (Curativos) e §9.21 (Cuidado com estomas). Registrar APENAS o que foi informado nos campos — não estimar dimensão, estágio nem aspecto que não tenham sido descritos.',
   },
 ];
 

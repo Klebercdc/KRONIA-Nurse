@@ -5,6 +5,7 @@ import Head from 'next/head';
 import '../styles/globals.css';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { ThemeProvider } from '../lib/theme-context';
+import { fontVariables } from '../lib/fonts';
 
 const ROTAS_PUBLICAS = ['/', '/login', '/cadastro'];
 
@@ -29,7 +30,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       flexDirection: 'column',
       gap: 12,
     }}>
-      <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-clinical)', fontFamily: 'var(--font-display)' }}>
+      <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--color-clinical)', fontFamily: 'var(--font-display)' }}>
         KRONIA Nurse
       </div>
       <div className="spinner spinner-clinical" />
@@ -49,13 +50,19 @@ export default function App({ Component, pageProps }: AppProps) {
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </Head>
-      <ThemeProvider>
-        <AuthProvider>
-          <AuthGate>
-            <Component {...pageProps} />
-          </AuthGate>
-        </AuthProvider>
-      </ThemeProvider>
+      {/* next/font não pode ser chamado de _document (Next lança "Font loaders
+          cannot be called from _document"), então as variables entram por um
+          wrapper. display:contents mantém o wrapper fora do layout — a caixa
+          não existe, só a herança das custom properties. */}
+      <div className={`${fontVariables} kronia-fontes`} style={{ display: 'contents' }}>
+        <ThemeProvider>
+          <AuthProvider>
+            <AuthGate>
+              <Component {...pageProps} />
+            </AuthGate>
+          </AuthProvider>
+        </ThemeProvider>
+      </div>
     </>
   );
 }

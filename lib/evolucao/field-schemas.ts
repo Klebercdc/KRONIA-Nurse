@@ -284,6 +284,126 @@ export const FIELD_SCHEMAS: FieldSchema[] = [
       { id: 'observacoes', label: 'Observações', type: 'textarea' },
     ],
   },
+
+  // ── Avaliação de Ferida/Ostomia ───────────────────────────────────────────
+  // Tipo global: vale em qualquer setor. Cada campo abaixo tem procedência
+  // declarada — ver CAMPOS_A_CONFERIR para o que ainda NÃO entrou aqui.
+  //
+  // Fonte KRONOS (corpus Camada 1), COFEN — "Registros de Enfermagem no
+  // Exercício da Profissão":
+  //   §6.26 Curativos — "Local da lesão e sua dimensão; Data e horário; Sinais
+  //   e sintomas observados (presença de secreção/exsudato, coloração, odor,
+  //   quantidade etc.); Relatar o nível de dor do paciente ao procedimento;
+  //   Necessidade de desbridamento; Tipo de curativo (oclusivo, aberto,
+  //   simples, compressivo, presença de dreno etc.); Material prescrito e
+  //   utilizado."
+  //   §9.21 Cuidado com estomas — "Data e hora; Local do estoma; Tipo (...)".
+  {
+    tipoId: 'avaliacao_ferida_ostomia',
+    campos: [
+      // KRONOS — COFEN §6.26 / §9.21
+      { id: 'data_avaliacao', label: 'Data da avaliação', type: 'date', required: true },
+      { id: 'hora_avaliacao', label: 'Hora da avaliação', type: 'time', required: true },
+      {
+        id: 'localizacao',
+        label: 'Localização da lesão/estoma',
+        type: 'text',
+        required: true,
+        placeholder: 'Região e lado, ex.: sacral; calcâneo direito',
+        hint: 'COFEN §6.26 — "local da lesão"; §9.21 — "local do estoma".',
+      },
+      {
+        id: 'dimensoes',
+        label: 'Dimensões',
+        type: 'text',
+        placeholder: 'Comprimento × largura × profundidade, em cm',
+        hint: 'Registrar apenas se mensurado. COFEN §6.26 — "sua dimensão".',
+      },
+      {
+        id: 'exsudato_quantidade',
+        label: 'Exsudato — quantidade',
+        type: 'select',
+        options: [
+          { value: 'ausente', label: 'Ausente' },
+          { value: 'pequena', label: 'Pequena' },
+          { value: 'moderada', label: 'Moderada' },
+          { value: 'grande', label: 'Grande' },
+        ],
+      },
+      {
+        id: 'exsudato_aspecto',
+        label: 'Exsudato — coloração e odor',
+        type: 'text',
+        placeholder: 'Descrever como observado',
+        hint: 'COFEN §6.26 — "secreção/exsudato, coloração, odor, quantidade".',
+      },
+      {
+        id: 'dor_procedimento',
+        label: 'Nível de dor ao procedimento',
+        type: 'number',
+        min: 0,
+        max: 10,
+        unit: '/10',
+        hint: 'COFEN §6.26 — registrar "a fim de avaliar necessidade de analgesia prévia".',
+      },
+      {
+        id: 'desbridamento',
+        label: 'Necessidade de desbridamento',
+        type: 'select',
+        options: SIM_NAO,
+      },
+      {
+        id: 'tipo_curativo',
+        label: 'Tipo de curativo',
+        type: 'select',
+        options: [
+          { value: 'oclusivo', label: 'Oclusivo' },
+          { value: 'aberto', label: 'Aberto' },
+          { value: 'simples', label: 'Simples' },
+          { value: 'compressivo', label: 'Compressivo' },
+          { value: 'com_dreno', label: 'Com dreno' },
+        ],
+        hint: 'Opções conforme COFEN §6.26.',
+      },
+      {
+        id: 'material_utilizado',
+        label: 'Material prescrito e utilizado',
+        type: 'textarea',
+        hint: 'COFEN §6.26 — item obrigatório do registro.',
+      },
+
+      // Escala padronizada — CONHECIMENTO GERAL, não KRONOS.
+      // O corpus cita NPUAP/EPUAP mas não traz a tabela de estadiamento.
+      {
+        id: 'estadiamento_lpp',
+        label: 'Estadiamento (se lesão por pressão)',
+        type: 'select',
+        options: [
+          { value: 'estagio_1', label: 'Estágio 1 — eritema não branqueável' },
+          { value: 'estagio_2', label: 'Estágio 2 — perda parcial da derme' },
+          { value: 'estagio_3', label: 'Estágio 3 — perda total da pele' },
+          { value: 'estagio_4', label: 'Estágio 4 — perda total dos tecidos' },
+          { value: 'nao_classificavel', label: 'Não classificável' },
+          { value: 'tecido_profundo', label: 'Lesão tissular profunda' },
+        ],
+        hint: 'Classificação NPUAP/EPUAP. Fonte: conhecimento geral — não consta no corpus KRONOS.',
+      },
+      {
+        id: 'tecido_leito',
+        label: 'Tecido do leito da lesão',
+        type: 'select',
+        options: [
+          { value: 'granulacao', label: 'Granulação' },
+          { value: 'epitelizacao', label: 'Epitelização' },
+          { value: 'esfacelo', label: 'Esfacelo' },
+          { value: 'necrose', label: 'Necrose' },
+        ],
+        hint: 'Fonte: conhecimento geral — não consta no corpus KRONOS.',
+      },
+
+      { id: 'observacoes', label: 'Observações', type: 'textarea' },
+    ],
+  },
 ];
 
 export function getFieldSchema(tipoId: string): FieldSchema | undefined {

@@ -59,7 +59,7 @@ export default function Home() {
             cursor: 'pointer',
             color: '#fff',
             fontSize: '0.85rem',
-            fontWeight: 800,
+            fontWeight: 700,
             fontFamily: 'var(--font-display)',
             marginTop: 4,
           }}
@@ -86,7 +86,7 @@ export default function Home() {
         <button
           className="btn btn-primario"
           style={{ borderRadius: 14, padding: '14px 12px', fontSize: '0.88rem', justifyContent: 'center' }}
-          onClick={() => router.push('/registrar')}
+          onClick={() => router.push('/evoluir')}
         >
           <IconMais />
           Novo registro
@@ -188,7 +188,7 @@ export default function Home() {
             Encerrar turno
           </p>
           <p style={{ fontSize: '0.8rem', color: 'var(--color-ink-muted)', margin: 0 }}>
-            Gere a evolução SAE/COFEN do plantão
+            Gere a evolução conforme o Processo de Enfermagem
           </p>
         </div>
         <button

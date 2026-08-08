@@ -27,9 +27,22 @@
      a cards/superfícies sem competir com o conteúdo. */
   --shadow-card: 0 1px 3px rgba(16,24,40,.07), 0 4px 10px rgba(16,24,40,.10);
   --nav-height: 68px;
+  /* Fallback: vale antes da hidratação e fora do wrapper de fontes.
+     O carregamento real vem de lib/fonts.ts (next/font) e é encadeado
+     em .kronia-fontes logo abaixo. */
   --font-display: 'Space Grotesk', 'Segoe UI', sans-serif;
   --font-body:    'Inter', 'Segoe UI', sans-serif;
   --font-mono:    'IBM Plex Mono', 'SF Mono', 'Fira Mono', monospace;
+}
+
+/* next/font expõe uma CSS variable por família (lib/fonts.ts). As classes
+   geradas são hasheadas, então o encadeamento mora nesta classe estável,
+   aplicada no mesmo wrapper em pages/_app.tsx. Sobrescreve :root por ser
+   mais específica e mais profunda — nenhum componente precisa mudar. */
+.kronia-fontes {
+  --font-display: var(--font-space-grotesk), 'Segoe UI', sans-serif;
+  --font-body:    var(--font-inter), 'Segoe UI', sans-serif;
+  --font-mono:    var(--font-ibm-plex-mono), 'SF Mono', 'Fira Mono', monospace;
 }
 
 [data-theme="dark"] {
@@ -435,7 +448,7 @@ input, textarea, select {
 
 .escala-total {
   font-size: 2.8rem;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--color-clinical);
   line-height: 1;
   font-family: var(--font-mono);
@@ -585,7 +598,7 @@ input[type="date"]:focus {
 
 .contexto-leito {
   font-size: 1.1rem;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--color-clinical);
   letter-spacing: -0.01em;
   line-height: 1.1;
@@ -735,7 +748,7 @@ input[type="date"]:focus {
   background: var(--color-clinical);
   color: #fff;
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 700;
   padding: 3px 8px;
   border-radius: 20px;
   letter-spacing: 0.02em;
@@ -860,7 +873,7 @@ input[type="date"]:focus {
 
 .stat-card-value {
   font-size: 1.75rem;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--color-ink);
   font-family: var(--font-mono);
   line-height: 1;
@@ -1036,7 +1049,229 @@ input[type="date"]:focus {
   align-items: center;
   justify-content: center;
   font-size: 1.3rem;
-  font-weight: 800;
+  font-weight: 700;
   font-family: var(--font-display);
   flex-shrink: 0;
+}
+
+/* ── Tela Evoluir (seleção de setor) ─────────────── */
+.section-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+  font-family: var(--font-body);
+  margin-bottom: 10px;
+}
+
+.fav-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: none;
+}
+.fav-row::-webkit-scrollbar { display: none; }
+
+.fav-chip {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  padding: 10px 14px;
+  white-space: nowrap;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.fav-chip svg { width: 16px; height: 16px; color: var(--color-clinical); flex-shrink: 0; }
+
+.setor-grupo { margin-top: 20px; }
+.setor-grupo:first-child { margin-top: 16px; }
+.setor-lista { display: flex; flex-direction: column; gap: 8px; }
+
+.setor-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+  padding: 13px 14px;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.12s;
+}
+.setor-card:active { transform: scale(0.98); }
+
+.setor-icone {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--color-clinical-tint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.setor-icone svg { width: 20px; height: 20px; color: var(--color-clinical); }
+
+.setor-texto { flex: 1; min-width: 0; }
+.setor-titulo { font-size: 0.95rem; font-weight: 700; color: var(--color-ink); }
+.setor-desc { font-size: 0.78rem; color: var(--color-ink-muted); line-height: 1.4; margin-top: 1px; }
+
+/* Preview dos campos que o tipo realmente pede — mono, porque é leitura de
+   sistema, não prosa. Só aparece quando há FIELD_SCHEMA de verdade. */
+.campo-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.campo-tag {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--color-clinical-deep);
+  background: var(--color-clinical-tint);
+  padding: 3px 7px;
+  border-radius: 6px;
+}
+[data-theme="dark"] .campo-tag { color: var(--color-clinical); }
+
+.setor-chev { color: var(--color-ink-faint); flex-shrink: 0; display: flex; }
+.setor-chev svg { width: 16px; height: 16px; }
+
+/* ── Bottom sheet ────────────────────────────────── */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(8,57,95,.4);
+  z-index: 110;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.sheet-backdrop.aberto { opacity: 1; pointer-events: auto; }
+
+.sheet {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(100%);
+  width: 100%;
+  max-width: 480px;
+  background: var(--color-surface);
+  z-index: 111;
+  border-radius: 20px 20px 0 0;
+  padding: 10px 18px calc(18px + env(safe-area-inset-bottom));
+  transition: transform 0.25s;
+  box-shadow: 0 -8px 24px rgba(16,24,40,.18);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.sheet.aberto { transform: translateX(-50%) translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet, .sheet-backdrop { transition: none; }
+}
+
+.sheet-handle { width: 34px; height: 4px; border-radius: 2px; background: var(--color-line); margin: 6px auto 14px; }
+.sheet-eyebrow {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-clinical);
+  text-transform: uppercase;
+}
+.sheet-titulo { font-size: 1.15rem; font-weight: 700; color: var(--color-ink); font-family: var(--font-display); margin-top: 2px; }
+.sheet-sub { font-size: 0.8rem; color: var(--color-ink-muted); margin: 3px 0 14px; }
+
+.reg-opcao {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--color-line);
+  cursor: pointer;
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+}
+.reg-opcao:last-of-type { border-bottom: none; }
+
+.reg-radio {
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  border: 2px solid var(--color-line);
+  flex-shrink: 0;
+  position: relative;
+}
+.reg-opcao.selecionada .reg-radio { border-color: var(--color-clinical); }
+.reg-opcao.selecionada .reg-radio::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--color-clinical);
+}
+
+.reg-texto { flex: 1; min-width: 0; }
+.reg-label { font-size: 0.9rem; font-weight: 600; color: var(--color-ink); }
+.reg-hint { font-size: 0.75rem; color: var(--color-ink-muted); margin-top: 1px; line-height: 1.35; }
+.sheet-acoes { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+
+/* ── Atalho de intercorrência (tela Evoluir) ─────── */
+/* Tratamento próprio, fora da lista de setores: é urgente e não deve exigir
+   navegar setor → tipo. Tom de alerta, não de erro — nada aconteceu ainda. */
+.intercorrencia-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: var(--color-warn-tint);
+  border: 1px solid var(--color-warn);
+  border-radius: 14px;
+  padding: 13px 14px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+.intercorrencia-card:active { transform: scale(0.98); }
+
+.intercorrencia-icone {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.intercorrencia-icone svg { width: 20px; height: 20px; color: var(--color-warn-ink); }
+.intercorrencia-card .setor-desc { color: var(--color-warn-ink); }
+
+/* ── Seleção de paciente no bottom sheet ─────────── */
+.sheet-paciente {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-line);
+}
+
+/* ── Texto de evolução guardada ──────────────────── */
+.evolucao-texto {
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--color-ink);
+  white-space: pre-wrap;
+  word-break: break-word;
 }
