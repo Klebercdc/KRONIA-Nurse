@@ -55,23 +55,20 @@ export const CAMPOS_A_CONFERIR: readonly CampoAConferir[] = [
     liberadoCom: null,
   },
 
-  // ── Setores novos — bloqueados por decisão do enfermeiro responsável ─────
-  // Nenhum destes setores foi implementado. Ficam registrados para que a
-  // pendência não se perca entre uma sessão e outra.
-  {
-    campo: 'Faixas de referência de sinais vitais por idade',
-    setor: 'Pediatria',
-    motivo:
-      'O corpus KRONOS não tem faixa pediátrica. Os fragmentos que citam "pediátr" são índice taxonômico da NANDA-I e material de controle de infecção da ANVISA.',
-    liberadoCom: null,
-  },
-  {
-    campo: 'Faixas de referência de sinais vitais neonatais',
-    setor: 'UTI Neonatal',
-    motivo:
-      'O corpus KRONOS não tem faixa neonatal. Os fragmentos que citam "neonat" são índice da NANDA-I e material de IRAS da ANVISA.',
-    liberadoCom: null,
-  },
+  // ── Faixas de referência: resolvidas por desenho, não pendentes ──────────
+  // Pediatria e UTI Neonatal foram implementadas SEM faixa de referência
+  // embutida, e isso não é uma pendência — é a mesma regra que vale para todo
+  // o projeto. Faixa de referência transforma número em rótulo clínico, que é
+  // o que as travas do produto proíbem ("38,7°C não pode virar hipertermia").
+  // Em todo o field-schemas, min/max só aparece como limite da própria escala
+  // (Glasgow 3–15, dor 0–10), nunca como "valor normal".
+  //
+  // Consequência: o campo captura o valor aferido e quem interpreta é o
+  // enfermeiro. Se um dia o produto for classificar valor por idade, isso é
+  // decisão clínica nova — e aí precisa de fonte primária, que hoje não existe
+  // no corpus KRONOS nem foi possível obter fora dele.
+
+  // ── Setores ainda não implementados ─────────────────────────────────────
   {
     campo: 'Faixa normal de BCF',
     setor: 'Gestante / Centro de Parto Normal',

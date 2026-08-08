@@ -87,27 +87,21 @@ export const SETORES: Setor[] = [
     tipos: ['admissao_pronto_socorro'],
   },
 
-  // ── Mapeados, aguardando validação clínica ────────────────────────────────
-  // Os tipos abaixo JÁ existem em DOC_TYPES e não têm FIELD_SCHEMA, então
-  // nenhuma faixa de referência está envolvida. Mesmo assim ficam ocultos até
-  // o aval explícito do enfermeiro responsável.
   {
     id: 'pediatria',
     nome: 'Pediatria',
-    descricao: 'Evolução pediátrica.',
-    icone: 'baby',
+    descricao: 'Paciente pediátrico — peso, acompanhante e orientações ao responsável.',
+    icone: 'smile',
     grupo: 'Enfermarias',
     tipos: ['evolucao_pediatrica'],
-    pendenteValidacao: true,
   },
   {
     id: 'neonatal',
     nome: 'UTI Neonatal',
-    descricao: 'Evolução neonatal.',
+    descricao: 'Recém-nascido — peso em gramas, Apgar, suporte térmico e fototerapia.',
     icone: 'baby',
     grupo: 'Cuidados intensivos',
     tipos: ['evolucao_neonatal'],
-    pendenteValidacao: true,
   },
 ];
 

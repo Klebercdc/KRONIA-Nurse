@@ -404,6 +404,211 @@ export const FIELD_SCHEMAS: FieldSchema[] = [
       { id: 'observacoes', label: 'Observações', type: 'textarea' },
     ],
   },
+
+  // ── Evolução Pediátrica ───────────────────────────────────────────────────
+  // NENHUM campo carrega faixa de referência por idade, de propósito. Duas
+  // razões, nesta ordem:
+  //  1. Faixa de referência transforma número em rótulo clínico, e isso é
+  //     exatamente o que as travas do produto proíbem ("38,7°C não pode virar
+  //     hipertermia"). Quem interpreta o valor é o enfermeiro.
+  //  2. Nenhum documento do corpus KRONOS traz faixa pediátrica, e não foi
+  //     possível obter fonte primária. Inventar não é opção.
+  // O padrão vale para todo o projeto: min/max só aparecem como limite da
+  // própria escala (Glasgow 3–15, dor 0–10), nunca como "valor normal".
+  {
+    tipoId: 'evolucao_pediatrica',
+    campos: [
+      { id: 'data_avaliacao', label: 'Data', type: 'date', required: true },
+      { id: 'hora_avaliacao', label: 'Hora', type: 'time', required: true },
+      { id: 'idade', label: 'Idade', type: 'text', placeholder: 'ex: 3 anos e 2 meses' },
+      { id: 'peso', label: 'Peso', type: 'text', unit: 'kg' },
+      { id: 'estatura', label: 'Estatura', type: 'text', unit: 'cm' },
+      {
+        id: 'acompanhante',
+        label: 'Acompanhante presente',
+        type: 'text',
+        placeholder: 'Grau de parentesco — nunca o nome',
+        hint: 'COFEN, Registros de Enfermagem, p.54 — "Acompanhante (familiar, vizinho, amigo, profissional de saúde)".',
+      },
+      {
+        id: 'condicao_geral',
+        label: 'Condição geral',
+        type: 'select',
+        required: true,
+        options: CONDICAO_GERAL,
+      },
+      {
+        id: 'sinais_vitais',
+        label: 'Sinais vitais',
+        type: 'textarea',
+        placeholder: 'FC, FR, Tax, PA, SpO₂ — como aferidos',
+        hint: 'Registre o valor aferido. O sistema não classifica se está normal para a idade.',
+      },
+      { id: 'nivel_consciencia', label: 'Nível de consciência / atividade', type: 'text' },
+      {
+        id: 'dor_escala',
+        label: 'Dor — escala utilizada e escore',
+        type: 'text',
+        placeholder: 'ex: FLACC 3/10; faces 4/10',
+        hint: 'Informe qual escala foi aplicada. Escalas de dor pediátrica são conhecimento geral — não constam no corpus KRONOS.',
+      },
+      { id: 'aceitacao_dieta', label: 'Aceitação da dieta', type: 'text' },
+      { id: 'eliminacoes', label: 'Eliminações', type: 'text', placeholder: 'Diurese e evacuações' },
+      { id: 'dispositivos', label: 'Dispositivos em uso', type: 'textarea', placeholder: 'Acesso venoso, sondas, drenos' },
+      {
+        id: 'orientacoes_responsavel',
+        label: 'Orientações ao responsável',
+        type: 'textarea',
+        hint: 'COFEN §6.17 — "Orientações realizadas à mãe/responsável".',
+      },
+      { id: 'intercorrencias', label: 'Intercorrências e providências', type: 'textarea' },
+      { id: 'observacoes', label: 'Observações', type: 'textarea' },
+    ],
+  },
+
+  // ── Evolução Neonatal (UTI Neonatal) ──────────────────────────────────────
+  // Fonte KRONOS (corpus Camada 1), COFEN — "Registros de Enfermagem no
+  // Exercício da Profissão":
+  //   §6.29 Cuidados imediatos com RN — "Data e hora exata do nascimento; Tipo
+  //   do parto; Apgar; (...) Anotar se RN é a termo, pré-termo e pós termo;
+  //   Característica do vérnix; (...) Coloração da pele; Anotar a realização do
+  //   Credé e da Vitamina K; Medidas antropométricas (peso, comprimento,
+  //   perímetro cefálico, perímetro torácico e abdominal); (...) Anotação do
+  //   clampeamento umbilical e característica do coto (presença de duas
+  //   artérias e uma veia); Anotar má formação aparente se houver."
+  //   §6.30 Cuidados com o RN em fototerapia — "Data e hora do procedimento e
+  //   tempo de exposição; Registrar peso pré e pós-procedimento; Coloração da
+  //   pele; medida de segurança com relação à proteção ocular; mudanças de
+  //   decúbito do RN conforme preconizado."
+  //   Quadro 10 (siglas obstétricas e pediátricas) — AIG, PIG, GIG, BA (berço
+  //   aquecido), BC (berço comum), IA (incubadora aquecida), BAN (batimentos de
+  //   asa de nariz), CUV (cateter umbilical venoso), IG, DV, AM, AME, LH, LM.
+  //
+  // Igual à Pediatria: nenhuma faixa de referência neonatal embutida.
+  {
+    tipoId: 'evolucao_neonatal',
+    campos: [
+      { id: 'data_avaliacao', label: 'Data', type: 'date', required: true },
+      { id: 'hora_avaliacao', label: 'Hora', type: 'time', required: true },
+      {
+        id: 'idade_gestacional',
+        label: 'Idade gestacional (IG)',
+        type: 'text',
+        placeholder: 'ex: 34s3d',
+        unit: 'semanas',
+      },
+      { id: 'dias_vida', label: 'Dias de vida (DV)', type: 'number', min: 0 },
+      {
+        id: 'termo',
+        label: 'Classificação quanto à idade gestacional',
+        type: 'select',
+        options: [
+          { value: 'pre_termo', label: 'Pré-termo' },
+          { value: 'a_termo', label: 'A termo' },
+          { value: 'pos_termo', label: 'Pós-termo' },
+        ],
+        hint: 'COFEN §6.29 — "anotar se RN é a termo, pré-termo e pós termo".',
+      },
+      {
+        id: 'classificacao_peso',
+        label: 'Peso para a idade gestacional',
+        type: 'select',
+        options: [
+          { value: 'pig', label: 'PIG — pequeno para a idade gestacional' },
+          { value: 'aig', label: 'AIG — adequado para a idade gestacional' },
+          { value: 'gig', label: 'GIG — grande para a idade gestacional' },
+        ],
+        hint: 'Siglas conforme COFEN, Registros de Enfermagem, Quadro 10.',
+      },
+      // Peso em GRAMAS — não em kg. Requisito de produto.
+      {
+        id: 'peso_g',
+        label: 'Peso',
+        type: 'number',
+        required: true,
+        unit: 'g',
+        min: 0,
+        hint: 'Em GRAMAS, não em quilos.',
+      },
+      { id: 'comprimento', label: 'Comprimento', type: 'number', unit: 'cm', min: 0 },
+      { id: 'perimetro_cefalico', label: 'Perímetro cefálico', type: 'number', unit: 'cm', min: 0 },
+      { id: 'perimetro_toracico', label: 'Perímetro torácico', type: 'number', unit: 'cm', min: 0 },
+      {
+        id: 'apgar',
+        label: 'Apgar (1º e 5º minuto)',
+        type: 'text',
+        placeholder: 'ex: 8/9',
+        hint: 'Exigido pelo COFEN §6.29. A pontuação da escala é conhecimento geral — a tabela não consta no corpus KRONOS.',
+      },
+      {
+        id: 'suporte_termico',
+        label: 'Suporte térmico',
+        type: 'select',
+        options: [
+          { value: 'incubadora', label: 'Incubadora (IA)' },
+          { value: 'berco_aquecido', label: 'Berço aquecido (BA)' },
+          { value: 'berco_comum', label: 'Berço comum (BC)' },
+        ],
+        hint: 'Siglas conforme COFEN, Quadro 10.',
+      },
+      {
+        id: 'sinais_vitais',
+        label: 'Sinais vitais',
+        type: 'textarea',
+        placeholder: 'FC, FR, Tax, SpO₂ — como aferidos',
+        hint: 'Registre o valor aferido. O sistema não classifica se está normal para a idade.',
+      },
+      { id: 'coloracao_pele', label: 'Coloração da pele', type: 'text', hint: 'COFEN §6.29 e §6.30.' },
+      {
+        id: 'esforco_respiratorio',
+        label: 'Esforço respiratório',
+        type: 'textarea',
+        placeholder: 'Tiragem, batimento de asa de nariz (BAN), gemência',
+      },
+      { id: 'suporte_ventilatorio', label: 'Suporte ventilatório', type: 'select', options: VIA_AEREA },
+      {
+        id: 'coto_umbilical',
+        label: 'Coto umbilical',
+        type: 'text',
+        placeholder: 'Aspecto e clampeamento',
+        hint: 'COFEN §6.29 — clampeamento e característica do coto.',
+      },
+      {
+        id: 'acesso_umbilical',
+        label: 'Acesso umbilical',
+        type: 'select',
+        options: [
+          { value: 'nenhum', label: 'Nenhum' },
+          { value: 'cuv', label: 'Cateter umbilical venoso (CUV)' },
+          { value: 'cua', label: 'Cateter umbilical arterial' },
+        ],
+      },
+      { id: 'fototerapia', label: 'Em fototerapia', type: 'select', options: SIM_NAO },
+      {
+        id: 'fototerapia_detalhe',
+        label: 'Fototerapia — tempo de exposição, proteção ocular e decúbito',
+        type: 'textarea',
+        hint: 'COFEN §6.30 — preencher apenas quando em fototerapia.',
+      },
+      {
+        id: 'alimentacao',
+        label: 'Alimentação',
+        type: 'select',
+        options: [
+          { value: 'ame', label: 'Aleitamento materno exclusivo (AME)' },
+          { value: 'am', label: 'Aleitamento materno (AM)' },
+          { value: 'lh', label: 'Leite humano ordenhado (LH)' },
+          { value: 'formula', label: 'Fórmula' },
+          { value: 'sonda', label: 'Por sonda' },
+          { value: 'jejum', label: 'Jejum' },
+        ],
+        hint: 'Siglas conforme COFEN, Quadro 10.',
+      },
+      { id: 'eliminacoes', label: 'Eliminações', type: 'text', placeholder: 'Diurese e evacuações' },
+      { id: 'intercorrencias', label: 'Intercorrências e providências', type: 'textarea' },
+      { id: 'observacoes', label: 'Observações', type: 'textarea' },
+    ],
+  },
 ];
 
 export function getFieldSchema(tipoId: string): FieldSchema | undefined {
