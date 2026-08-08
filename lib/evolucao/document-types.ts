@@ -249,6 +249,24 @@ export const DOC_TYPES: DocType[] = [
     contexto: 'Documento de contra-referência para UBS/APS com resumo da internação. Registrar condição de alta e recomendações de continuidade APENAS conforme informadas nos campos.',
   },
   {
+    id: 'evolucao_gestante',
+    nome: 'Evolução da Gestante / Trabalho de Parto',
+    grupo: 'evolucao',
+    contexto: 'Acompanhamento de gestante em trabalho de parto (períodos clínicos, dilatação, contrações, BCF e bolsa). Registrar APENAS o que foi informado nos campos — não estimar período clínico, dilatação nem BCF que não tenham sido aferidos.',
+  },
+  {
+    id: 'evolucao_puerperio',
+    nome: 'Evolução Puerperal',
+    grupo: 'evolucao',
+    contexto: 'Evolução de puérpera (involução uterina, lóquios, mamas, períneo ou ferida operatória). Registrar APENAS os achados informados nos campos.',
+  },
+  {
+    id: 'transicao_puerperal',
+    nome: 'Transição Puerperal',
+    grupo: 'evolucao',
+    contexto: 'Acompanhamento nas primeiras horas de pós-parto, antes da transferência para o alojamento conjunto. Registrar APENAS o que foi informado nos campos.',
+  },
+  {
     id: 'avaliacao_ferida_ostomia',
     nome: 'Avaliação de Ferida/Ostomia',
     grupo: 'especifico',

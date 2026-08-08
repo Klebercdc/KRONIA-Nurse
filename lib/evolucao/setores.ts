@@ -77,6 +77,24 @@ export const SETORES: Setor[] = [
     tipos: ['evolucao_oncologia'],
   },
 
+  // ── Materno-infantil ──────────────────────────────────────────────────────
+  {
+    id: 'gestante_cpn',
+    nome: 'Gestante / Centro de Parto Normal',
+    descricao: 'Trabalho de parto — períodos clínicos, dilatação, contrações e BCF.',
+    icone: 'heart-pulse',
+    grupo: 'Materno-infantil',
+    tipos: ['evolucao_gestante'],
+  },
+  {
+    id: 'puerperio',
+    nome: 'Puerpério',
+    descricao: 'Pós-parto — involução uterina, lóquios, mamas e períneo. Inclui a transição puerperal.',
+    icone: 'heart-handshake',
+    grupo: 'Materno-infantil',
+    tipos: ['evolucao_puerperio', 'transicao_puerperal'],
+  },
+
   // ── Urgência ──────────────────────────────────────────────────────────────
   {
     id: 'emergencia',

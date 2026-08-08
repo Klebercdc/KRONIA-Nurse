@@ -285,6 +285,223 @@ export const FIELD_SCHEMAS: FieldSchema[] = [
     ],
   },
 
+  // ── Evolução da Gestante / Trabalho de Parto ──────────────────────────────
+  // Fonte: Manual de Condutas em Obstetrícia — Maternidade Dona Evangelina
+  // Rosa, 2ª ed., EDUFPI/UFPI, 2021, ISBN 978-65-5904-145-9. Distribuído pela
+  // Biblioteca Virtual de Enfermagem do COFEN
+  // (biblioteca.cofen.gov.br/manual-condutas-obstetricia-maternidade-evangelina-rosa).
+  // Capítulo 11 — Assistência ao parto vaginal.
+  //
+  // Como em todo o resto do projeto, nenhum campo classifica o valor aferido.
+  // Onde o manual define uma referência (BCF), ela aparece como `hint` para o
+  // enfermeiro ler — nunca como validação que rotule o número.
+  {
+    tipoId: 'evolucao_gestante',
+    campos: [
+      { id: 'data', label: 'Data', type: 'date', required: true },
+      { id: 'hora', label: 'Hora', type: 'time', required: true },
+      { id: 'idade_gestacional', label: 'Idade gestacional (IG)', type: 'text', placeholder: 'ex: 39s2d' },
+      {
+        id: 'paridade',
+        label: 'Paridade (G/P/A)',
+        type: 'text',
+        placeholder: 'ex: G2P1A0',
+        hint: 'Sigla conforme COFEN, Registros de Enfermagem, Quadro 10.',
+      },
+      {
+        id: 'periodo_clinico',
+        label: 'Período clínico do parto',
+        type: 'select',
+        options: [
+          { value: 'fase_latente', label: 'Dilatação — fase latente' },
+          { value: 'fase_ativa', label: 'Dilatação — fase ativa' },
+          { value: 'fase_transicao', label: 'Dilatação — fase de transição' },
+          { value: 'expulsivo_pelvica', label: 'Expulsivo — fase pélvica' },
+          { value: 'expulsivo_perineal', label: 'Expulsivo — fase perineal' },
+          { value: 'dequitacao', label: 'Dequitação' },
+        ],
+        hint: 'Manual MDER cap.11: fase latente até 4 cm; fase ativa de 5 cm até 10 cm; transição ao final da dilatação.',
+      },
+      {
+        id: 'dilatacao',
+        label: 'Dilatação cervical',
+        type: 'number',
+        min: 0,
+        max: 10,
+        unit: 'cm',
+        hint: 'A dilatação se completa aos 10 cm (Manual MDER cap.11).',
+      },
+      { id: 'apagamento', label: 'Apagamento do colo', type: 'text', placeholder: 'Percentual ou descrição' },
+      {
+        id: 'contracoes',
+        label: 'Contrações',
+        type: 'text',
+        placeholder: 'Frequência em 10 min e duração',
+      },
+      {
+        id: 'bcf',
+        label: 'BCF',
+        type: 'number',
+        unit: 'bpm',
+        hint: 'Referência do Manual MDER (critérios do CPN): entre 110 e 160 bpm, sem desacelerações após a contração. O sistema não classifica o valor.',
+      },
+      {
+        id: 'bolsa',
+        label: 'Bolsa das águas',
+        type: 'select',
+        options: [
+          { value: 'integra', label: 'Íntegra' },
+          { value: 'rota', label: 'Rota' },
+        ],
+      },
+      {
+        id: 'bolsa_detalhe',
+        label: 'Bolsa — hora da rotura e aspecto do líquido',
+        type: 'text',
+        placeholder: 'Claro, meconial — e há quanto tempo',
+        hint: 'Manual MDER: o tempo de bolsa rota e a presença de mecônio são critérios de admissão no CPN.',
+      },
+      {
+        id: 'apresentacao',
+        label: 'Apresentação fetal',
+        type: 'text',
+        placeholder: 'ex: cefálica fletida',
+      },
+      {
+        id: 'partograma',
+        label: 'Partograma iniciado',
+        type: 'select',
+        options: SIM_NAO,
+        hint: 'Manual MDER: só deve ser iniciado na fase ativa, após 5 cm de dilatação.',
+      },
+      { id: 'analgesia', label: 'Analgesia / métodos não farmacológicos', type: 'textarea' },
+      { id: 'intercorrencias', label: 'Intercorrências e providências', type: 'textarea' },
+      { id: 'observacoes', label: 'Observações', type: 'textarea' },
+    ],
+  },
+
+  // ── Evolução Puerperal ────────────────────────────────────────────────────
+  // Fonte: Manual de Condutas em Obstetrícia (MDER/EDUFPI, 2021), cap.13 —
+  // Assistência ao Puerpério. Classificação temporal, involução uterina e
+  // lóquios vêm literalmente do capítulo; o roteiro de exame físico segue a
+  // seção CONDUTAS / EXAME FÍSICO do mesmo capítulo.
+  {
+    tipoId: 'evolucao_puerperio',
+    campos: [
+      { id: 'data', label: 'Data', type: 'date', required: true },
+      { id: 'hora', label: 'Hora', type: 'time', required: true },
+      {
+        id: 'tipo_parto',
+        label: 'Tipo de parto',
+        type: 'select',
+        options: [
+          { value: 'vaginal', label: 'Vaginal' },
+          { value: 'cesarea', label: 'Cesárea' },
+        ],
+      },
+      { id: 'dia_puerperio', label: 'Dia de puerpério', type: 'number', min: 0, unit: 'dias' },
+      {
+        id: 'fase_puerperio',
+        label: 'Fase do puerpério',
+        type: 'select',
+        options: [
+          { value: 'imediato', label: 'Imediato — 1º ao 10º dia' },
+          { value: 'tardio', label: 'Tardio — 10º ao 45º dia' },
+          { value: 'remoto', label: 'Remoto — além do 45º dia' },
+        ],
+        hint: 'Classificação do Manual MDER cap.13.',
+      },
+      {
+        id: 'involucao_uterina',
+        label: 'Involução uterina',
+        type: 'text',
+        placeholder: 'Altura do fundo uterino e consistência',
+        hint: 'Referência do Manual MDER: fundo na altura da cicatriz umbilical 24 h após o parto, involução média de 1 cm/dia, intrapélvico por volta do 12º dia.',
+      },
+      {
+        id: 'loquios',
+        label: 'Lóquios',
+        type: 'select',
+        options: [
+          { value: 'rubra', label: 'Lochia rubra — sanguínea, 3 a 4 primeiros dias' },
+          { value: 'fusca', label: 'Lochia fusca — serosanguínea, até 10 dias' },
+          { value: 'flava', label: 'Lochia flava — amarelada' },
+          { value: 'alba', label: 'Lochia alba — esbranquiçada, até 4 a 8 semanas' },
+        ],
+        hint: 'Classificação do Manual MDER cap.13.',
+      },
+      {
+        id: 'loquios_aspecto',
+        label: 'Lóquios — volume e odor',
+        type: 'text',
+        hint: 'Manual MDER: lóquios podem ser escassos e inodoros, ou fétidos sem indício de infecção — descrever, não concluir.',
+      },
+      {
+        id: 'mamas',
+        label: 'Mamas, pega e posicionamento',
+        type: 'textarea',
+        placeholder: 'Colostro, apojadura, ingurgitamento, pega',
+        hint: 'Manual MDER cap.13 — "exame das mamas e avaliação de posicionamento e pega correta".',
+      },
+      {
+        id: 'perineo_ferida',
+        label: 'Períneo ou ferida operatória',
+        type: 'textarea',
+        placeholder: 'Episiorrafia, laceração ou incisão — aspecto e queixas',
+        hint: 'Manual MDER cap.13 — inspeção da região perineal no parto vaginal.',
+      },
+      {
+        id: 'membros_inferiores',
+        label: 'Membros inferiores',
+        type: 'text',
+        hint: 'Manual MDER cap.13 — inspeção dos membros inferiores faz parte do exame.',
+      },
+      { id: 'sinais_vitais', label: 'Sinais vitais', type: 'textarea', placeholder: 'PA, FC, FR, Tax' },
+      { id: 'eliminacoes', label: 'Eliminações', type: 'text', placeholder: 'Diurese, evacuações e peristalse' },
+      { id: 'aleitamento', label: 'Aleitamento', type: 'text', placeholder: 'AM, AME, dificuldades relatadas' },
+      { id: 'intercorrencias', label: 'Intercorrências e providências', type: 'textarea' },
+      { id: 'observacoes', label: 'Observações', type: 'textarea' },
+    ],
+  },
+
+  // ── Transição Puerperal ───────────────────────────────────────────────────
+  // Tipo de registro DENTRO do setor Puerpério, não setor próprio.
+  // Atenção à procedência: o termo "transição puerperal" vem do brief do
+  // produto, não de documento normativo — o Manual MDER trata este intervalo
+  // como parte do puerpério imediato. Os campos abaixo são o mesmo exame do
+  // cap.13, recortado para as primeiras horas.
+  {
+    tipoId: 'transicao_puerperal',
+    campos: [
+      { id: 'data', label: 'Data', type: 'date', required: true },
+      { id: 'hora', label: 'Hora', type: 'time', required: true },
+      { id: 'horas_pos_parto', label: 'Horas de pós-parto', type: 'number', min: 0, unit: 'h' },
+      {
+        id: 'tipo_parto',
+        label: 'Tipo de parto',
+        type: 'select',
+        options: [
+          { value: 'vaginal', label: 'Vaginal' },
+          { value: 'cesarea', label: 'Cesárea' },
+        ],
+      },
+      { id: 'sinais_vitais', label: 'Sinais vitais', type: 'textarea', placeholder: 'PA, FC, FR, Tax' },
+      {
+        id: 'involucao_uterina',
+        label: 'Útero — altura e consistência',
+        type: 'text',
+        placeholder: 'Contraído, globo de segurança de Pinard',
+      },
+      { id: 'loquios_aspecto', label: 'Lóquios — volume, cor e odor', type: 'text' },
+      { id: 'perineo_ferida', label: 'Períneo ou ferida operatória', type: 'text' },
+      { id: 'primeira_mamada', label: 'Primeira mamada', type: 'textarea', placeholder: 'Horário, pega e aceitação' },
+      { id: 'deambulacao', label: 'Deambulação', type: 'text' },
+      { id: 'diurese', label: 'Diurese espontânea', type: 'text', placeholder: 'Horário da primeira micção' },
+      { id: 'intercorrencias', label: 'Intercorrências e providências', type: 'textarea' },
+      { id: 'observacoes', label: 'Observações', type: 'textarea' },
+    ],
+  },
+
   // ── Avaliação de Ferida/Ostomia ───────────────────────────────────────────
   // Tipo global: vale em qualquer setor. Cada campo abaixo tem procedência
   // declarada — ver CAMPOS_A_CONFERIR para o que ainda NÃO entrou aqui.
