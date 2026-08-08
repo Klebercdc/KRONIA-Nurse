@@ -84,6 +84,9 @@ describe('faixas de referência não são embutidas em lugar nenhum', () => {
     'comprimento',
     'perimetro_cefalico',
     'perimetro_toracico',
+    'dilatacao',      // 0-10 cm, a dilatação se completa aos 10
+    'dia_puerperio',
+    'horas_pos_parto',
   ]);
 
   it('nenhum campo novo introduz min/max fora de limite de escala', () => {
@@ -115,6 +118,57 @@ describe('faixas de referência não são embutidas em lugar nenhum', () => {
     const peso = schema?.campos.find((c) => c.id === 'peso_g');
     expect(peso?.unit).toBe('g');
     expect(peso?.required).toBe(true);
+  });
+});
+
+describe('campos obstétricos e sua procedência', () => {
+  const schema = (id: string) => FIELD_SCHEMAS.find((s) => s.tipoId === id);
+  const campo = (tipoId: string, campoId: string) =>
+    schema(tipoId)?.campos.find((c) => c.id === campoId);
+
+  it('usa as fases do parto do Manual MDER, não nomenclatura inventada', () => {
+    const valores = campo('evolucao_gestante', 'periodo_clinico')?.options?.map((o) => o.value);
+    expect(valores).toEqual([
+      'fase_latente',
+      'fase_ativa',
+      'fase_transicao',
+      'expulsivo_pelvica',
+      'expulsivo_perineal',
+      'dequitacao',
+    ]);
+  });
+
+  it('limita a dilatação em 10 cm, que é onde ela se completa', () => {
+    const d = campo('evolucao_gestante', 'dilatacao');
+    expect(d?.min).toBe(0);
+    expect(d?.max).toBe(10);
+  });
+
+  it('trata o BCF como referência de leitura, nunca como validação', () => {
+    const bcf = campo('evolucao_gestante', 'bcf');
+    // A faixa do manual aparece para o enfermeiro ler...
+    expect(bcf?.hint).toContain('110');
+    expect(bcf?.hint).toContain('160');
+    // ...mas o sistema não classifica o valor aferido.
+    expect(bcf?.min).toBeUndefined();
+    expect(bcf?.max).toBeUndefined();
+  });
+
+  it('usa a classificação de lóquios do Manual MDER', () => {
+    const valores = campo('evolucao_puerperio', 'loquios')?.options?.map((o) => o.value);
+    expect(valores).toEqual(['rubra', 'fusca', 'flava', 'alba']);
+  });
+
+  it('usa as fases do puerpério do Manual MDER', () => {
+    const valores = campo('evolucao_puerperio', 'fase_puerperio')?.options?.map((o) => o.value);
+    expect(valores).toEqual(['imediato', 'tardio', 'remoto']);
+  });
+
+  it('mantém a transição puerperal como tipo dentro do setor Puerpério', () => {
+    const puerperio = getSetor('puerperio');
+    expect(puerperio?.tipos).toContain('transicao_puerperal');
+    // Não pode ter virado setor próprio.
+    expect(SETORES.some((s) => s.id === 'transicao_puerperal')).toBe(false);
   });
 });
 

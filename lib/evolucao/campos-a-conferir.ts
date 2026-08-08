@@ -68,31 +68,18 @@ export const CAMPOS_A_CONFERIR: readonly CampoAConferir[] = [
   // decisão clínica nova — e aí precisa de fonte primária, que hoje não existe
   // no corpus KRONOS nem foi possível obter fora dele.
 
-  // ── Setores ainda não implementados ─────────────────────────────────────
-  {
-    campo: 'Faixa normal de BCF',
-    setor: 'Gestante / Centro de Parto Normal',
-    motivo: 'Nenhuma fonte obstétrica no corpus KRONOS.',
-    liberadoCom: null,
-  },
-  {
-    campo: 'Fase do trabalho de parto',
-    setor: 'Centro de Parto Normal',
-    motivo: 'A nomenclatura das fases varia por protocolo institucional.',
-    liberadoCom: null,
-  },
-  {
-    campo: 'Loquiação — descritores',
-    setor: 'Puerpério',
-    motivo: 'Sem fonte no corpus KRONOS; descritores variam por protocolo.',
-    liberadoCom: null,
-  },
-  {
-    campo: 'Involução uterina — descritores',
-    setor: 'Puerpério',
-    motivo: 'Sem fonte no corpus KRONOS; descritores variam por protocolo.',
-    liberadoCom: null,
-  },
+  // ── Obstetrícia: fundamentada, saiu de pendência ────────────────────────
+  // Fonte: Manual de Condutas em Obstetrícia — Maternidade Dona Evangelina
+  // Rosa, 2ª ed., EDUFPI/UFPI, 2021 (ISBN 978-65-5904-145-9), distribuído pela
+  // Biblioteca Virtual de Enfermagem do COFEN. Fechou os quatro itens que
+  // estavam abertos aqui:
+  //   - Fase do trabalho de parto  → cap.11 (latente até 4 cm; ativa de 5 a 10 cm)
+  //   - Faixa normal de BCF        → cap.11, critérios do CPN (110 a 160 bpm)
+  //   - Loquiação                  → cap.13 (rubra, fusca, flava, alba)
+  //   - Involução uterina          → cap.13 (cicatriz umbilical em 24 h, ~1 cm/dia)
+  // Como em todo o projeto, a referência do BCF entra como texto de apoio ao
+  // enfermeiro, nunca como validação que classifique o valor aferido.
+
 ];
 
 /** Itens ainda pendentes de validação clínica. */
