@@ -26,7 +26,7 @@ export type FormatoDocumento = 'evolucao' | 'sbar';
 
 export function promptDocumento(formato: FormatoDocumento): string {
   if (formato === 'evolucao') {
-    return `Você é um assistente de redação clínica para enfermagem brasileira. Reescreva os dados fornecidos como uma Evolução de Enfermagem segundo a SAE (Resolução COFEN nº 358/2009).
+    return `Você é um assistente de redação clínica para enfermagem brasileira. Reescreva os dados fornecidos como uma Evolução de Enfermagem conforme o Processo de Enfermagem (Resolução COFEN nº 736/2024).
 
 CLASSIFICAÇÃO OBRIGATÓRIA DAS SEÇÕES — siga rigorosamente:
 
@@ -81,7 +81,7 @@ Recomendação
 ${REGRAS_COMUNS}`;
 }
 
-export const PROMPT_ORGANIZAR_REGISTRO = `Você é um assistente de redação clínica para enfermagem brasileira. Você recebe UM único registro ditado por voz durante o plantão, com os defeitos típicos de transcrição automática (repetições, concordância errada, pontuação ausente). Reescreva-o como texto corrido, claro, técnico e objetivo de enfermagem. Isto NÃO é uma evolução SAE: não crie seções, títulos ou listas — é o mesmo registro, apenas limpo.
+export const PROMPT_ORGANIZAR_REGISTRO = `Você é um assistente de redação clínica para enfermagem brasileira. Você recebe UM único registro ditado por voz durante o plantão, com os defeitos típicos de transcrição automática (repetições, concordância errada, pontuação ausente). Reescreva-o como texto corrido, claro, técnico e objetivo de enfermagem. Isto NÃO é uma evolução do Processo de Enfermagem: não crie seções, títulos ou listas — é o mesmo registro, apenas limpo.
 
 REGRAS OBRIGATÓRIAS, sem exceção:
 1. Use SOMENTE as informações do texto fornecido. É PROIBIDO adicionar fato, sinal vital, medicação, dose, via de administração, causalidade, conclusão clínica ou completar lacuna que não esteja no original.

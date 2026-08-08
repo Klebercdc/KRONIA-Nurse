@@ -168,7 +168,7 @@ export default function EscalasPage() {
               <span style={{
                 fontFamily: 'var(--font-mono)',
                 fontSize: '1.4rem',
-                fontWeight: 800,
+                fontWeight: 700,
                 color: 'var(--color-clinical)',
               }}>
                 {Object.values(valores).reduce((a, b) => a + b, 0)}
@@ -192,7 +192,7 @@ export default function EscalasPage() {
                   <span style={{
                     fontFamily: 'var(--font-mono)',
                     fontSize: '2.6rem',
-                    fontWeight: 800,
+                    fontWeight: 700,
                     lineHeight: 1,
                     color: 'var(--color-ink)',
                   }}>

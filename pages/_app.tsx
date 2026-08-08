@@ -30,7 +30,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       flexDirection: 'column',
       gap: 12,
     }}>
-      <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-clinical)', fontFamily: 'var(--font-display)' }}>
+      <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--color-clinical)', fontFamily: 'var(--font-display)' }}>
         KRONIA Nurse
       </div>
       <div className="spinner spinner-clinical" />
