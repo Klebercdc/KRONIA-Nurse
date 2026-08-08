@@ -238,7 +238,7 @@ export const DOC_TYPES: DocType[] = [
   },
   {
     id: 'sae_sistematizacao',
-    nome: 'SAE — Sistematização',
+    nome: 'Processo de Enfermagem',
     grupo: 'especifico',
     contexto: 'Sistematização da Assistência de Enfermagem (SAE) conforme COFEN. Estruturar APENAS o conteúdo fornecido nos campos nas seções correspondentes.',
   },

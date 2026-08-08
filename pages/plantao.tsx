@@ -188,7 +188,7 @@ export default function Home() {
             Encerrar turno
           </p>
           <p style={{ fontSize: '0.8rem', color: 'var(--color-ink-muted)', margin: 0 }}>
-            Gere a evolução SAE/COFEN do plantão
+            Gere a evolução conforme o Processo de Enfermagem
           </p>
         </div>
         <button

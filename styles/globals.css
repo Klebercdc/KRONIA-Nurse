@@ -27,9 +27,22 @@
      a cards/superfícies sem competir com o conteúdo. */
   --shadow-card: 0 1px 3px rgba(16,24,40,.07), 0 4px 10px rgba(16,24,40,.10);
   --nav-height: 68px;
+  /* Fallback: vale antes da hidratação e fora do wrapper de fontes.
+     O carregamento real vem de lib/fonts.ts (next/font) e é encadeado
+     em .kronia-fontes logo abaixo. */
   --font-display: 'Space Grotesk', 'Segoe UI', sans-serif;
   --font-body:    'Inter', 'Segoe UI', sans-serif;
   --font-mono:    'IBM Plex Mono', 'SF Mono', 'Fira Mono', monospace;
+}
+
+/* next/font expõe uma CSS variable por família (lib/fonts.ts). As classes
+   geradas são hasheadas, então o encadeamento mora nesta classe estável,
+   aplicada no mesmo wrapper em pages/_app.tsx. Sobrescreve :root por ser
+   mais específica e mais profunda — nenhum componente precisa mudar. */
+.kronia-fontes {
+  --font-display: var(--font-space-grotesk), 'Segoe UI', sans-serif;
+  --font-body:    var(--font-inter), 'Segoe UI', sans-serif;
+  --font-mono:    var(--font-ibm-plex-mono), 'SF Mono', 'Fira Mono', monospace;
 }
 
 [data-theme="dark"] {

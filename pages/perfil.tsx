@@ -181,7 +181,7 @@ export default function PerfilPage() {
             Encerrar turno
           </p>
           <p style={{ fontSize: '0.8rem', color: 'var(--color-ink-muted)', margin: 0 }}>
-            Gerar evolução SAE/COFEN · {duracaoHoras}h de plantão
+            Gerar evolução conforme o Processo de Enfermagem · {duracaoHoras}h de plantão
           </p>
         </div>
         <button
