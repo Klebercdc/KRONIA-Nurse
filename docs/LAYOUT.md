@@ -1,5 +1,11 @@
 # KRONIA Nurse — Estrutura de Layout
 
+> **Reestruturação em curso.** O layout novo (tema escuro, splash → login →
+> home, só o motor determinístico, sem Kronos e sem IA) está especificado em
+> [`docs/LAYOUT_MOTOR_ADAPTATIVO.md`](LAYOUT_MOTOR_ADAPTATIVO.md) e
+> implementado em `mockups/kronia-nurse-motor-adaptativo.jsx`. O documento
+> abaixo continua descrevendo o app Next.js atual, que ainda não foi migrado.
+
 Documento de referência da **ordem** e da **composição** do layout do app.
 Descreve o que existe hoje em `pages/_app.tsx`, `components/Layout.tsx` e
 `styles/globals.css` — não é proposta, é o estado atual do código.
