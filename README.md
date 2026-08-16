@@ -1,55 +1,55 @@
 # KRONIA-Nurse
 
-## Visão Geral
+App de evolução de enfermagem por **perguntas adaptativas**. O profissional
+responde uma árvore de perguntas que se reescreve a cada resposta, e o app
+devolve a evolução em texto corrido, pronta para revisar e colar no
+prontuário.
 
-KRONIA-Nurse é um sistema de apoio à enfermagem focado na padronização da coleta de dados clínicos, geração de documentação assistencial e apoio à tomada de decisão por meio de IA.
-
-## Objetivos
-
-- Estruturar o processo de acolhimento.
-- Padronizar relatórios clínicos.
-- Automatizar documentação de enfermagem.
-- Utilizar agentes especializados para análise clínica.
-- Facilitar evolução futura do sistema.
-
-## Arquitetura (planejada)
-
-- Agente Orquestrador
-- Agentes Especialistas
-- Skills
-- Pipeline de validação
-- Base de conhecimento clínica
-
-## Configuração (variáveis de ambiente)
-
-Segredos ficam apenas em `.env.local` (local) e nas variáveis de ambiente da Vercel — nunca no repositório.
-
-| Variável | Obrigatória | Descrição |
-| --- | --- | --- |
-| `GROQ_API_KEY` | sim | Chave da Groq API (só no servidor). |
-| `GROQ_MODEL` | não | ID do modelo Groq usado em toda geração (plantão, pipeline, KRONOS). Default: `openai/gpt-oss-120b` — substituto indicado pela Groq para o `llama-3.3-70b-versatile`, descontinuado em 16/08/2026. Alternativa sugerida pela Groq: o Qwen 3.x vigente (conferir ID exato em console.groq.com/docs/models). |
-| `GROQ_MAX_TOKENS` | não | Limite de tokens de saída por chamada. Default: 4096. Atenção: no tier on_demand da Groq, prompt + max_tokens acima do TPM do modelo (8000 no gpt-oss-120b) é rejeitado com 413. |
-| `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | sim | Cliente Supabase server-side (só em `pages/api/**`). |
-| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | sim | Cliente Supabase do browser (sessão de autenticação). |
-| `COHERE_API_KEY` | sim | Geração de embeddings (só no servidor). |
-
-## Pipeline RAG de documentos oficiais
-
-O script `scripts/rag-pipeline.js` indexa PDFs oficiais (ANVISA, COFEN, COREN, Ministério da Saúde) na base de conhecimento documental:
-
-1. Baixa os PDFs da pasta `kronia-nurse-pdfs` do Google Drive (opcional — exige `credentials.json` OAuth na raiz; sem ele, usa os PDFs já presentes em `public/pdfs-conhecimento/`).
-2. Extrai o texto, divide em fragmentos (~500 caracteres, quebrando por sentença).
-3. Gera embeddings com Cohere `embed-multilingual-v3.0` (o mesmo modelo de `lib/embeddings.ts` — indexação e consulta precisam compartilhar o espaço vetorial).
-4. Grava em `conhecimento_documentos` / `conhecimento_fragmentos` (migration `20260703_conhecimento_rag.sql`), com deduplicação por hash SHA-256 do conteúdo.
-
-Execução (local, nunca na Vercel — exige `.env.local`):
+## Como rodar
 
 ```bash
-npm run rag:pipeline
+npm install
+npm run dev      # http://localhost:3000
 ```
 
-A busca semântica sobre os fragmentos é exposta em `POST /api/conhecimento/buscar-rag` (body: `{ "consulta": "...", "match_count": 5 }`), que usa a função RPC `buscar_fragmentos_conhecimento`.
+Sem variável de ambiente, sem banco, sem chave de API. O app abre e funciona.
+
+## Como funciona
+
+Tudo é **determinístico**. Não há IA em nenhum ponto do fluxo — nenhuma
+chamada de rede, nenhum custo de inferência, nenhuma alucinação possível.
+O texto sai de três mecanismos, todos em `components/KroniaNurseApp.jsx`:
+
+| Mecanismo | O que faz |
+| --- | --- |
+| `showIf` | decide se uma pergunta entra na sequência, a partir das respostas já dadas. `buildSequence()` recalcula a árvore inteira a cada passo. |
+| `classify()` | traduz valor numérico em achado clínico, com faixa que muda por idade (RN, lactente, criança, adulto, idoso). |
+| `validacoesCruzadas` | acusa combinações fisicamente incompatíveis (ex.: dieta oral com paciente em ventilação mecânica invasiva). |
+
+Hoje são **122 perguntas** no schema — a home mostra esse número lido direto
+do código, não digitado à mão.
+
+### Duas regras que o motor não quebra
+
+- **Nada de inventar.** Nenhuma condição é assumida por causa de outra.
+  Quando a resposta correta exigiria uma subárvore clínica sem fonte segura,
+  o app marca `(CONFERIR — …)` e devolve a decisão ao profissional.
+- **Não avaliado ≠ normal.** Pergunta não respondida nunca vira "sem
+  alterações" por omissão: vira pendência explícita no fim do texto.
+
+## Estrutura
+
+```
+pages/index.tsx ............... renderiza o app
+components/KroniaNurseApp.jsx . schema clínico + motor + todas as telas
+styles/globals.css ............ reset mínimo (a paleta é inline, no componente)
+docs/LAYOUT.md ................ especificação de layout, tela a tela
+```
+
+Dados do plantão ficam em `localStorage`, no aparelho. Nada sai do
+dispositivo. Em tela só entram **leito e iniciais** — nunca o nome completo
+do paciente.
 
 ## Status
 
-🚧 Projeto em desenvolvimento.
+🚧 Em desenvolvimento. Login é visual: não há autenticação, conta ou sessão.

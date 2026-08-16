@@ -2103,8 +2103,8 @@ export default function KroniaNurseApp() {
                 <path key={i} d={`M-40 ${240 - i * 16} Q 90 ${150 - i * 22} 220 ${40 - i * 10}`} fill="none" stroke={ACCENT} strokeOpacity={0.16 - i * 0.02} strokeWidth="1.4" />
               ))}
             </svg>
-            <svg width="150" height="200" viewBox="0 0 150 200" style={{ position: "absolute", right: -18, top: 60, opacity: 0.55, pointerEvents: "none" }}>
-              <path d="M0 60 H24 L38 24 L54 130 L70 6 L86 96 L100 60 H150" fill="none" stroke={ACCENT} strokeOpacity="0.5" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            <svg width="118" height="120" viewBox="0 0 118 120" style={{ position: "absolute", right: -14, top: 74, opacity: 0.5, pointerEvents: "none" }}>
+              <path d="M0 60 H20 L30 40 L42 84 L54 14 L66 100 L78 60 H118" fill="none" stroke={ACCENT} strokeOpacity="0.45" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
 
             <div style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "center", marginTop: 18 }}>
