@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Kronia Nurse · Nova evolução</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0B1B3A;
+    --blue:#0055FF;
+    --blue-soft:#E8EFFF;
+    --bg:#F7F8FC;
+    --surface:#FFFFFF;
+    --line:#E8EBF3;
+    --ink:#14162B;
+    --ink-soft:#6B7290;
+    --success:#3ECF8E;
+    --warning:#FFB547;
+    --error:#E5484D;
+    --radius:18px;
+    --ease: cubic-bezier(.4,0,.2,1);
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html{ -webkit-text-size-adjust:100%; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:'Inter',system-ui,sans-serif; display:flex; justify-content:center; overflow-x:hidden; }
+  .device{ width:100%; max-width:430px; min-height:100vh; display:flex; flex-direction:column; position:relative; }
+
+  /* ---------- header compacto, encolhe ao rolar ---------- */
+  .header{
+    position:sticky; top:0; z-index:20;
+    background:rgba(247,248,252,.88); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--line);
+    padding:10px 18px 12px;
+    transition:padding .2s var(--ease);
+  }
+  .header.shrink{ padding:6px 18px 8px; }
+  .header-top{ display:flex; align-items:center; gap:10px; margin-bottom:2px; }
+  .back-btn{ width:30px; height:30px; border-radius:9px; background:var(--surface); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; color:var(--ink); flex-shrink:0; }
+  .back-btn svg{ width:16px; height:16px; }
+  .header-titles{ flex:1; min-width:0; }
+  .header-title{ font-family:'Fraunces',serif; font-weight:700; font-size:19px; color:var(--navy); line-height:1.15; transition:font-size .2s var(--ease); }
+  .header.shrink .header-title{ font-size:16px; }
+  .header-sub{ font-size:12px; color:var(--ink-soft); margin-top:1px; transition:opacity .2s var(--ease), max-height .2s var(--ease); }
+  .header.shrink .header-sub{ opacity:0; max-height:0; overflow:hidden; margin:0; }
+  .status-badge{ display:inline-flex; align-items:center; gap:5px; background:rgba(62,207,142,.12); padding:4px 9px; border-radius:999px; flex-shrink:0; }
+  .status-dot{ width:6px; height:6px; border-radius:50%; background:var(--success); }
+  .status-badge span{ font-size:10.5px; font-weight:700; color:#1F9E6C; letter-spacing:.02em; }
+
+  .stats-row{ display:flex; gap:8px; margin-top:10px; transition:max-height .2s var(--ease), opacity .2s var(--ease), margin .2s var(--ease); overflow:hidden; }
+  .header.shrink .stats-row{ max-height:0; opacity:0; margin-top:0; }
+  .stat-chip{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:600; color:var(--ink-soft); background:var(--surface); border:1px solid var(--line); padding:5px 10px; border-radius:999px; white-space:nowrap; }
+  .stat-chip b{ color:var(--ink); font-weight:600; }
+
+  /* ---------- busca estilo iOS ---------- */
+  .search-wrap{ padding:14px 18px 4px; }
+  .search-box{
+    height:52px; display:flex; align-items:center; gap:9px;
+    background:rgba(255,255,255,.75); backdrop-filter:blur(8px);
+    border:1px solid var(--line); border-radius:16px; padding:0 15px;
+    box-shadow:0 1px 2px rgba(11,27,58,.04);
+    transition:box-shadow .2s var(--ease), border-color .2s var(--ease);
+  }
+  .search-box.focused{ border-color:var(--blue); box-shadow:0 0 0 4px var(--blue-soft); }
+  .search-box input{ border:none; outline:none; background:transparent; font-size:15px; width:100%; font-family:'Inter',sans-serif; color:var(--ink); }
+  .search-box input::placeholder{ color:#A6ABC4; }
+  .search-box svg{ flex-shrink:0; color:#A6ABC4; }
+
+  /* ---------- favoritos ---------- */
+  .favoritos{ padding:16px 0 4px 18px; }
+  .section-label{ font-size:11px; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-soft); font-weight:700; margin-bottom:10px; padding-right:18px; }
+  .fav-row{ display:flex; gap:10px; overflow-x:auto; padding-bottom:6px; padding-right:18px; scrollbar-width:none; }
+  .fav-row::-webkit-scrollbar{ display:none; }
+  .fav-chip{
+    flex-shrink:0; display:flex; align-items:center; gap:8px;
+    background:var(--surface); border:1px solid var(--line); border-radius:14px;
+    padding:11px 15px; white-space:nowrap; cursor:pointer;
+    transition:transform .15s var(--ease), box-shadow .15s var(--ease);
+  }
+  .fav-chip:active{ transform:scale(.95); }
+  .fav-chip .ic{ width:18px; height:18px; color:var(--blue); }
+  .fav-chip span{ font-size:13.5px; font-weight:600; }
+
+  /* ---------- conteúdo / grupos / cards ---------- */
+  .content{ padding:6px 18px 110px; flex:1; }
+  .group{ margin-top:22px; }
+  .group:first-child{ margin-top:18px; }
+
+  .sector-card{
+    position:relative; overflow:hidden;
+    display:flex; align-items:center; gap:14px;
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    padding:14px 16px; margin-bottom:10px; min-height:74px;
+    cursor:pointer; box-shadow:0 1px 2px rgba(11,27,58,.03);
+    transition:transform .15s var(--ease), box-shadow .15s var(--ease), border-color .15s var(--ease);
+  }
+  .sector-card:active{ transform:scale(.97); box-shadow:0 1px 1px rgba(11,27,58,.02); }
+  .sector-icon{ width:44px; height:44px; border-radius:13px; background:var(--blue-soft); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .sector-icon svg{ width:23px; height:23px; color:var(--blue); }
+  .sector-text{ flex:1; min-width:0; }
+  .sector-title{ font-size:15.5px; font-weight:600; color:var(--ink); margin-bottom:2px; }
+  .sector-tags{ font-size:12px; color:var(--ink-soft); line-height:1.4; }
+  .sector-tags .dot{ margin:0 4px; opacity:.5; }
+  .sector-chev{ color:#C3C8DC; flex-shrink:0; }
+  .sector-chev svg{ width:16px; height:16px; }
+
+  .ripple{ position:absolute; border-radius:50%; background:rgba(0,85,255,.14); transform:scale(0); animation:ripple .5s var(--ease); pointer-events:none; }
+  @keyframes ripple{ to{ transform:scale(3.2); opacity:0; } }
+
+  .no-results{ text-align:center; color:var(--ink-soft); font-size:13.5px; padding:36px 10px; display:none; }
+
+  /* ---------- bottom nav ---------- */
+  .bottom-nav{
+    position:fixed; bottom:0; width:100%; max-width:430px; z-index:15;
+    background:rgba(255,255,255,.9); backdrop-filter:blur(14px);
+    border-top:1px solid var(--line);
+    display:flex; align-items:flex-end; justify-content:space-around;
+    padding:9px 6px calc(9px + env(safe-area-inset-bottom));
+  }
+  .nav-item{ display:flex; flex-direction:column; align-items:center; gap:3px; color:var(--ink-soft); font-size:10px; font-weight:600; flex:1; }
+  .nav-item.active{ color:var(--blue); }
+  .nav-item svg{ width:21px; height:21px; }
+  .nav-center{ display:flex; flex-direction:column; align-items:center; gap:4px; flex:1; }
+  .nav-fab{
+    width:50px; height:50px; border-radius:16px; background:var(--navy);
+    display:flex; align-items:center; justify-content:center; margin-top:-22px;
+    box-shadow:0 8px 18px rgba(11,27,58,.32);
+    transition:transform .15s var(--ease);
+  }
+  .nav-fab:active{ transform:scale(.92); }
+  .nav-fab svg{ width:22px; height:22px; color:#fff; }
+  .nav-center span{ font-size:10px; font-weight:700; color:var(--blue); }
+
+  /* ---------- bottom sheet ---------- */
+  .sheet-backdrop{
+    position:fixed; inset:0; background:rgba(11,27,58,.4); z-index:30;
+    opacity:0; pointer-events:none; transition:opacity .22s var(--ease);
+  }
+  .sheet-backdrop.open{ opacity:1; pointer-events:auto; }
+  .sheet{
+    position:fixed; bottom:0; left:50%; transform:translateX(-50%) translateY(100%);
+    width:100%; max-width:430px; background:var(--surface); z-index:31;
+    border-radius:24px 24px 0 0; padding:10px 20px calc(20px + env(safe-area-inset-bottom));
+    transition:transform .28s var(--ease);
+    box-shadow:0 -8px 30px rgba(11,27,58,.18);
+  }
+  .sheet.open{ transform:translateX(-50%) translateY(0); }
+  .sheet-handle{ width:36px; height:4px; border-radius:2px; background:var(--line); margin:6px auto 14px; }
+  .sheet-title{ font-family:'Fraunces',serif; font-size:19px; font-weight:700; color:var(--navy); }
+  .sheet-sub{ font-size:12.5px; color:var(--ink-soft); margin-bottom:16px; margin-top:2px; }
+  .reg-option{
+    display:flex; align-items:center; gap:12px; padding:13px 4px;
+    border-bottom:1px solid var(--line); cursor:pointer;
+  }
+  .reg-option:last-of-type{ border-bottom:none; }
+  .reg-radio{ width:20px; height:20px; border-radius:50%; border:2px solid var(--line); flex-shrink:0; position:relative; transition:border-color .15s var(--ease); }
+  .reg-option.selected .reg-radio{ border-color:var(--blue); }
+  .reg-option.selected .reg-radio::after{ content:''; position:absolute; inset:3px; border-radius:50%; background:var(--blue); }
+  .reg-label{ font-size:14.5px; font-weight:500; color:var(--ink); }
+  .sheet-actions{ display:flex; flex-direction:column; gap:8px; margin-top:16px; }
+  .btn-primary{ background:var(--blue); color:#fff; border:none; border-radius:14px; padding:15px; font-size:15px; font-weight:600; cursor:pointer; transition:transform .15s var(--ease); }
+  .btn-primary:active{ transform:scale(.98); }
+  .btn-secondary{ background:transparent; color:var(--ink-soft); border:none; padding:8px; font-size:14px; font-weight:500; cursor:pointer; }
+
+  /* ---------- toast ---------- */
+  .toast{
+    position:fixed; bottom:100px; left:50%; transform:translateX(-50%) translateY(10px);
+    background:var(--navy); color:#fff; padding:11px 18px; border-radius:12px; font-size:13px; font-weight:500;
+    opacity:0; pointer-events:none; transition:opacity .22s var(--ease), transform .22s var(--ease); z-index:40;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="device">
+
+  <div class="header" id="header">
+    <div class="header-top">
+      <a class="back-btn" href="/evolucao-avulsa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+      <div class="header-titles">
+        <div class="header-title">Nova evolução</div>
+        <div class="header-sub">Selecione a área assistencial</div>
+      </div>
+      <div class="status-badge"><div class="status-dot"></div><span>Plantão ativo</span></div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-chip"><b>3</b> evoluções</div>
+      <div class="stat-chip"><b>2</b> pendentes</div>
+      <div class="stat-chip"><b>5</b> pacientes</div>
+    </div>
+  </div>
+
+  <div class="search-wrap">
+    <div class="search-box" id="searchBox">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="searchInput" placeholder="Pesquisar setor ou especialidade" oninput="filterSectors(this.value)" onfocus="document.getElementById('searchBox').classList.add('focused')" onblur="document.getElementById('searchBox').classList.remove('focused')">
+    </div>
+  </div>
+
+  <div class="favoritos" id="favoritosBlock">
+    <div class="section-label">Favoritos</div>
+    <div class="fav-row" id="favRow"></div>
+  </div>
+
+  <div class="content" id="content"></div>
+
+  <div class="bottom-nav">
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      Home
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Pacientes
+    </div>
+    <div class="nav-center">
+      <div class="nav-fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+      <span>Evoluir</span>
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      KRONOS
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="5" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+      Mais
+    </div>
+  </div>
+
+  <div class="sheet-backdrop" id="sheetBackdrop" onclick="closeSheet()"></div>
+  <div class="sheet" id="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="sheetTitle">Setor</div>
+    <div class="sheet-sub">Escolha o tipo de registro</div>
+    <div id="sheetOptions"></div>
+    <div class="sheet-actions">
+      <button class="btn-primary" onclick="confirmarRegistro()">Continuar</button>
+      <button class="btn-secondary" onclick="closeSheet()">Cancelar</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+// ---------------- ícones (mesma fonte usada nos cards e nos favoritos) ----------------
+const ICONS = {
+  uti: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  clinMed: '<path d="M5 3v6a5 5 0 0 0 10 0V3"/><path d="M10 14v2a5 5 0 0 0 5 5 5 5 0 0 0 5-5v-3"/><circle cx="20" cy="11" r="2"/>',
+  clinCx: '<path d="M15 3.7a5 5 0 1 1 5.3 8.3L9 23.3A5 5 0 1 1 3.7 18Z"/><path d="m6.5 16.5 2 2"/><path d="m9.5 13.5 2 2"/><path d="m12.5 10.5 2 2"/>',
+  hemo_dial: '<path d="M12 2s7 8.5 7 13a7 7 0 0 1-14 0c0-4.5 7-13 7-13z"/>',
+  saudeMental: '<path d="M12 5a3 3 0 1 0-6 0 4 4 0 0 0-2.5 5.8A4 4 0 0 0 4 17a4 4 0 0 0 8 1"/><path d="M12 5a3 3 0 1 1 6 0 4 4 0 0 1 2.5 5.8A4 4 0 0 1 20 17a4 4 0 0 1-8 1"/>',
+  puerperio: '<ellipse cx="8" cy="16" rx="2.6" ry="4.6" transform="rotate(-18 8 16)"/><circle cx="6.6" cy="10.6" r=".8" transform="rotate(-18 8 16)"/><circle cx="9" cy="10" r=".8" transform="rotate(-18 8 16)"/><ellipse cx="16.5" cy="7.5" rx="2.6" ry="4.6" transform="rotate(18 16.5 7.5)"/><circle cx="15.1" cy="2.1" r=".8" transform="rotate(18 16.5 7.5)"/><circle cx="17.5" cy="1.5" r=".8" transform="rotate(18 16.5 7.5)"/>',
+  cc: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.1" y2="15.9"/><line x1="14.5" y1="14.5" x2="20" y2="20"/><line x1="8.1" y1="8.1" x2="12" y2="12"/>',
+  emerg: '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'
+};
+
+// ---------------- setores reais do app (nada inventado) ----------------
+const GROUPS = [
+  { label:'Cuidados intensivos', items:[
+    { key:'uti', title:'UTI', tags:['Ventilação mecânica','Drogas vasoativas','Dispositivos múltiplos'] },
+    { key:'cc', title:'Centro cirúrgico', tags:['Pré/trans/pós-operatório','SRPA','Aldrete-Kroulik'] }
+  ]},
+  { label:'Enfermarias', items:[
+    { key:'clinMed', title:'Clínica Médica', tags:['Paciente clínico','Enfermaria'] },
+    { key:'clinCx', title:'Clínica Cirúrgica', tags:['Pós-operatório','Curativo, drenos'] }
+  ]},
+  { label:'Especialidades', items:[
+    { key:'hemo_dial', title:'Hemodiálise', tags:['Sessão','Acesso vascular','Balanço hídrico'] },
+    { key:'puerperio', title:'Puerpério', tags:['Pós-parto normal ou cesárea'] }
+  ]},
+  { label:'Saúde mental', items:[
+    { key:'saudeMental', title:'Saúde Mental', tags:['Comportamento','Adesão','Segurança'] }
+  ]},
+  { label:'Urgência', items:[
+    { key:'emerg', title:'Emergência', tags:['Triagem Manchester','Avaliação primária'] }
+  ]}
+];
+
+const FAVORITOS = ['uti', 'emerg', 'clinMed', 'hemo_dial', 'saudeMental'];
+
+// Só "Evolução completa" e "Evolução rápida" têm implementação real hoje
+// (levam pro motor em evolucao-facil.html). Os demais tipos ainda não têm
+// schema pronto — sinalizar isso é melhor que fingir que funciona.
+const REGISTRO_TIPOS = ['Evolução completa','Evolução rápida','Admissão','Alta','Transferência','Intercorrência','Óbito'];
+const TIPOS_IMPLEMENTADOS = new Set(['Evolução completa', 'Evolução rápida']);
+
+let sheetSetorKey = null;
+let sheetTipoSelecionado = 'Evolução completa';
+
+// ---------------- render ----------------
+function iconSvg(key, cls){
+  return `<svg class="${cls||''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[key]}</svg>`;
+}
+
+function render(){
+  const content = document.getElementById('content');
+  let html = '';
+  GROUPS.forEach(group => {
+    html += `<div class="group" data-group>
+      <div class="section-label">${group.label}</div>`;
+    group.items.forEach(item => {
+      html += `<div class="sector-card" data-search="${(item.title+' '+item.tags.join(' ')).toLowerCase()}" onclick="abrirSheet(event,'${item.key}','${item.title}')">
+        <div class="sector-icon">${iconSvg(item.key)}</div>
+        <div class="sector-text">
+          <div class="sector-title">${item.title}</div>
+          <div class="sector-tags">${item.tags.join(' <span class="dot">·</span> ')}</div>
+        </div>
+        <div class="sector-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  html += `<div class="no-results" id="noResults">Nenhum setor encontrado.</div>`;
+  content.innerHTML = html;
+}
+
+function renderFavoritos(){
+  const map = {};
+  GROUPS.forEach(g => g.items.forEach(i => map[i.key] = i));
+  document.getElementById('favRow').innerHTML = FAVORITOS.map(key => {
+    const item = map[key];
+    return `<div class="fav-chip" onclick="abrirSheet(event,'${item.key}','${item.title}')">
+      ${iconSvg(item.key,'ic')}<span>${item.title}</span>
+    </div>`;
+  }).join('');
+}
+
+// ---------------- busca ----------------
+function filterSectors(query){
+  const q = query.trim().toLowerCase();
+  const cards = document.querySelectorAll('.sector-card');
+  const groups = document.querySelectorAll('[data-group]');
+  const favoritos = document.getElementById('favoritosBlock');
+  favoritos.style.display = q ? 'none' : '';
+
+  let anyVisible = false;
+  groups.forEach(g => {
+    const visibleCards = g.querySelectorAll('.sector-card');
+    let groupHasMatch = false;
+    visibleCards.forEach(card => {
+      const match = !q || card.dataset.search.includes(q);
+      card.style.display = match ? 'flex' : 'none';
+      if(match){ groupHasMatch = true; anyVisible = true; }
+    });
+    g.style.display = groupHasMatch ? '' : 'none';
+  });
+  document.getElementById('noResults').style.display = anyVisible ? 'none' : 'block';
+}
+
+// ---------------- header encolhe ao rolar ----------------
+window.addEventListener('scroll', () => {
+  const header = document.getElementById('header');
+  if(window.scrollY > 24) header.classList.add('shrink');
+  else header.classList.remove('shrink');
+}, { passive:true });
+
+// ---------------- ripple ----------------
+document.addEventListener('click', (e) => {
+  const card = e.target.closest('.sector-card');
+  if(!card) return;
+  const rect = card.getBoundingClientRect();
+  const ripple = document.createElement('span');
+  const size = Math.max(rect.width, rect.height);
+  ripple.className = 'ripple';
+  ripple.style.width = ripple.style.height = size + 'px';
+  ripple.style.left = (e.clientX - rect.left - size/2) + 'px';
+  ripple.style.top = (e.clientY - rect.top - size/2) + 'px';
+  card.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 500);
+});
+
+// ---------------- bottom sheet ----------------
+function abrirSheet(e, key, title){
+  sheetSetorKey = key;
+  sheetTipoSelecionado = 'Evolução completa';
+  document.getElementById('sheetTitle').textContent = title;
+  document.getElementById('sheetOptions').innerHTML = REGISTRO_TIPOS.map(tipo => `
+    <div class="reg-option ${tipo===sheetTipoSelecionado?'selected':''}" data-tipo="${tipo}" onclick="selecionarTipo('${tipo}')">
+      <div class="reg-radio"></div>
+      <div class="reg-label">${tipo}${TIPOS_IMPLEMENTADOS.has(tipo) ? '' : ' (em breve)'}</div>
+    </div>
+  `).join('');
+  document.getElementById('sheetBackdrop').classList.add('open');
+  document.getElementById('sheet').classList.add('open');
+}
+function selecionarTipo(tipo){
+  sheetTipoSelecionado = tipo;
+  document.querySelectorAll('.reg-option').forEach(el => {
+    el.classList.toggle('selected', el.dataset.tipo === tipo);
+  });
+}
+function closeSheet(){
+  document.getElementById('sheetBackdrop').classList.remove('open');
+  document.getElementById('sheet').classList.remove('open');
+}
+function confirmarRegistro(){
+  if(!TIPOS_IMPLEMENTADOS.has(sheetTipoSelecionado)){
+    showToast(`"${sheetTipoSelecionado}" ainda não está implementado — só Evolução completa/rápida por enquanto.`);
+    return;
+  }
+  window.location.href = `/evolucao-facil.html?setor=${encodeURIComponent(sheetSetorKey)}`;
+}
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+render();
+renderFavoritos();
+</script>
+</body>
+</html>

@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Kronia Nurse · Evolução</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F6F8F8; --surface:#FFFFFF; --ink:#0B2E2B; --ink-soft:#4B6663;
+    --primary:#0B4F4A; --primary-soft:#E4EFEE; --line:#DCE6E4;
+    --alert:#C24A3B; --alert-soft:#FBE9E6; --radius:16px;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:'Inter',system-ui,sans-serif; display:flex; justify-content:center; }
+  .device{ width:100%; max-width:460px; min-height:100vh; display:flex; flex-direction:column; }
+  .topbar{ position:sticky; top:0; z-index:5; padding:16px 18px 12px; background:var(--surface); border-bottom:1px solid var(--line); }
+  .topbar-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:0; }
+  .wordmark{ font-family:'Fraunces',serif; font-size:19px; font-weight:600; color:var(--primary); }
+  .wordmark span{ color:var(--ink-soft); font-weight:400; }
+  .ecg-wrap{ width:60px; height:22px; opacity:.5; }
+  .ecg-wrap path{ fill:none; stroke:var(--primary); stroke-width:2; }
+
+  .content{ padding:14px 18px 130px; }
+  .card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); margin-bottom:12px; overflow:hidden; }
+  .card.has-alert{ border-color: var(--alert); border-width:1.4px; }
+  .alert-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--alert); margin-left:7px; vertical-align:middle; }
+  .card-head{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px; cursor:pointer; }
+  .card-head .title{ font-family:'Fraunces',serif; font-size:16px; font-weight:600; }
+  .card-head .sub{ font-size:11.5px; color:var(--ink-soft); font-family:'IBM Plex Mono',monospace; }
+  .card-head .chev{ color:var(--ink-soft); font-size:13px; transition:transform .2s ease; }
+  .card.open .chev{ transform:rotate(180deg); }
+  .card-body{ display:none; padding:0 16px 16px; }
+  .card.open .card-body{ display:block; }
+
+  .row{ display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+  .row label{ font-size:12.5px; font-weight:600; color:var(--ink-soft); }
+  select, input[type=text], input[type=number]{
+    width:100%; padding:11px 12px; border:1.3px solid var(--line); border-radius:10px;
+    font-family:'Inter',sans-serif; font-size:14.5px; color:var(--ink); background:#fff;
+  }
+  select:focus, input:focus{ outline:none; border-color:var(--primary); }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+  .chipset{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+  .chip{ padding:9px 13px; background:#fff; border:1.3px solid var(--line); border-radius:999px; font-size:13px; font-weight:500; cursor:pointer; }
+  .chip.selected{ background:var(--primary); border-color:var(--primary); color:#fff; }
+
+  .list-item{ background:var(--primary-soft); border-radius:12px; padding:11px 13px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .list-item .txt{ font-size:13px; line-height:1.5; color:var(--ink); }
+  .list-item .txt b{ display:block; font-size:12px; color:var(--primary); font-family:'IBM Plex Mono',monospace; margin-bottom:2px; }
+  .list-item .rm{ border:none; background:transparent; color:var(--alert); font-size:16px; cursor:pointer; line-height:1; padding:2px 4px; }
+
+  .device-card{ background:var(--primary-soft); border-radius:12px; margin-bottom:8px; overflow:hidden; }
+  .device-card-head{ display:flex; justify-content:space-between; align-items:flex-start; padding:11px 13px; cursor:pointer; gap:8px; }
+  .device-card-head b{ font-size:12.5px; color:var(--primary); font-family:'IBM Plex Mono',monospace; }
+  .device-summary{ font-size:12.5px; color:var(--ink); line-height:1.45; margin-top:2px; }
+  .device-card-body{ padding:0 13px 13px; }
+  .device-card .rm{ border:none; background:transparent; color:var(--alert); font-size:16px; cursor:pointer; line-height:1; padding:2px 4px; }
+  .device-card .chev{ color:var(--ink-soft); font-size:12px; transition:transform .2s ease; margin-top:2px; }
+
+  .addbox{ border:1.3px dashed var(--line); border-radius:12px; padding:14px; margin-top:6px; }
+  .addbox.hidden{ display:none; }
+  .btn-add{ width:100%; padding:12px; border:1.3px dashed var(--primary); background:transparent; color:var(--primary); border-radius:12px; font-weight:600; font-size:13.5px; cursor:pointer; margin-top:4px; }
+  .btn-confirm{ width:100%; padding:12px; border:none; background:var(--primary); color:#fff; border-radius:10px; font-weight:600; font-size:14px; cursor:pointer; margin-top:8px; }
+  .btn-cancel{ width:100%; padding:10px; border:none; background:transparent; color:var(--ink-soft); font-size:13px; cursor:pointer; }
+
+  textarea{ width:100%; min-height:80px; padding:11px 12px; border:1.3px solid var(--line); border-radius:10px; font-family:'Inter',sans-serif; font-size:14px; resize:vertical; }
+
+  .bottom-bar{ position:fixed; bottom:0; width:100%; max-width:460px; padding:14px 18px calc(16px + env(safe-area-inset-bottom)); background:linear-gradient(180deg, rgba(246,248,248,0) 0%, var(--bg) 35%); }
+  .btn{ width:100%; padding:16px; border:none; border-radius:var(--radius); background:var(--primary); color:#fff; font-size:16px; font-weight:600; cursor:pointer; }
+  .btn.ghost{ background:transparent; color:var(--ink-soft); border:1.3px solid var(--line); margin-top:10px; }
+
+  .result-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px; }
+  .result-label{ font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--primary); margin-bottom:10px; }
+  .result-text{ font-size:14.5px; line-height:1.65; white-space:pre-wrap; }
+  .copied-toast{ position:fixed; bottom:100px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 18px; border-radius:999px; font-size:13px; opacity:0; transition:opacity .25s ease; pointer-events:none; }
+  .copied-toast.show{ opacity:1; }
+  .back-link{ font-size:13px; color:var(--ink-soft); margin:10px 0 4px; cursor:pointer; }
+  .empty-hint{ font-size:12.5px; color:var(--ink-soft); font-style:italic; }
+</style>
+</head>
+<body>
+<div class="device">
+  <div class="topbar">
+    <div class="topbar-row">
+      <div class="wordmark">Kronia<span>Nurse</span></div>
+      <svg class="ecg-wrap" viewBox="0 0 100 22"><path d="M0,11 L20,11 L26,3 L32,19 L38,11 L60,11 L66,3 L72,19 L78,11 L100,11"/></svg>
+    </div>
+  </div>
+
+  <div class="content" id="content"></div>
+  <div class="copied-toast" id="toast">Copiado ✓</div>
+</div>
+
+<script>
+// ---------------- estado ----------------
+const state = {
+  setor: null,
+  meta: { turno:'Plantão diurno', condicoes:[] },
+  neuro: { modo:'Alerta e orientado', rass:null, camIcu:null, pupilas:'Isocóricas e fotorreativas' },
+  resp: { suporte:'Ar ambiente', viaAerea:null, cuff:null, adaptacao:null, modoVent:null, volCorrente:'', ausculta:'Murmúrio vesicular presente bilateralmente', aspiracao:'nao', secQtd:'', secAspecto:'', secCor:'' },
+  hemo: { fc:'', pas:'', pad:'', pam:'', paTipo:'nao_invasiva', spo2:'', temp:'' },
+  infusoes: [],
+  acessos: [],
+  drenos: [],
+  gi: { abdome:'Flácido, indolor', ruidos:'Presentes', dietaVia:'Oral', dietaAceitacao:'Boa aceitação' },
+  elim: { diurese:'Espontânea', diureseAspecto:'Clara', evacuacoes:'Presentes, preservadas' },
+  pele: { integridade:'Íntegra', braden:'' },
+  dor: { metodo:'autorrelato', escore:'' },
+  cuidados: [],
+  intercorrencias:'Nenhuma intercorrência',
+  obsLivre: '',
+  puerperio: { tipoParto:'Parto normal', tempoPosParto:'', mamas:'Cheias, sem intercorrências', amamentando:'Sim', utero:'Contraído, globo de segurança presente', alturaUterina:'', loquiosTipo:'Rubra', loquiosQtd:'Pequena', loquiosOdor:'Fisiológico', perineo:'Íntegro', curativo:'Limpo, seco e íntegro', diurese:'Espontânea', globoVesical:'Ausente', intestino:'Flatos presentes', emocional:'Eutímica, vinculada ao RN' },
+  cc: { fase:'Pré-operatório', cirurgia:'', anestesia:'Geral', atividade:'', respiracao:'', circulacao:'', consciencia:'', spo2Aldrete:'', curativo:'Limpo, seco e íntegro', nvpo:'Ausente' },
+  emerg: { manchester:'', queixa:'', viaAerea:'Pérvia', avdn:'Alerta', exposicao:'Sem lesões visíveis' },
+  geriatria: { mobilidade:'Independente', morse:'Baixo risco', nutricao:'Aceitação adequada' },
+  mobilidade: { estado:'Deambulando com autonomia' },
+  clinCx: { cirurgia:'', diasPO:'', curativo:'Limpo, seco e íntegro' },
+  hemo_dial: { acessoTipo:'FAV', tempoSessao:'', tempoDecorrido:'', pesoSeco:'', pesoPre:'', ufPrevista:'', intercorrenciaSessao:'Nenhuma intercorrência' },
+  paliativos: { sintomaDor:'', sintomaDispneia:'', sintomaNausea:'', sintomaAnsiedade:'', acompanhante:'Presente', orientacaoFamilia:'Sim' },
+  saudeMental: { comportamento:'Calmo e colaborativo', orientacao:'Orientado', adesao:'Aceita medicação', contencao:'Não', contencaoMotivo:'' }
+};
+
+const openCards = new Set(['neuro']);
+
+// ---------------- config de tipos (arrays dinâmicos) ----------------
+function lc(s){ return (s||'').toString().toLowerCase(); }
+
+const CURATIVO_OPTIONS = ['Limpo, seco e íntegro','Sujo, necessita troca','Descolado, necessita troca','Com sangramento','Sem curativo'];
+
+const ACCESS_TYPES = {
+  CVC: { label:'CVC (cateter venoso central)', fields:[
+      {key:'lumens', label:'Nº de lumens', type:'select', options:['1','2','3']},
+      {key:'local', label:'Local', type:'select', options:['Jugular interna direita','Jugular interna esquerda','Subclávia direita','Subclávia esquerda','Femoral direita','Femoral esquerda']},
+      {key:'aspecto', label:'Aspecto do sítio', type:'select', options:['Pérvio, sem sinais flogísticos','Sinais flogísticos','Sítio com secreção']},
+      {key:'curativo', label:'Curativo', type:'select', options:CURATIVO_OPTIONS}
+    ], render:v=>`CVC de ${v.lumens||'--'} lúmen(s) em ${lc(v.local)}, ${lc(v.aspecto)}, curativo ${lc(v.curativo)}.` },
+  cateter_arterial: { label:'Cateter arterial', fields:[
+      {key:'local', label:'Local', type:'select', options:['Radial direita','Radial esquerda','Femoral direita','Femoral esquerda']},
+      {key:'curva', label:'Curva de pressão', type:'select', options:['Adequada','Amortecida']},
+      {key:'curativo', label:'Curativo', type:'select', options:CURATIVO_OPTIONS}
+    ], render:v=>`Cateter arterial em ${lc(v.local)}, curva de pressão ${lc(v.curva)}, curativo ${lc(v.curativo)}.` },
+  acesso_periferico: { label:'Acesso venoso periférico', fields:[
+      {key:'calibre', label:'Calibre', type:'select', options:['24G','22G','20G','18G','16G']},
+      {key:'local', label:'Local', type:'text', placeholder:'Antebraço esquerdo'},
+      {key:'aspecto', label:'Aspecto', type:'select', options:['Sem sinais de flebite','Sinais de flebite','Infiltrado']},
+      {key:'curativo', label:'Curativo', type:'select', options:CURATIVO_OPTIONS}
+    ], render:v=>`Acesso venoso periférico ${v.calibre||'--'} em ${lc(v.local)||'--'}, ${lc(v.aspecto)}, curativo ${lc(v.curativo)}.` },
+  PICC: { label:'PICC', fields:[
+      {key:'local', label:'Local de inserção', type:'text', placeholder:'Basílica direita'},
+      {key:'aspecto', label:'Aspecto do sítio', type:'select', options:['Sem sinais flogísticos','Sinais flogísticos']},
+      {key:'curativo', label:'Curativo', type:'select', options:CURATIVO_OPTIONS}
+    ], render:v=>`PICC inserido em ${lc(v.local)||'--'}, sítio ${lc(v.aspecto)}, curativo ${lc(v.curativo)}.` },
+  cateter_dialise: { label:'Cateter de diálise', fields:[
+      {key:'local', label:'Local', type:'select', options:['Jugular interna direita','Jugular interna esquerda','Femoral direita','Femoral esquerda']},
+      {key:'aspecto', label:'Aspecto', type:'select', options:['Pérvio, sem sinais flogísticos','Sinais flogísticos']},
+      {key:'curativo', label:'Curativo', type:'select', options:CURATIVO_OPTIONS}
+    ], render:v=>`Cateter de diálise em ${lc(v.local)}, ${lc(v.aspecto)}, curativo ${lc(v.curativo)}.` },
+  FAV: { label:'Fístula arteriovenosa (FAV)', fields:[
+      {key:'local', label:'Local', type:'text', placeholder:'Antebraço esquerdo'},
+      {key:'aspecto', label:'Aspecto', type:'select', options:['Frêmito e thrill presentes','Frêmito diminuído/ausente','Sinais flogísticos']}
+    ], render:v=>`FAV em ${lc(v.local)||'--'}, ${lc(v.aspecto)}.` },
+  outro_acesso: { label:'Outro (descreva)', fields:[
+      {key:'descricao', label:'Descreva o dispositivo', type:'textarea', placeholder:'Ex: cateter de diálise temporário em subclávia direita, pérvio...'}
+    ], render:v=>v.descricao || '—' }
+};
+
+const DRAIN_TYPES = {
+  SNE: { label:'Sonda nasoenteral (SNE)', fields:[
+      {key:'local', label:'Narina', type:'select', options:['Direita','Esquerda']},
+      {key:'posicionamento', label:'Posicionamento', type:'select', options:['Adequado','A confirmar']},
+      {key:'taxa', label:'Taxa de dieta', type:'number', placeholder:'45'},
+      {key:'fixacao', label:'Fixação', type:'select', options:CURATIVO_OPTIONS}
+    ], render:v=>`Sonda nasoenteral em narina ${lc(v.local)}, posicionamento ${lc(v.posicionamento)}, infundindo dieta enteral a ${v.taxa||'--'} mL/h, fixação ${lc(v.fixacao)}.` },
+  SVD: { label:'Sonda vesical de demora (SVD)', fields:[
+      {key:'numero', label:'Número', type:'text', placeholder:'16'},
+      {key:'aspecto', label:'Aspecto da urina', type:'select', options:['Amarelo-clara','Amarelo-escura','Turva','Hematúrica']},
+      {key:'fixacao', label:'Fixação', type:'select', options:['Fixada, sem tração','Solta/deslocada']}
+    ], render:v=>`Sonda vesical de demora nº ${v.numero||'--'}, sistema fechado, drenando urina ${lc(v.aspecto)}, ${lc(v.fixacao)}.` },
+  dreno_toracico: { label:'Dreno torácico', fields:[
+      {key:'local', label:'Local', type:'select', options:['Hemitórax direito','Hemitórax esquerdo']},
+      {key:'sistema', label:'Sistema', type:'select', options:['Selo d’água','Válvula de Heimlich']},
+      {key:'debito', label:'Débito', type:'select', options:['Pequeno débito serossanguinolento','Débito moderado','Débito purulento']},
+      {key:'curativo', label:'Curativo', type:'select', options:CURATIVO_OPTIONS}
+    ], render:v=>`Dreno torácico em ${lc(v.local)}, ${lc(v.sistema)}, oscilante, com ${lc(v.debito)}, curativo ${lc(v.curativo)}.` },
+  dreno_abdominal: { label:'Dreno abdominal (Portovac/Penrose)', fields:[
+      {key:'modelo', label:'Modelo', type:'select', options:['Portovac','Penrose','Kehr']},
+      {key:'debito', label:'Débito', type:'select', options:['Pequeno débito sero-hemático','Débito moderado','Débito biliar']},
+      {key:'curativo', label:'Curativo', type:'select', options:CURATIVO_OPTIONS}
+    ], render:v=>`Dreno ${lc(v.modelo)} abdominal com ${lc(v.debito)}, curativo ${lc(v.curativo)}.` },
+  gastrostomia: { label:'Gastrostomia/Jejunostomia', fields:[
+      {key:'tipo', label:'Tipo', type:'select', options:['Gastrostomia','Jejunostomia']},
+      {key:'taxa', label:'Taxa de dieta', type:'number', placeholder:'50'},
+      {key:'pele', label:'Pele periestomal', type:'select', options:['Íntegra','Hiperemiada','Com lesão']}
+    ], render:v=>`${v.tipo||'Gastrostomia'} pérvia, infundindo dieta a ${v.taxa||'--'} mL/h, pele periestomal ${lc(v.pele)}.` },
+  dve: { label:'Dreno ventricular externo (DVE)', fields:[
+      {key:'altura', label:'Altura do zero', type:'text', placeholder:'10 cm acima do trago'},
+      {key:'debito', label:'Aspecto do líquor', type:'select', options:['Límpido','Xantocrômico','Hemático']},
+      {key:'curativo', label:'Curativo', type:'select', options:CURATIVO_OPTIONS}
+    ], render:v=>`Dreno ventricular externo, zerado a ${v.altura||'--'}, líquor ${lc(v.debito)}, curativo ${lc(v.curativo)}.` },
+  ostomia: { label:'Ostomia', fields:[
+      {key:'tipo', label:'Tipo', type:'select', options:['Colostomia','Ileostomia','Urostomia']},
+      {key:'aspecto', label:'Aspecto do débito', type:'select', options:['Pastoso','Líquido','Fecaloide','Urina clara']},
+      {key:'pele', label:'Pele periestomal', type:'select', options:['Íntegra','Hiperemiada','Com lesão']}
+    ], render:v=>`${v.tipo||'Ostomia'} com débito ${lc(v.aspecto)}, pele periestomal ${lc(v.pele)}.` },
+  nefrostomia: { label:'Nefrostomia', fields:[
+      {key:'lado', label:'Lado', type:'select', options:['Direita','Esquerda']},
+      {key:'aspecto', label:'Aspecto da urina', type:'select', options:['Clara','Concentrada','Turva','Hematúrica']},
+      {key:'curativo', label:'Curativo', type:'select', options:CURATIVO_OPTIONS}
+    ], render:v=>`Nefrostomia à ${lc(v.lado)}, drenando urina ${lc(v.aspecto)}, curativo ${lc(v.curativo)}.` },
+  cistostomia: { label:'Cistostomia', fields:[
+      {key:'aspecto', label:'Aspecto da urina', type:'select', options:['Clara','Concentrada','Turva','Hematúrica']},
+      {key:'curativo', label:'Curativo', type:'select', options:CURATIVO_OPTIONS}
+    ], render:v=>`Cistostomia pérvia, drenando urina ${lc(v.aspecto)}, curativo ${lc(v.curativo)}.` },
+  outro_dreno: { label:'Outro (descreva)', fields:[
+      {key:'descricao', label:'Descreva', type:'textarea', placeholder:'Ex: dreno de Kehr em hipocôndrio direito, débito biliar...'}
+    ], render:v=>v.descricao || '—' }
+};
+
+const INFUSION_CATEGORIES = ['vasoativa','sedativo','analgesico','bloqueador_neuromuscular','insulina','hidratacao','antibiotico','nutricao_parenteral','outro'];
+const CAT_LABEL = { vasoativa:'Drogas vasoativas', sedativo:'Sedação', analgesico:'Analgesia', bloqueador_neuromuscular:'Bloqueio neuromuscular', insulina:'Insulina', hidratacao:'Hidratação', antibiotico:'Antibioticoterapia', nutricao_parenteral:'Nutrição parenteral', outro:'Outras infusões' };
+
+// ---------------- utilidades de estado / render ----------------
+function setState(path, value){
+  const parts = path.split('.');
+  let obj = state;
+  for(let i=0;i<parts.length-1;i++) obj = obj[parts[i]];
+  obj[parts[parts.length-1]] = value;
+}
+function getState(path){
+  return path.split('.').reduce((o,k)=>o? o[k]: undefined, state);
+}
+
+function toggleCard(key){
+  if(openCards.has(key)) openCards.delete(key); else openCards.add(key);
+  renderAll();
+}
+
+function chipSet(path, options, multi){
+  const current = getState(path);
+  return `<div class="chipset">` + options.map(opt=>{
+    const sel = multi ? (current||[]).includes(opt) : current === opt;
+    return `<div class="chip ${sel?'selected':''}" onclick="${multi? `toggleMulti('${path}','${opt}')` : `pick('${path}','${opt}')`}">${opt}</div>`;
+  }).join('') + `</div>`;
+}
+function pick(path, value){
+  setState(path, value);
+  if(path === 'neuro.modo' && value === 'Sedado'){
+    openCards.add('resp'); openCards.add('infusoes'); openCards.add('acessos');
+  }
+  renderAll();
+}
+function toggleMulti(path, value){
+  const arr = getState(path) || [];
+  const idx = arr.indexOf(value);
+  if(idx>-1) arr.splice(idx,1); else arr.push(value);
+  setState(path, arr);
+  renderAll();
+}
+function bindInput(path, el){ setState(path, el.value); }
+
+function chipSetOther(path, options, otherPath, placeholder){
+  let html = chipSet(path, [...options, 'Outro (descreva)']);
+  if(getState(path) === 'Outro (descreva)'){
+    html += `<div class="row" style="margin-top:8px"><input type="text" placeholder="${placeholder||'Descreva'}" value="${getState(otherPath)||''}" onchange="bindInput('${otherPath}', this)"></div>`;
+  }
+  return html;
+}
+
+// ---------------- motor de regras: um lugar só decide o que aparece quando ----------------
+// cada regra é uma função pura que olha o estado atual e diz se aquele campo/bloco é relevante.
+// pra adicionar uma nova dependência clínica, adiciona uma linha aqui — não espalha ternário pelo render.
+const VISIBILITY_RULES = {
+  glasgow:            s => s.neuro.modo !== 'Sedado',
+  camIcuAviso:        s => s.neuro.modo === 'Sedado' && s.neuro.rass !== null && s.neuro.rass !== '' && parseInt(s.neuro.rass) <= -3,
+  respVMDetalhe:      s => s.resp.suporte === 'Ventilação mecânica invasiva',
+  respFluxoO2:         s => s.resp.suporte === 'Cateter nasal' || s.resp.suporte === 'Máscara',
+  respSecrecaoDetalhe: s => s.resp.aspiracao === 'sim',
+  paInvasivaDetalhe:  s => s.hemo.paTipo === 'invasiva',
+  dorAutorrelatoValido: s => !(s.neuro.modo === 'Sedado' && s.neuro.rass !== null && s.neuro.rass !== '' && parseInt(s.neuro.rass) <= -3),
+  peleLpDetalhe:      s => s.pele.integridade === 'Lesão por pressão',
+  dietaOralDetalhe:   s => s.gi.dietaVia === 'Oral',
+  dietaSondaAtalho:   s => s.gi.dietaVia === 'Por sonda',
+  dietaParenteralAtalho: s => s.gi.dietaVia === 'Parenteral',
+  diureseAspectoSimples: s => s.elim.diurese === 'Espontânea',
+  diureseDispositivoAtalho: s => s.elim.diurese === 'Por dispositivo'
+};
+function visible(ruleKey){
+  const rule = VISIBILITY_RULES[ruleKey];
+  return rule ? rule(state) : true;
+}
+
+// ---------------- render principal ----------------
+const content = document.getElementById('content');
+
+function card(key, title, sub, bodyHtml){
+  const open = openCards.has(key) ? 'open' : '';
+  const alert = hasAlert(key);
+  return `<div class="card ${open} ${alert?'has-alert':''}">
+    <div class="card-head" onclick="toggleCard('${key}')">
+      <div><div class="title">${title}${alert?'<span class="alert-dot" title="Valor fora do normal"></span>':''}</div><div class="sub">${sub||''}</div></div>
+      <div class="chev">▾</div>
+    </div>
+    <div class="card-body">${bodyHtml}</div>
+  </div>`;
+}
+
+function hasAlert(key){
+  const n = state.neuro, h = state.hemo, p = state.pele, d = state.dor, e = state.elim;
+  switch(key){
+    case 'neuro': {
+      if(n.modo==='Sedado' && n.rass!==null && n.rass!=='' && parseInt(n.rass)<=-4) return true;
+      const total = (parseInt(n.glasgowO)||0)+(parseInt(n.glasgowV)||0)+(parseInt(n.glasgowM)||0);
+      if(n.modo!=='Sedado' && total>0 && total<=8) return true;
+      if(n.pupilas==='Anisocóricas' || n.pupilas==='Midriáticas') return true;
+      return false;
+    }
+    case 'hemo': {
+      const fcBad = h.fc!=='' && classFC(h.fc)!=='normocárdica';
+      const paBad = h.pas!=='' && classPA(h.pas)!=='normotensa';
+      const tempBad = h.temp!=='' && classTemp(h.temp)!=='afebril';
+      const spo2Bad = h.spo2!=='' && parseFloat(h.spo2) < 92;
+      return fcBad || paBad || tempBad || spo2Bad;
+    }
+    case 'pele': {
+      if(p.integridade==='Lesão por pressão') return true;
+      if(p.braden!=='' && parseFloat(p.braden) <= 12) return true;
+      return false;
+    }
+    case 'dor': {
+      if(d.escore==='' || d.escore===undefined) return false;
+      const autorrelatoValido = visible('dorAutorrelatoValido');
+      return autorrelatoValido ? parseFloat(d.escore) >= 7 : parseFloat(d.escore) >= 3;
+    }
+    case 'elim': {
+      if(e.evacuacoes==='Diarreia' || e.evacuacoes==='Ausentes há mais de 3 dias') return true;
+      if(e.diurese==='Espontânea' && (e.diureseAspecto==='Turva' || e.diureseAspecto==='Hematúrica')) return true;
+      return false;
+    }
+    case 'acessos':
+      return state.acessos.some(it => /flog|infec|infiltrad|extravasament|diminuíd|ausente|sujo|descolad|sangrament/i.test(ACCESS_TYPES[it._tipo].render(it)));
+    case 'drenos':
+      return state.drenos.some(it => /flog|infec|sangrament|hemátic|hemorrág|exterioriza|sujo|descolad|hiperemiada|com lesão/i.test(DRAIN_TYPES[it._tipo].render(it)));
+    default:
+      return false;
+  }
+}
+
+// ---------------- seções reutilizáveis entre setores ----------------
+function sectionContexto(){
+  let html = card('contexto','Contexto', state.meta.turno, `
+    ${chipSet('meta.turno', ['Plantão diurno','Plantão noturno'])}
+    <div class="row" style="margin-top:10px"><label>Condições especiais do paciente</label></div>
+    ${chipSet('meta.condicoes', ['Cuidados Paliativos','Perfil geriátrico'], true)}
+    <div class="empty-hint" style="margin-top:6px">Marque se aplicável — isso adiciona os cards relevantes abaixo, em qualquer setor.</div>
+  `);
+  if(state.meta.condicoes.includes('Cuidados Paliativos')) html += sectionPaliativos();
+  if(state.meta.condicoes.includes('Perfil geriátrico')) html += sectionGeriatricoExtra();
+  return html;
+}
+
+function sectionPaliativos(){
+  const pal = state.paliativos;
+  return card('pal-sintomas','Sintomas paliativos (escala 0-10)', '', `
+    <div class="row"><label>Dor</label><input type="number" min="0" max="10" placeholder="0" value="${pal.sintomaDor}" onchange="bindInput('paliativos.sintomaDor', this)"></div>
+    <div class="row" style="margin-top:8px"><label>Dispneia</label><input type="number" min="0" max="10" placeholder="0" value="${pal.sintomaDispneia}" onchange="bindInput('paliativos.sintomaDispneia', this)"></div>
+    <div class="row" style="margin-top:8px"><label>Náusea</label><input type="number" min="0" max="10" placeholder="0" value="${pal.sintomaNausea}" onchange="bindInput('paliativos.sintomaNausea', this)"></div>
+    <div class="row" style="margin-top:8px"><label>Ansiedade</label><input type="number" min="0" max="10" placeholder="0" value="${pal.sintomaAnsiedade}" onchange="bindInput('paliativos.sintomaAnsiedade', this)"></div>
+    <div class="empty-hint" style="margin-top:6px">Baseado na lógica da escala ESAS — 0 ausente, 10 pior possível.</div>
+  `) + card('pal-familia','Família e comunicação', '', `
+    <div class="row"><label>Acompanhante</label></div>
+    ${chipSet('paliativos.acompanhante', ['Presente','Ausente'])}
+    <div class="row" style="margin-top:8px"><label>Orientação fornecida à família</label></div>
+    ${chipSet('paliativos.orientacaoFamilia', ['Sim','Não'])}
+  `);
+}
+
+function sectionGeriatricoExtra(){
+  const g = state.geriatria;
+  return card('ger-funcional','Perfil geriátrico — funcionalidade', g.mobilidade, `
+    <div class="row"><label>Independência funcional</label></div>
+    ${chipSet('geriatria.mobilidade', ['Independente','Necessita auxílio parcial','Dependente total'])}
+  `) + card('ger-queda','Risco de queda (Escala de Morse)', '', `
+    ${chipSet('geriatria.morse', ['Baixo risco','Médio risco','Alto risco'])}
+    <div class="empty-hint" style="margin-top:6px">0–24 baixo · 25–50 médio · ≥51 alto risco</div>
+  `) + card('ger-nutricao','Nutrição e hidratação (perfil geriátrico)', '', `
+    ${chipSet('geriatria.nutricao', ['Aceitação adequada','Recusa alimentar parcial','Recusa total','Disfagia observada'])}
+  `);
+}
+
+function sectionNeuro(){
+  const neuroBody = `
+    ${chipSet('neuro.modo', ['Alerta e orientado','Sonolento','Confuso','Sedado','Coma'])}
+    ${state.neuro.modo==='Sedado' ? `
+      <div class="row"><label>RASS</label>
+        <select onchange="bindInput('neuro.rass', this); renderAll()">
+          <option value="">Selecionar</option>
+          <option value="4" ${state.neuro.rass==4?'selected':''}>+4 · Combativo</option>
+          <option value="3" ${state.neuro.rass==3?'selected':''}>+3 · Muito agitado</option>
+          <option value="2" ${state.neuro.rass==2?'selected':''}>+2 · Agitado</option>
+          <option value="1" ${state.neuro.rass==1?'selected':''}>+1 · Inquieto</option>
+          <option value="0" ${state.neuro.rass==0?'selected':''}>0 · Alerta e calmo</option>
+          <option value="-1" ${state.neuro.rass==-1?'selected':''}>-1 · Sonolento</option>
+          <option value="-2" ${state.neuro.rass==-2?'selected':''}>-2 · Sedação leve</option>
+          <option value="-3" ${state.neuro.rass==-3?'selected':''}>-3 · Sedação moderada</option>
+          <option value="-4" ${state.neuro.rass==-4?'selected':''}>-4 · Sedação profunda</option>
+          <option value="-5" ${state.neuro.rass==-5?'selected':''}>-5 · Não desperta</option>
+        </select>
+      </div>` : ''}
+    ${visible('camIcuAviso') ? `<div class="empty-hint">RASS ≤ -3: CAM-ICU não avaliável, autorrelato de dor não é válido.</div>` : ''}
+    ${visible('glasgow') ? `
+      <div class="row" style="margin-top:10px"><label>Glasgow</label>
+        <div class="empty-hint" style="margin-bottom:6px">Ocular: 1 nenhuma – 4 espontânea</div>
+        <input type="number" min="1" max="4" placeholder="Ocular (1-4)" onchange="bindInput('neuro.glasgowO', this)">
+        <div class="empty-hint" style="margin:6px 0">Verbal: 1 nenhuma – 5 orientada</div>
+        <input type="number" min="1" max="5" placeholder="Verbal (1-5)" onchange="bindInput('neuro.glasgowV', this)">
+        <div class="empty-hint" style="margin:6px 0">Motora: 1 nenhuma – 6 obedece comandos</div>
+        <input type="number" min="1" max="6" placeholder="Motora (1-6)" onchange="bindInput('neuro.glasgowM', this)">
+      </div>` : ''}
+    <div class="row" style="margin-top:12px"><label>Pupilas</label></div>
+    ${chipSetOther('neuro.pupilas', ['Isocóricas e fotorreativas','Anisocóricas','Mióticas','Midriáticas'], 'neuro.pupilasOutro', 'Ex: não avaliável por edema palpebral')}
+  `;
+  return card('neuro','Neurológico', state.neuro.modo, neuroBody);
+}
+
+function sectionResp(){
+  const respBody = `
+    ${chipSetOther('resp.suporte', ['Ar ambiente','Cateter nasal','Máscara','VMNI','Ventilação mecânica invasiva'], 'resp.suporteOutro', 'Ex: traqueostomizado em ar ambiente')}
+    ${visible('respVMDetalhe') ? `
+      <div class="row"><label>Via aérea</label>
+        <select onchange="bindInput('resp.viaAerea', this); renderAll()">
+          <option value="">Selecionar</option>
+          <option ${state.resp.viaAerea==='TOT'?'selected':''}>TOT</option>
+          <option ${state.resp.viaAerea==='TQT'?'selected':''}>TQT</option>
+        </select>
+      </div>
+      <div class="grid2">
+        <div class="row"><label>Número</label><input type="text" placeholder="8.0" onchange="bindInput('resp.numero', this)"></div>
+        <div class="row"><label>Fixação (cm)</label><input type="number" placeholder="22" onchange="bindInput('resp.fixacaoCm', this)"></div>
+      </div>
+      <div class="row"><label>Local de fixação</label><input type="text" placeholder="Comissura labial direita" onchange="bindInput('resp.localFixacao', this)"></div>
+      <div class="row"><label>Cuff</label>
+        <select onchange="bindInput('resp.cuff', this)">
+          <option>Normoinflado</option><option>Hipoinsuflado</option><option>Sem cuff</option>
+        </select>
+      </div>
+      <div class="row"><label>Adaptação ao ventilador</label>
+        <select onchange="bindInput('resp.adaptacao', this)">
+          <option>Bem adaptado</option><option>Assincronia</option><option>Briga com o ventilador</option>
+        </select>
+      </div>
+      <div class="row"><label>Modo ventilatório</label>
+        <select onchange="bindInput('resp.modoVent', this)">
+          <option>VCV</option><option>PCV</option><option>PSV</option><option>SIMV</option><option>PRVC</option>
+        </select>
+      </div>
+      <div class="grid2">
+        <div class="row"><label>FiO₂ (%)</label><input type="number" placeholder="40" onchange="bindInput('resp.fio2', this)"></div>
+        <div class="row"><label>PEEP</label><input type="number" placeholder="8" onchange="bindInput('resp.peep', this)"></div>
+      </div>
+      <div class="row"><label>Volume corrente (mL)</label><input type="number" placeholder="450" onchange="bindInput('resp.volCorrente', this)"></div>
+    ` : ''}
+    ${visible('respFluxoO2') ? `
+      <div class="row"><label>Fluxo (L/min)</label><input type="number" placeholder="2" onchange="bindInput('resp.fluxo', this)"></div>
+    ` : ''}
+    <div class="row" style="margin-top:8px"><label>Ausculta pulmonar</label>
+      <select onchange="bindInput('resp.ausculta', this)">
+        <option>Murmúrio vesicular presente bilateralmente</option>
+        <option>Murmúrio vesicular diminuído em bases</option>
+        <option>Roncos difusos bilaterais</option>
+        <option>Estertores crepitantes</option>
+      </select>
+    </div>
+    <div class="row"><label>Aspiração de vias aéreas</label>
+      <select onchange="bindInput('resp.aspiracao', this); renderAll()">
+        <option value="nao" ${state.resp.aspiracao==='nao'?'selected':''}>Não realizada</option>
+        <option value="sim" ${state.resp.aspiracao==='sim'?'selected':''}>Realizada</option>
+      </select>
+    </div>
+    ${visible('respSecrecaoDetalhe') ? `
+      <div class="grid2">
+        <div class="row"><label>Quantidade</label>
+          <select onchange="bindInput('resp.secQtd', this)"><option>Escassa</option><option>Moderada</option><option>Abundante</option></select>
+        </div>
+        <div class="row"><label>Aspecto</label>
+          <select onchange="bindInput('resp.secAspecto', this)"><option>Fluida</option><option>Espessa</option><option>Purulenta</option><option>Hemática</option></select>
+        </div>
+      </div>
+      <div class="row"><label>Cor</label>
+        <select onchange="bindInput('resp.secCor', this)"><option>Clara</option><option>Amarelada</option><option>Amarronzada</option><option>Sanguinolenta</option></select>
+      </div>
+    ` : ''}
+  `;
+  return card('resp','Respiratório', state.resp.suporte, respBody);
+}
+
+function sectionHemo(){
+  const hemoBody = `
+    <div class="row"><label>Tipo de PA</label>
+      <select onchange="bindInput('hemo.paTipo', this); renderAll()">
+        <option value="nao_invasiva" ${state.hemo.paTipo==='nao_invasiva'?'selected':''}>Não invasiva</option>
+        <option value="invasiva" ${state.hemo.paTipo==='invasiva'?'selected':''}>Invasiva</option>
+      </select>
+    </div>
+    <div class="grid2">
+      <div class="row"><label>FC (bpm)</label><input type="number" placeholder="82" onchange="bindInput('hemo.fc', this)"></div>
+      <div class="row"><label>SpO₂ (%)</label><input type="number" placeholder="96" onchange="bindInput('hemo.spo2', this)"></div>
+    </div>
+    <div class="grid2">
+      <div class="row"><label>PA sistólica</label><input type="number" placeholder="120" onchange="bindInput('hemo.pas', this)"></div>
+      <div class="row"><label>PA diastólica</label><input type="number" placeholder="80" onchange="bindInput('hemo.pad', this)"></div>
+    </div>
+    ${visible('paInvasivaDetalhe') ? `<div class="row"><label>PAM (mmHg)</label><input type="number" placeholder="70" onchange="bindInput('hemo.pam', this)"></div>` : ''}
+    <div class="row"><label>Temperatura axilar (°C)</label><input type="number" placeholder="36.5" onchange="bindInput('hemo.temp', this)"></div>
+  `;
+  return card('hemo','Hemodinâmica', '', hemoBody);
+}
+
+function sectionInfusoes(){
+  return card('infusoes','Bombas de infusão', state.infusoes.length ? `${state.infusoes.length} ativa(s)` : '', renderInfusoes());
+}
+function sectionAcessos(){
+  return card('acessos','Acessos vasculares', state.acessos.length ? `${state.acessos.length} registrado(s)` : '', renderDynamicList('acessos', ACCESS_TYPES, 'acesso'));
+}
+function sectionDrenos(){
+  return card('drenos','Drenos e sondas', state.drenos.length ? `${state.drenos.length} registrado(s)` : '', renderDynamicList('drenos', DRAIN_TYPES, 'dreno'));
+}
+
+function sectionGi(){
+  return card('gi','Gastrointestinal', '', `
+    <div class="row"><label>Abdome</label>
+      <select onchange="bindInput('gi.abdome', this)">
+        <option>Flácido, indolor</option><option>Distendido</option><option>Doloroso à palpação</option>
+      </select>
+    </div>
+    <div class="row"><label>Ruídos hidroaéreos</label>
+      <select onchange="bindInput('gi.ruidos', this)">
+        <option>Presentes</option><option>Hipoativos</option><option>Ausentes</option>
+      </select>
+    </div>
+    <div class="row" style="margin-top:10px"><label>Via de dieta</label></div>
+    ${chipSet('gi.dietaVia', ['Oral','Por sonda','Parenteral','Zero'])}
+    ${visible('dietaOralDetalhe') ? `
+      <div class="row" style="margin-top:8px"><label>Aceitação</label>
+        <select onchange="bindInput('gi.dietaAceitacao', this)">
+          <option>Boa aceitação</option><option>Aceitação parcial</option><option>Recusa alimentar</option>
+        </select>
+      </div>` : ''}
+    ${visible('dietaSondaAtalho') ? `
+      <div class="empty-hint" style="margin:8px 0">Toque no tipo de sonda pra adicionar em Drenos e sondas:</div>
+      <div class="chipset">
+        <div class="chip" onclick="jumpToDrain('SNE')">SNE</div>
+        <div class="chip" onclick="jumpToDrain('gastrostomia')">Gastrostomia / Jejunostomia</div>
+        <div class="chip" onclick="jumpToDrain('outro_dreno')">Outro (descreva)</div>
+      </div>
+      ${state.drenos.some(d=>d._tipo==='SNE'||d._tipo==='gastrostomia'||d._tipo==='outro_dreno') ? `<div class="empty-hint">✓ já registrada em Drenos e sondas.</div>` : ''}
+    ` : ''}
+    ${visible('dietaParenteralAtalho') ? `
+      <div class="empty-hint" style="margin:8px 0">Registre a taxa em Bombas de infusão, categoria "Nutrição parenteral".</div>
+      <button class="btn-add" onclick="openCards.add('infusoes'); addingType.infusoes=true; renderAll()">+ Adicionar em Bombas de infusão</button>
+      ${state.infusoes.some(i=>i.categoria==='nutricao_parenteral') ? `<div class="empty-hint">✓ já registrada em Bombas de infusão.</div>` : ''}
+    ` : ''}
+  `);
+}
+
+function sectionElim(){
+  return card('elim','Eliminações', '', `
+    <div class="row"><label>Diurese</label></div>
+    ${chipSet('elim.diurese', ['Espontânea','Por dispositivo'])}
+    ${visible('diureseAspectoSimples') ? `
+      <div class="row" style="margin-top:8px"><label>Aspecto</label>
+        <select onchange="bindInput('elim.diureseAspecto', this)">
+          <option>Clara</option><option>Concentrada</option><option>Turva</option><option>Hematúrica</option>
+        </select>
+      </div>` : ''}
+    ${visible('diureseDispositivoAtalho') ? `
+      <div class="empty-hint" style="margin:8px 0">Toque no dispositivo pra adicionar em Drenos e sondas:</div>
+      <div class="chipset">
+        <div class="chip" onclick="jumpToDrain('SVD')">SVD</div>
+        <div class="chip" onclick="jumpToDrain('ostomia')">Urostomia</div>
+        <div class="chip" onclick="jumpToDrain('nefrostomia')">Nefrostomia</div>
+        <div class="chip" onclick="jumpToDrain('cistostomia')">Cistostomia</div>
+        <div class="chip" onclick="jumpToDrain('outro_dreno')">Outro (descreva)</div>
+      </div>
+      ${state.drenos.some(d=>['SVD','ostomia','nefrostomia','cistostomia','outro_dreno'].includes(d._tipo)) ? `<div class="empty-hint">✓ já registrado em Drenos e sondas.</div>` : ''}
+    ` : ''}
+    <div class="row" style="margin-top:12px"><label>Evacuações</label></div>
+    ${chipSetOther('elim.evacuacoes', ['Presentes, preservadas','Ausentes há mais de 3 dias','Diarreia'], 'elim.evacuacoesOutro', 'Ex: colostomia com débito líquido')}
+  `);
+}
+
+function sectionPele(){
+  return card('pele','Pele', state.pele.integridade, `
+    ${chipSetOther('pele.integridade', ['Íntegra','Lesão por pressão','Ressecada / prurido'], 'pele.integridadeOutro', 'Ex: edema importante em MMII')}
+    ${visible('peleLpDetalhe') ? `
+      <div class="row" style="margin-top:8px"><label>Local</label><input type="text" placeholder="Região sacral" onchange="bindInput('pele.lpLocal', this)"></div>
+      <div class="row"><label>Estágio</label>
+        <select onchange="bindInput('pele.lpEstagio', this)">
+          <option>Estágio 1</option><option>Estágio 2</option><option>Estágio 3</option><option>Estágio 4</option><option>Não classificável</option>
+        </select>
+      </div>
+    ` : ''}
+    <div class="row" style="margin-top:10px"><label>Escala de Braden</label>
+      <input type="number" min="6" max="23" placeholder="18" onchange="bindInput('pele.braden', this)">
+      <div class="empty-hint" style="margin-top:6px">≤9 risco altíssimo · 10–12 alto · 13–14 moderado · 15–18 baixo · ≥19 sem risco</div>
+    </div>
+  `);
+}
+
+function sectionDor(){
+  const autorrelatoValido = visible('dorAutorrelatoValido');
+  return card('dor','Dor', '', `
+    ${autorrelatoValido ? `
+      <div class="row"><label>Escala numérica</label>
+        <input type="number" min="0" max="10" placeholder="0" onchange="bindInput('dor.escore', this)">
+        <div class="empty-hint" style="margin-top:6px">0 sem dor · 1–3 leve · 4–6 moderada · 7–10 intensa</div>
+      </div>
+    ` : `
+      <div class="empty-hint" style="margin-bottom:8px">Paciente sob sedação profunda — use escala comportamental (CPOT).</div>
+      <div class="row"><label>Escore CPOT</label>
+        <input type="number" min="0" max="8" placeholder="0" onchange="bindInput('dor.escore', this)">
+        <div class="empty-hint" style="margin-top:6px">0–2 sem dor · ≥3 dor presente</div>
+      </div>
+    `}
+  `);
+}
+
+function sectionMobilidade(){
+  return card('mobilidade','Mobilidade', state.mobilidade.estado,
+    chipSet('mobilidade.estado', ['Deambulando com autonomia','Deambula com auxílio','Restrito ao leito','Acamado, dependente total']));
+}
+
+function sectionCuidados(options){
+  return card('cuidados','Cuidados realizados', `${state.cuidados.length} selecionado(s)`,
+    chipSet('cuidados', options, true));
+}
+
+function sectionFinal(intercorrenciaOptions){
+  const opts = intercorrenciaOptions || ['Nenhuma intercorrência','Hipotensão','Dessaturação','Agitação psicomotora','Outra (ver observação abaixo)'];
+  return card('final','Intercorrências e observações', '', `
+    <div class="row"><label>Intercorrências no plantão</label>
+      <select onchange="bindInput('intercorrencias', this)">
+        ${opts.map(o=>`<option ${o===state.intercorrencias?'selected':''}>${o}</option>`).join('')}
+      </select>
+    </div>
+    <div class="row"><label>Observação livre <span style="font-weight:400">(qualquer achado que os campos acima não cobrem)</span></label>
+      <textarea placeholder="Ex.: em uso de balão intra-aórtico, monitor de PIC..." onchange="bindInput('obsLivre', this)"></textarea>
+    </div>
+  `);
+}
+
+const CUIDADOS_OPTIONS = {
+  uti: ['Mudança de decúbito','Higiene corporal','Higiene oral','Controle glicêmico','Balanço hídrico rigoroso','Conferência das bombas de infusão','Avaliação dos dispositivos invasivos'],
+  puerperio: ['Orientação sobre amamentação','Avaliação de mamas','Troca de curativo (episiorrafia/incisão)','Orientação sobre cuidados com o RN','Deambulação estimulada'],
+  cc: ['Posicionamento cirúrgico', 'Aquecimento do paciente', 'Avaliação de Aldrete-Kroulik', 'Conferência de compressas/instrumentais', 'Critérios de alta da SRPA atendidos'],
+  emerg: ['Monitorização instalada','Acesso venoso puncionado','Coleta de exames','Medicação administrada conforme prescrição','Encaminhado para observação'],
+  geriatria: ['Mudança de decúbito','Auxílio na deambulação','Orientação ao familiar/cuidador','Medidas de prevenção de queda','Controle glicêmico'],
+  clinMed: ['Mudança de decúbito','Higiene corporal','Controle glicêmico','Orientação sobre medicação','Coleta de exames'],
+  clinCx: ['Troca de curativo cirúrgico','Avaliação de dreno(s)','Deambulação estimulada','Orientação de alta','Controle glicêmico'],
+  hemo_dial: ['Monitorização da sessão','Verificação de parâmetros da máquina','Avaliação/curativo do acesso','Pesagem pré-sessão','Pesagem pós-sessão'],
+  paliativos: ['Alívio de sintomas conforme prescrição','Suporte emocional à família','Higiene e conforto','Comunicação com equipe multiprofissional'],
+  saudeMental: ['Observação comportamental contínua','Estímulo à adesão medicamentosa','Escuta terapêutica','Orientação sobre rotina da unidade']
+};
+
+// ---------------- setor: UTI (completo) ----------------
+function renderUTI(){
+  let html = '';
+  html += sectionContexto();
+  html += sectionNeuro();
+  html += sectionResp();
+  html += sectionHemo();
+  html += sectionInfusoes();
+  html += sectionAcessos();
+  html += sectionDrenos();
+  html += sectionGi();
+  html += sectionElim();
+  html += sectionPele();
+  html += sectionDor();
+  html += sectionCuidados(CUIDADOS_OPTIONS.uti);
+  html += sectionFinal();
+  return html;
+}
+
+// ---------------- setor: Puerpério ----------------
+function renderPuerperio(){
+  const pp = state.puerperio;
+  let html = '';
+  html += sectionContexto();
+  html += card('pp-parto','Parto', pp.tipoParto, `
+    ${chipSet('puerperio.tipoParto', ['Parto normal','Cesárea'])}
+    <div class="row" style="margin-top:8px"><label>Tempo pós-parto (horas)</label><input type="number" placeholder="24" onchange="bindInput('puerperio.tempoPosParto', this)"></div>
+  `);
+  html += card('pp-mamas','Mamas', '', `
+    ${chipSetOther('puerperio.mamas', ['Cheias, sem intercorrências','Ingurgitadas','Fissura mamilar','Sinais de mastite'], 'puerperio.mamasOutro')}
+    <div class="row" style="margin-top:8px"><label>Amamentando</label></div>
+    ${chipSet('puerperio.amamentando', ['Sim','Não'])}
+  `);
+  html += card('pp-utero','Útero', '', `
+    ${chipSet('puerperio.utero', ['Contraído, globo de segurança presente','Hipotônico'])}
+    <div class="row" style="margin-top:8px"><label>Altura uterina</label><input type="text" placeholder="2 dedos abaixo da cicatriz umbilical" onchange="bindInput('puerperio.alturaUterina', this)"></div>
+  `);
+  html += card('pp-loquios','Lóquios', '', `
+    <div class="row"><label>Tipo</label></div>
+    ${chipSet('puerperio.loquiosTipo', ['Rubra','Serosa','Alba'])}
+    <div class="row" style="margin-top:8px"><label>Quantidade</label></div>
+    ${chipSet('puerperio.loquiosQtd', ['Pequena','Moderada','Grande'])}
+    <div class="row" style="margin-top:8px"><label>Odor</label></div>
+    ${chipSet('puerperio.loquiosOdor', ['Fisiológico','Fétido'])}
+  `);
+  html += card('pp-perineo', pp.tipoParto==='Cesárea' ? 'Incisão cirúrgica' : 'Períneo', '', `
+    ${pp.tipoParto==='Cesárea' ? `
+      <div class="row"><label>Curativo da incisão</label>
+        <select onchange="bindInput('puerperio.curativo', this)">${CURATIVO_OPTIONS.map(o=>`<option ${o===pp.curativo?'selected':''}>${o}</option>`).join('')}</select>
+      </div>` : `
+      ${chipSet('puerperio.perineo', ['Íntegro','Episiotomia','Laceração'])}
+      ${pp.perineo && pp.perineo!=='Íntegro' ? `
+        <div class="row" style="margin-top:8px"><label>Curativo/aspecto</label>
+          <select onchange="bindInput('puerperio.curativo', this)">${CURATIVO_OPTIONS.map(o=>`<option ${o===pp.curativo?'selected':''}>${o}</option>`).join('')}</select>
+        </div>` : ''}
+    `}
+  `);
+  html += card('pp-bexigaIntestino','Bexiga e intestino', '', `
+    <div class="row"><label>Diurese</label></div>
+    ${chipSet('puerperio.diurese', ['Espontânea','SVD'])}
+    <div class="row" style="margin-top:8px"><label>Globo vesical</label></div>
+    ${chipSet('puerperio.globoVesical', ['Ausente','Presente'])}
+    <div class="row" style="margin-top:12px"><label>Flatos/evacuações</label></div>
+    ${chipSet('puerperio.intestino', ['Flatos presentes','Ainda sem flatos','Evacuação presente'])}
+  `);
+  html += card('pp-emocional','Estado emocional', '', `
+    <div class="empty-hint" style="margin-bottom:8px">Descreve o que foi observado — não é uma triagem diagnóstica.</div>
+    ${chipSetOther('puerperio.emocional', ['Eutímica, vinculada ao RN','Ansiosa','Choro fácil'], 'puerperio.emocionalOutro')}
+  `);
+  html += sectionHemo();
+  html += sectionDor();
+  html += sectionCuidados(CUIDADOS_OPTIONS.puerperio);
+  html += sectionFinal(['Nenhuma intercorrência','Sangramento aumentado','Hipertensão','Febre','Outra (ver observação abaixo)']);
+  return html;
+}
+
+// ---------------- setor: Centro cirúrgico ----------------
+function renderCC(){
+  const cc = state.cc;
+  let html = '';
+  html += sectionContexto();
+  html += card('cc-contexto','Cirurgia', cc.fase, `
+    ${chipSet('cc.fase', ['Pré-operatório','Trans-operatório','Pós-operatório imediato (SRPA)'])}
+    <div class="row" style="margin-top:8px"><label>Procedimento</label><input type="text" placeholder="Ex: colecistectomia videolaparoscópica" onchange="bindInput('cc.cirurgia', this)"></div>
+    <div class="row"><label>Tipo de anestesia</label></div>
+    ${chipSet('cc.anestesia', ['Geral','Raquianestesia','Peridural','Bloqueio','Sedação'])}
+  `);
+  if(cc.fase==='Pós-operatório imediato (SRPA)'){
+    const aldreteFields = ['atividade','respiracao','circulacao','consciencia','spo2'];
+    const total = aldreteFields.reduce((sum,k)=> sum + (parseInt(cc[k])||0), 0);
+    html += card('cc-aldrete','Escala de Aldrete-Kroulik', `total: ${total}/10`, `
+      <div class="row"><label>Atividade motora (0-2)</label>
+        <select onchange="bindInput('cc.atividade', this); renderAll()"><option value="">--</option><option value="0">0 · Incapaz de mover</option><option value="1">1 · Move 2 membros</option><option value="2">2 · Move 4 membros</option></select>
+      </div>
+      <div class="row"><label>Respiração (0-2)</label>
+        <select onchange="bindInput('cc.respiracao', this); renderAll()"><option value="">--</option><option value="0">0 · Apneia</option><option value="1">1 · Dispneia/limitada</option><option value="2">2 · Respira e tosse livremente</option></select>
+      </div>
+      <div class="row"><label>Circulação (0-2)</label>
+        <select onchange="bindInput('cc.circulacao', this); renderAll()"><option value="">--</option><option value="0">0 · PA ±50% do basal</option><option value="1">1 · PA ±20-49% do basal</option><option value="2">2 · PA ±20% do basal</option></select>
+      </div>
+      <div class="row"><label>Consciência (0-2)</label>
+        <select onchange="bindInput('cc.consciencia', this); renderAll()"><option value="">--</option><option value="0">0 · Não desperta</option><option value="1">1 · Desperta ao chamado</option><option value="2">2 · Alerta e orientado</option></select>
+      </div>
+      <div class="row"><label>SpO₂ (0-2)</label>
+        <select onchange="bindInput('cc.spo2Aldrete', this); renderAll()"><option value="">--</option><option value="0">0 · &lt;90% com O₂</option><option value="1">1 · &gt;90% precisa de O₂</option><option value="2">2 · &gt;92% em ar ambiente</option></select>
+      </div>
+      <div class="empty-hint" style="margin-top:6px">≥8: geralmente apto a alta da SRPA · &lt;8: permanece em observação</div>
+    `);
+  }
+  html += card('cc-ferida','Ferida operatória', '', `
+    <div class="row"><label>Curativo</label>
+      <select onchange="bindInput('cc.curativo', this)">${CURATIVO_OPTIONS.map(o=>`<option ${o===cc.curativo?'selected':''}>${o}</option>`).join('')}</select>
+    </div>
+    <div class="row" style="margin-top:8px"><label>Náusea/vômito pós-anestésico</label></div>
+    ${chipSet('cc.nvpo', ['Ausente','Presente'])}
+  `);
+  html += sectionDrenos();
+  html += sectionHemo();
+  html += sectionDor();
+  html += sectionCuidados(CUIDADOS_OPTIONS.cc);
+  html += sectionFinal(['Nenhuma intercorrência','Hipotensão','Sangramento em ferida operatória','NVPO persistente','Outra (ver observação abaixo)']);
+  return html;
+}
+
+// ---------------- setor: Emergência ----------------
+function renderEmerg(){
+  const e = state.emerg;
+  let html = '';
+  html += sectionContexto();
+  html += card('emerg-triagem','Triagem', e.manchester, `
+    <div class="row"><label>Classificação de risco (Manchester)</label></div>
+    <div class="chipset">
+      <div class="chip ${e.manchester==='Vermelho'?'selected':''}" onclick="pick('emerg.manchester','Vermelho')">Vermelho · Emergência</div>
+      <div class="chip ${e.manchester==='Laranja'?'selected':''}" onclick="pick('emerg.manchester','Laranja')">Laranja · Muito urgente</div>
+      <div class="chip ${e.manchester==='Amarelo'?'selected':''}" onclick="pick('emerg.manchester','Amarelo')">Amarelo · Urgente</div>
+      <div class="chip ${e.manchester==='Verde'?'selected':''}" onclick="pick('emerg.manchester','Verde')">Verde · Pouco urgente</div>
+      <div class="chip ${e.manchester==='Azul'?'selected':''}" onclick="pick('emerg.manchester','Azul')">Azul · Não urgente</div>
+    </div>
+    <div class="row" style="margin-top:10px"><label>Queixa principal</label><input type="text" placeholder="Ex: dor torácica há 2h" onchange="bindInput('emerg.queixa', this)"></div>
+  `);
+  html += card('emerg-abcde','Avaliação primária (ABCDE)', '', `
+    <div class="row"><label>Via aérea</label></div>
+    ${chipSet('emerg.viaAerea', ['Pérvia','Obstruída'])}
+    <div class="row" style="margin-top:8px"><label>Nível de consciência (AVDN)</label></div>
+    ${chipSet('emerg.avdn', ['Alerta','Responde a estímulo Verbal','Responde a Dor','Não responde'])}
+    <div class="row" style="margin-top:8px"><label>Exposição/lesões visíveis</label></div>
+    ${chipSetOther('emerg.exposicao', ['Sem lesões visíveis'], 'emerg.exposicaoOutro', 'Descreva a lesão e localização')}
+  `);
+  html += sectionResp();
+  html += sectionHemo();
+  html += sectionDor();
+  html += sectionCuidados(CUIDADOS_OPTIONS.emerg);
+  html += sectionFinal(['Nenhuma intercorrência','Piora do quadro','Necessidade de reclassificação','Outra (ver observação abaixo)']);
+  return html;
+}
+
+// ---------------- setor: Clínica Médica ----------------
+function renderClinMed(){
+  let html = '';
+  html += sectionContexto();
+  html += sectionNeuro();
+  html += sectionMobilidade();
+  html += sectionResp();
+  html += sectionHemo();
+  html += sectionAcessos();
+  html += sectionGi();
+  html += sectionElim();
+  html += sectionPele();
+  html += sectionDor();
+  html += sectionCuidados(CUIDADOS_OPTIONS.clinMed);
+  html += sectionFinal(['Nenhuma intercorrência','Febre','Hipotensão','Queda','Outra (ver observação abaixo)']);
+  return html;
+}
+
+// ---------------- setor: Clínica Cirúrgica ----------------
+function renderClinCx(){
+  const cx = state.clinCx;
+  let html = '';
+  html += sectionContexto();
+  html += card('cx-cirurgia','Cirurgia realizada', cx.diasPO ? `${cx.diasPO}º dia de PO` : '', `
+    <div class="row"><label>Procedimento</label><input type="text" value="${cx.cirurgia}" placeholder="Ex: apendicectomia" onchange="bindInput('clinCx.cirurgia', this)"></div>
+    <div class="row" style="margin-top:8px"><label>Dias de pós-operatório</label><input type="number" value="${cx.diasPO}" placeholder="2" onchange="bindInput('clinCx.diasPO', this)"></div>
+  `);
+  html += sectionNeuro();
+  html += sectionMobilidade();
+  html += sectionHemo();
+  html += sectionAcessos();
+  html += sectionDrenos();
+  html += card('cx-ferida','Ferida operatória', '', `
+    <div class="row"><label>Curativo</label>
+      <select onchange="bindInput('clinCx.curativo', this)">${CURATIVO_OPTIONS.map(o=>`<option ${o===cx.curativo?'selected':''}>${o}</option>`).join('')}</select>
+    </div>
+  `);
+  html += sectionGi();
+  html += sectionElim();
+  html += sectionPele();
+  html += sectionDor();
+  html += sectionCuidados(CUIDADOS_OPTIONS.clinCx);
+  html += sectionFinal(['Nenhuma intercorrência','Febre','Sangramento em ferida operatória','Deiscência de sutura','Outra (ver observação abaixo)']);
+  return html;
+}
+
+// ---------------- setor: Hemodiálise ----------------
+function renderHemoDial(){
+  const hd = state.hemo_dial;
+  let html = '';
+  html += sectionContexto();
+  html += card('hd-acesso','Acesso vascular para diálise', hd.acessoTipo, `
+    ${chipSet('hemo_dial.acessoTipo', ['FAV','Cateter de diálise (CDL)','Prótese'])}
+    <div class="empty-hint" style="margin-top:6px">Registre o aspecto detalhado do acesso em Acessos vasculares, logo abaixo.</div>
+  `);
+  html += sectionAcessos();
+  html += card('hd-sessao','Sessão de hemodiálise', '', `
+    <div class="grid2">
+      <div class="row"><label>Tempo previsto (h)</label><input type="number" placeholder="4" onchange="bindInput('hemo_dial.tempoSessao', this)"></div>
+      <div class="row"><label>Tempo decorrido (h)</label><input type="number" placeholder="2" onchange="bindInput('hemo_dial.tempoDecorrido', this)"></div>
+    </div>
+    <div class="grid2" style="margin-top:8px">
+      <div class="row"><label>Peso seco (kg)</label><input type="number" placeholder="68.0" onchange="bindInput('hemo_dial.pesoSeco', this)"></div>
+      <div class="row"><label>Peso pré-diálise (kg)</label><input type="number" placeholder="70.4" onchange="bindInput('hemo_dial.pesoPre', this)"></div>
+    </div>
+    <div class="row" style="margin-top:8px"><label>Ultrafiltração prevista (mL)</label><input type="number" placeholder="2400" onchange="bindInput('hemo_dial.ufPrevista', this)"></div>
+    <div class="row" style="margin-top:10px"><label>Intercorrência durante a sessão</label>
+      <select onchange="bindInput('hemo_dial.intercorrenciaSessao', this)">
+        <option>Nenhuma intercorrência</option><option>Hipotensão durante a sessão</option><option>Cãibras</option><option>Náusea/mal-estar</option>
+      </select>
+    </div>
+  `);
+  html += sectionHemo();
+  html += sectionDor();
+  html += sectionPele();
+  html += sectionCuidados(CUIDADOS_OPTIONS.hemo_dial);
+  html += sectionFinal(['Nenhuma intercorrência','Hipotensão','Sangramento no acesso','Cãibras','Outra (ver observação abaixo)']);
+  return html;
+}
+
+// ---------------- setor: Saúde Mental ----------------
+function renderSaudeMental(){
+  const sm = state.saudeMental;
+  let html = '';
+  html += sectionContexto();
+  html += card('sm-comportamento','Comportamento observado', sm.comportamento, `
+    <div class="empty-hint" style="margin-bottom:8px">Descreve o que foi observado no plantão — não é uma triagem ou classificação diagnóstica.</div>
+    ${chipSetOther('saudeMental.comportamento', ['Calmo e colaborativo','Agitado','Ansioso','Retraído/pouco comunicativo'], 'saudeMental.comportamentoOutro')}
+    <div class="row" style="margin-top:10px"><label>Orientação</label></div>
+    ${chipSet('saudeMental.orientacao', ['Orientado','Desorientado'])}
+  `);
+  html += card('sm-adesao','Adesão e segurança', '', `
+    <div class="row"><label>Medicação</label></div>
+    ${chipSet('saudeMental.adesao', ['Aceita medicação','Recusa medicação'])}
+    <div class="row" style="margin-top:8px"><label>Contenção mecânica</label></div>
+    ${chipSet('saudeMental.contencao', ['Não','Sim'])}
+    ${sm.contencao==='Sim' ? `<div class="row" style="margin-top:8px"><label>Motivo/protocolo aplicado</label><textarea placeholder="Conforme protocolo institucional, motivo e horário de reavaliação" onchange="bindInput('saudeMental.contencaoMotivo', this)"></textarea></div>` : ''}
+  `);
+  html += sectionDor();
+  html += sectionCuidados(CUIDADOS_OPTIONS.saudeMental);
+  html += sectionFinal(['Nenhuma intercorrência','Agitação psicomotora','Recusa alimentar','Necessidade de avaliação médica urgente','Outra (ver observação abaixo)']);
+  return html;
+}
+
+const SETORES = [
+  {key:'uti', label:'UTI', sub:'Paciente crítico, dispositivos múltiplos'},
+  {key:'clinMed', label:'Clínica Médica', sub:'Enfermaria, paciente clínico'},
+  {key:'clinCx', label:'Clínica Cirúrgica', sub:'Enfermaria, pós-operatório'},
+  {key:'hemo_dial', label:'Hemodiálise', sub:'Sessão, acesso vascular, balanço'},
+  {key:'saudeMental', label:'Saúde Mental', sub:'Comportamento, adesão, segurança'},
+  {key:'puerperio', label:'Puerpério', sub:'Pós-parto, normal ou cesárea'},
+  {key:'cc', label:'Centro cirúrgico', sub:'Pré, trans e pós-operatório (SRPA)'},
+  {key:'emerg', label:'Emergência', sub:'Triagem e avaliação primária'}
+];
+function renderHome(){
+  return `
+    <div class="eyebrow" style="margin-bottom:14px">Escolha o setor</div>
+    ${SETORES.map(s=>`
+      <div class="card" style="cursor:pointer" onclick="goSetor('${s.key}')">
+        <div class="card-head">
+          <div><div class="title">${s.label}</div><div class="sub">${s.sub}</div></div>
+          <div class="chev" style="transform:rotate(-90deg)">▾</div>
+        </div>
+      </div>
+    `).join('')}
+    <div class="empty-hint" style="margin-top:10px">Puerpério, centro cirúrgico, emergência e geriatria são conteúdo inicial (v1) — vale sua revisão clínica antes de confiar no texto gerado.</div>
+  `;
+}
+function goSetor(key){ state.setor = key; renderAll(); }
+function goHome(){ state.setor = null; renderAll(); }
+
+// ---------------- despachante principal ----------------
+function renderAll(){
+  if(!state.setor){ content.innerHTML = renderHome(); return; }
+  let html = `<div class="back-link" onclick="goHome()">← trocar setor</div>`;
+  if(state.setor==='uti') html += renderUTI();
+  else if(state.setor==='clinMed') html += renderClinMed();
+  else if(state.setor==='clinCx') html += renderClinCx();
+  else if(state.setor==='hemo_dial') html += renderHemoDial();
+  else if(state.setor==='saudeMental') html += renderSaudeMental();
+  else if(state.setor==='puerperio') html += renderPuerperio();
+  else if(state.setor==='cc') html += renderCC();
+  else if(state.setor==='emerg') html += renderEmerg();
+  content.innerHTML = html;
+  content.innerHTML += `<div class="bottom-bar"><button class="btn" onclick="renderResult()">Gerar evolução</button></div>`;
+}
+
+// ---------------- listas dinâmicas ----------------
+let addingType = { infusoes:false, acessos:null, drenos:null };
+
+const QUICK_DRUGS = [
+  {nome:'Noradrenalina', categoria:'vasoativa'}, {nome:'Adrenalina', categoria:'vasoativa'},
+  {nome:'Dobutamina', categoria:'vasoativa'}, {nome:'Dopamina', categoria:'vasoativa'},
+  {nome:'Vasopressina', categoria:'vasoativa'}, {nome:'Nitroglicerina', categoria:'vasoativa'},
+  {nome:'Nitroprussiato', categoria:'vasoativa'},
+  {nome:'Propofol', categoria:'sedativo'}, {nome:'Midazolam', categoria:'sedativo'},
+  {nome:'Dexmedetomidina', categoria:'sedativo'}, {nome:'Cetamina', categoria:'sedativo'},
+  {nome:'Fentanil', categoria:'analgesico'}
+];
+
+function renderInfusoes(){
+  let html = state.infusoes.map((it,i)=>`
+    <div class="list-item">
+      <div class="txt" style="flex:1"><b>${CAT_LABEL[it.categoria]}</b>${it.farmaco}
+        <input type="number" style="width:64px;display:inline-block;margin-left:6px;padding:5px 6px;border-radius:6px;border:1px solid var(--line)" value="${it.taxa}" onchange="updateInfusaoTaxa(${i}, this.value)"> ${it.unidade}
+      </div>
+      <button class="rm" onclick="removeItem('infusoes', ${i})">✕</button>
+    </div>`).join('');
+  if(!state.infusoes.length) html += `<div class="empty-hint">Nenhuma infusão registrada.</div>`;
+
+  html += `<div class="row" style="margin-top:4px"><label>Toque pra adicionar rápido</label></div>
+    <div class="chipset">${QUICK_DRUGS.map(d=>`<div class="chip" onclick="quickAddDrug('${d.nome}','${d.categoria}')">${d.nome}</div>`).join('')}</div>`;
+
+  if(addingType.infusoes){
+    html += `<div class="addbox">
+      <div class="row"><label>Fármaco</label><input type="text" id="newInfFarmaco" placeholder="Noradrenalina"></div>
+      <div class="grid2">
+        <div class="row"><label>Taxa</label><input type="number" id="newInfTaxa" placeholder="6"></div>
+        <div class="row"><label>Unidade</label>
+          <select id="newInfUnidade"><option>mL/h</option><option>mcg/kg/min</option><option>UI/h</option></select>
+        </div>
+      </div>
+      <div class="row"><label>Categoria</label>
+        <select id="newInfCategoria">${INFUSION_CATEGORIES.map(c=>`<option value="${c}">${CAT_LABEL[c]}</option>`).join('')}</select>
+      </div>
+      <button class="btn-confirm" onclick="confirmInfusao()">Adicionar infusão</button>
+      <button class="btn-cancel" onclick="addingType.infusoes=false; renderAll()">Cancelar</button>
+    </div>`;
+  } else {
+    html += `<button class="btn-add" onclick="addingType.infusoes=true; renderAll()">+ Outra infusão (fora da lista)</button>`;
+  }
+  return html;
+}
+function quickAddDrug(nome, categoria){
+  state.infusoes.push({farmaco:nome, taxa:'', unidade:'mL/h', categoria});
+  renderAll();
+}
+function updateInfusaoTaxa(i, val){ state.infusoes[i].taxa = val; }
+function confirmInfusao(){
+  const farmaco = document.getElementById('newInfFarmaco').value;
+  const taxa = document.getElementById('newInfTaxa').value;
+  const unidade = document.getElementById('newInfUnidade').value;
+  const categoria = document.getElementById('newInfCategoria').value;
+  if(!farmaco || !taxa) return;
+  state.infusoes.push({farmaco, taxa, unidade, categoria});
+  addingType.infusoes = false;
+  renderAll();
+}
+
+const openDeviceCards = new Set(); // controla quais itens já adicionados estão expandidos pra reavaliação
+
+function renderDynamicList(stateKey, typeConfig, addingKey){
+  const items = state[stateKey];
+  let html = items.map((it,i)=>{
+    const cfg = typeConfig[it._tipo];
+    const cardId = stateKey+'-'+i;
+    const isOpen = openDeviceCards.has(cardId);
+    return `<div class="device-card">
+      <div class="device-card-head" onclick="toggleDeviceCard('${cardId}')">
+        <div><b>${cfg.label}</b><div class="device-summary">${cfg.render(it)}</div></div>
+        <div style="display:flex; align-items:center; gap:6px">
+          <span class="chev" style="transform:${isOpen?'rotate(180deg)':'none'}">▾</span>
+          <button class="rm" onclick="event.stopPropagation(); removeItem('${stateKey}', ${i})">✕</button>
+        </div>
+      </div>
+      ${isOpen ? `<div class="device-card-body">
+        ${cfg.fields.map(f=>{
+          const val = it[f.key] || '';
+          if(f.type==='select'){
+            return `<div class="row"><label>${f.label}</label><select onchange="updateDynamicField('${stateKey}',${i},'${f.key}', this.value)">${f.options.map(o=>`<option ${o===val?'selected':''}>${o}</option>`).join('')}</select></div>`;
+          }
+          if(f.type==='textarea'){
+            return `<div class="row"><label>${f.label}</label><textarea onchange="updateDynamicField('${stateKey}',${i},'${f.key}', this.value)">${val}</textarea></div>`;
+          }
+          return `<div class="row"><label>${f.label}</label><input type="${f.type}" value="${val}" placeholder="${f.placeholder||''}" onchange="updateDynamicField('${stateKey}',${i},'${f.key}', this.value)"></div>`;
+        }).join('')}
+      </div>` : ''}
+    </div>`;
+  }).join('');
+  if(!items.length) html += `<div class="empty-hint">Nenhum item registrado.</div>`;
+
+  const currentAdd = addingType[stateKey];
+  if(currentAdd){
+    const cfg = typeConfig[currentAdd];
+    html += `<div class="addbox">
+      <div class="row"><label>Tipo</label>
+        <select onchange="changeAddType('${stateKey}', this.value)">
+          ${Object.keys(typeConfig).map(k=>`<option value="${k}" ${k===currentAdd?'selected':''}>${typeConfig[k].label}</option>`).join('')}
+        </select>
+      </div>
+      ${cfg.fields.map(f=>{
+        if(f.type==='select'){
+          return `<div class="row"><label>${f.label}</label><select id="fld_${f.key}">${f.options.map(o=>`<option>${o}</option>`).join('')}</select></div>`;
+        }
+        if(f.type==='textarea'){
+          return `<div class="row"><label>${f.label}</label><textarea id="fld_${f.key}" placeholder="${f.placeholder||''}"></textarea></div>`;
+        }
+        return `<div class="row"><label>${f.label}</label><input type="${f.type}" id="fld_${f.key}" placeholder="${f.placeholder||''}"></div>`;
+      }).join('')}
+      <button class="btn-confirm" onclick="confirmDynamic('${stateKey}', '${currentAdd}')">Adicionar</button>
+      <button class="btn-cancel" onclick="addingType.${stateKey}=null; renderAll()">Cancelar</button>
+    </div>`;
+  } else {
+    html += `<button class="btn-add" onclick="startAddDynamic('${stateKey}','${Object.keys(typeConfig)[0]}')">+ Adicionar ${addingKey==='acesso'?'acesso':'dreno/sonda'}</button>`;
+  }
+  return html;
+}
+function toggleDeviceCard(cardId){
+  if(openDeviceCards.has(cardId)) openDeviceCards.delete(cardId); else openDeviceCards.add(cardId);
+  renderAll();
+}
+function updateDynamicField(stateKey, index, fieldKey, value){
+  state[stateKey][index][fieldKey] = value;
+  renderAll();
+}
+function startAddDynamic(stateKey, firstType){ addingType[stateKey] = firstType; renderAll(); }
+function jumpToDrain(tipo){ openCards.add('drenos'); startAddDynamic('drenos', tipo); }
+function changeAddType(stateKey, type){ addingType[stateKey] = type; renderAll(); }
+function confirmDynamic(stateKey, tipo){
+  const typeConfig = stateKey==='acessos' ? ACCESS_TYPES : DRAIN_TYPES;
+  const cfg = typeConfig[tipo];
+  const item = { _tipo: tipo };
+  cfg.fields.forEach(f=>{ item[f.key] = document.getElementById('fld_'+f.key).value; });
+  state[stateKey].push(item);
+  addingType[stateKey] = null;
+  openDeviceCards.add(stateKey+'-'+(state[stateKey].length-1)); // já abre pra reavaliação futura ficar visível
+  renderAll();
+}
+function removeItem(stateKey, i){
+  state[stateKey].splice(i,1);
+  // reindexa os cards abertos porque os índices mudaram
+  const kept = new Set();
+  openDeviceCards.forEach(id=>{
+    const [key, idx] = id.split('-');
+    if(key===stateKey){ if(parseInt(idx) < i) kept.add(id); else if(parseInt(idx) > i) kept.add(key+'-'+(parseInt(idx)-1)); }
+    else kept.add(id);
+  });
+  openDeviceCards.clear();
+  kept.forEach(id=>openDeviceCards.add(id));
+  renderAll();
+}
+
+
+// ---------------- geração de texto ----------------
+function classFR(fr){ fr=parseFloat(fr); if(isNaN(fr))return '—'; if(fr<12)return'bradipneica'; if(fr>20)return'taquipneica'; return'eupneica'; }
+function classFC(fc){ fc=parseFloat(fc); if(isNaN(fc))return '—'; if(fc<60)return'bradicárdica'; if(fc>100)return'taquicárdica'; return'normocárdica'; }
+function classPA(p){ p=parseFloat(p); if(isNaN(p))return '—'; if(p<90)return'hipotensa'; if(p>140)return'hipertensa'; return'normotensa'; }
+function classTemp(t){ t=parseFloat(t); if(isNaN(t))return '—'; if(t<36)return'hipotérmica'; if(t>37.5)return'febril'; return'afebril'; }
+function cap(s){ return s? s.charAt(0).toUpperCase()+s.slice(1) : s; }
+
+function buildTextUTI(){
+  const n = state.neuro, r = state.resp, h = state.hemo;
+  const turnoTxt = state.meta.turno==='Plantão diurno' ? 'diurno' : 'noturno';
+  const p = [];
+
+  // Neuro
+  let neuroTxt;
+  if(n.modo==='Sedado'){
+    neuroTxt = `Sedado, RASS ${n.rass ?? '--'}${n.rass<=-3 ? ', sem resposta a estímulos verbais' : ''}.`;
+  } else {
+    const map = {'Alerta e orientado':'Lúcida, orientada e colaborativa','Sonolento':'Sonolenta, despertando ao estímulo verbal','Confuso':'Confusa, com desorientação temporoespacial','Coma':'Em coma, sem resposta a estímulos'};
+    neuroTxt = (map[n.modo]||'—') + '.';
+    if(n.glasgowO || n.glasgowV || n.glasgowM){
+      const total = (parseInt(n.glasgowO)||0)+(parseInt(n.glasgowV)||0)+(parseInt(n.glasgowM)||0);
+      neuroTxt += ` Glasgow ${total} (O${n.glasgowO||'-'}V${n.glasgowV||'-'}M${n.glasgowM||'-'}).`;
+    }
+  }
+  p.push(`Avaliada durante plantão ${turnoTxt}. ${neuroTxt} ${n.pupilas==='Outro (descreva)' ? (n.pupilasOutro||'Pupilas não avaliadas') : n.pupilas}.`);
+
+  // Resp
+  let respTxt;
+  if(r.suporte==='Outro (descreva)'){
+    respTxt = r.suporteOutro || 'Em suporte respiratório não especificado.';
+  } else if(r.suporte==='Ventilação mecânica invasiva'){
+    respTxt = `Sob ventilação mecânica invasiva por ${r.viaAerea||'via aérea'} nº ${r.numero||'--'}, fixado em ${r.fixacaoCm||'--'} cm em ${lc(r.localFixacao)||'--'}, cuff ${lc(r.cuff)||'--'}, ${lc(r.adaptacao)||'adaptado ao ventilador'}. Modo ${r.modoVent||'--'}, FiO₂ ${r.fio2||'--'}%, PEEP ${r.peep||'--'} cmH₂O, volume corrente de ${r.volCorrente||'--'} mL.`;
+  } else if(r.suporte==='Cateter nasal' || r.suporte==='Máscara'){
+    respTxt = `Em ${lc(r.suporte)} a ${r.fluxo||'--'} L/min.`;
+  } else {
+    respTxt = `Em ${lc(r.suporte)}.`;
+  }
+  respTxt += ` Ausculta pulmonar: ${lc(r.ausculta)}.`;
+  if(r.aspiracao==='sim'){
+    respTxt += ` Realizada aspiração de vias aéreas com retirada de secreção ${lc(r.secQtd)||'--'}, ${lc(r.secAspecto)||'--'}, ${lc(r.secCor)||'--'}.`;
+  }
+  p.push(respTxt);
+
+  // Hemo
+  let hemoTxt = `${cap(classFC(h.fc))}, com frequência cardíaca de ${h.fc||'--'} bpm. `;
+  if(h.paTipo==='invasiva'){
+    hemoTxt += `PA invasiva de ${h.pas||'--'}x${h.pad||'--'} mmHg (PAM ${h.pam||'--'} mmHg). `;
+  } else {
+    hemoTxt += `${cap(classPA(h.pas))}, com PA não invasiva de ${h.pas||'--'}x${h.pad||'--'} mmHg. `;
+  }
+  hemoTxt += `SpO₂ ${h.spo2||'--'}%. ${cap(classTemp(h.temp))}, temperatura axilar de ${h.temp||'--'} °C.`;
+  p.push(hemoTxt);
+
+  // Infusões agrupadas
+  if(state.infusoes.length){
+    const byCat = {};
+    state.infusoes.forEach(it=>{ (byCat[it.categoria] = byCat[it.categoria]||[]).push(`${it.farmaco} a ${it.taxa} ${it.unidade}`); });
+    const parts = Object.keys(byCat).map(cat => `${CAT_LABEL[cat].toLowerCase()}: ${byCat[cat].join(', ')}`);
+    p.push(`Mantém infusão contínua em bombas de infusão — ${parts.join('; ')} — todas identificadas, conferidas e infundidas por vias exclusivas conforme prescrição médica.`);
+  }
+
+  // Acessos
+  if(state.acessos.length){
+    p.push(state.acessos.map(it => ACCESS_TYPES[it._tipo].render(it)).join(' '));
+  }
+
+  // Drenos/sondas
+  if(state.drenos.length){
+    p.push(state.drenos.map(it => DRAIN_TYPES[it._tipo].render(it)).join(' '));
+  }
+
+  // GI
+  let dietaTxt = '';
+  if(state.gi.dietaVia==='Oral') dietaTxt = `Dieta oral, ${lc(state.gi.dietaAceitacao)}.`;
+  else if(state.gi.dietaVia==='Zero') dietaTxt = 'Mantida em dieta zero.';
+  // 'Por sonda' e 'Parenteral' já aparecem no parágrafo de drenos/infusões, não repete aqui.
+  p.push(`Abdome ${lc(state.gi.abdome)}, ruídos hidroaéreos ${lc(state.gi.ruidos)}.${dietaTxt? ' '+dietaTxt : ''}`);
+
+  // Eliminações
+  let diureseTxt;
+  if(state.elim.diurese==='Espontânea'){
+    diureseTxt = `Diurese espontânea, aspecto ${lc(state.elim.diureseAspecto)}.`;
+  } else {
+    diureseTxt = ''; // já coberto pelo dispositivo em Drenos e sondas
+  }
+  const evacMap = {'Presentes, preservadas':'Evacuações preservadas.','Ausentes há mais de 3 dias':'Sem evacuações há mais de 3 dias.','Diarreia':'Evacuações diarreicas.','Outro (descreva)': (state.elim.evacuacoesOutro || '') + '.'};
+  p.push([diureseTxt, evacMap[state.elim.evacuacoes]].filter(Boolean).join(' '));
+
+  // Pele
+  const peleMap = {'Íntegra':'Pele íntegra','Lesão por pressão':`Presença de lesão por pressão em ${lc(state.pele.lpLocal)||'--'} (${lc(state.pele.lpEstagio)||'--'}), curativo realizado conforme protocolo`,'Ressecada / prurido':'Pele ressecada, com relato de prurido','Outro (descreva)': state.pele.integridadeOutro || 'Pele avaliada'};
+  let peleTxt = (peleMap[state.pele.integridade]||'') + (state.pele.braden? `, Braden ${state.pele.braden}` : '') + '.';
+  p.push(peleTxt);
+
+  // Dor
+  const autorrelatoValido = visible('dorAutorrelatoValido');
+  if(state.dor.escore !== ''){
+    p.push(autorrelatoValido
+      ? `Refere dor de intensidade ${state.dor.escore}/10.`
+      : `Escore CPOT de ${state.dor.escore}/8, sugestivo de ${state.dor.escore>2?'dor presente':'ausência de dor'}.`);
+  }
+
+  // Cuidados
+  if(state.cuidados.length){
+    p.push(`Realizadas ${state.cuidados.map(c=>c.toLowerCase()).join(', ')}.`);
+  }
+
+  // Intercorrências
+  p.push(state.intercorrencias==='Nenhuma intercorrência' ? 'Sem intercorrências durante o plantão.' : `Intercorrência no plantão: ${lc(state.intercorrencias)}.`);
+
+  if(state.obsLivre.trim()) p.push(state.obsLivre.trim());
+
+  return p.filter(Boolean).join('\n\n');
+}
+
+function buildTextPuerperio(){
+  const pp = state.puerperio;
+  const turnoTxt = state.meta.turno==='Plantão diurno' ? 'diurno' : 'noturno';
+  const p = [];
+  p.push(`Avaliada durante plantão ${turnoTxt}. Puérpera em ${pp.tipoParto==='Cesárea'?'pós-cesárea':'pós-parto normal'}, ${pp.tempoPosParto||'--'}h.`);
+  p.push(`Mamas ${lc(pp.mamas==='Outro (descreva)'?(pp.mamasOutro||''):pp.mamas)}. Amamentando: ${lc(pp.amamentando)}.`);
+  p.push(`Útero ${lc(pp.utero)}, altura uterina ${lc(pp.alturaUterina)||'--'}.`);
+  p.push(`Lóquios ${lc(pp.loquiosTipo)}, quantidade ${lc(pp.loquiosQtd)}, odor ${lc(pp.loquiosOdor)}.`);
+  if(pp.tipoParto==='Cesárea'){
+    p.push(`Incisão cirúrgica com curativo ${lc(pp.curativo)}.`);
+  } else {
+    p.push(pp.perineo==='Íntegro' ? 'Períneo íntegro.' : `Períneo com ${lc(pp.perineo)}, curativo/aspecto ${lc(pp.curativo)}.`);
+  }
+  p.push(`Diurese ${lc(pp.diurese)}, globo vesical ${lc(pp.globoVesical)}. ${pp.intestino}.`);
+  p.push(`Estado emocional: ${lc(pp.emocional==='Outro (descreva)'?(pp.emocionalOutro||''):pp.emocional)}.`);
+  const h = state.hemo;
+  p.push(`${cap(classFC(h.fc))}, FC ${h.fc||'--'} bpm. ${cap(classPA(h.pas))}, PA ${h.pas||'--'}x${h.pad||'--'} mmHg. ${cap(classTemp(h.temp))}, temperatura ${h.temp||'--'} °C.`);
+  if(state.dor.escore !== '') p.push(`Refere dor de intensidade ${state.dor.escore}/10.`);
+  if(state.cuidados.length) p.push(`Realizadas ${state.cuidados.map(c=>c.toLowerCase()).join(', ')}.`);
+  p.push(state.intercorrencias==='Nenhuma intercorrência' ? 'Sem intercorrências durante o plantão.' : `Intercorrência: ${lc(state.intercorrencias)}.`);
+  if(state.obsLivre.trim()) p.push(state.obsLivre.trim());
+  return p.filter(Boolean).join('\n\n');
+}
+
+function buildTextCC(){
+  const cc = state.cc;
+  const turnoTxt = state.meta.turno==='Plantão diurno' ? 'diurno' : 'noturno';
+  const p = [];
+  p.push(`Avaliada durante plantão ${turnoTxt}. Paciente em ${lc(cc.fase)} de ${cc.cirurgia||'procedimento cirúrgico'}, sob anestesia ${lc(cc.anestesia)}.`);
+  if(cc.fase==='Pós-operatório imediato (SRPA)'){
+    const total = ['atividade','respiracao','circulacao','consciencia','spo2Aldrete'].reduce((s,k)=>s+(parseInt(cc[k])||0),0);
+    p.push(`Escala de Aldrete-Kroulik: ${total}/10 (${total>=8?'critérios de alta da SRPA atendidos':'permanece em observação'}).`);
+  }
+  p.push(`Ferida operatória com curativo ${lc(cc.curativo)}. NVPO: ${lc(cc.nvpo)}.`);
+  if(state.drenos.length) p.push(state.drenos.map(it => DRAIN_TYPES[it._tipo].render(it)).join(' '));
+  const h = state.hemo;
+  p.push(`${cap(classFC(h.fc))}, FC ${h.fc||'--'} bpm. ${cap(classPA(h.pas))}, PA ${h.pas||'--'}x${h.pad||'--'} mmHg. SpO₂ ${h.spo2||'--'}%. ${cap(classTemp(h.temp))}, temperatura ${h.temp||'--'} °C.`);
+  if(state.dor.escore !== '') p.push(`Refere dor de intensidade ${state.dor.escore}/10.`);
+  if(state.cuidados.length) p.push(`Realizadas ${state.cuidados.map(c=>c.toLowerCase()).join(', ')}.`);
+  p.push(state.intercorrencias==='Nenhuma intercorrência' ? 'Sem intercorrências durante o plantão.' : `Intercorrência: ${lc(state.intercorrencias)}.`);
+  if(state.obsLivre.trim()) p.push(state.obsLivre.trim());
+  return p.filter(Boolean).join('\n\n');
+}
+
+function buildTextEmerg(){
+  const e = state.emerg;
+  const turnoTxt = state.meta.turno==='Plantão diurno' ? 'diurno' : 'noturno';
+  const p = [];
+  p.push(`Avaliada durante plantão ${turnoTxt}. Classificação de risco Manchester: ${e.manchester||'--'}. Queixa principal: ${e.queixa||'--'}.`);
+  p.push(`Via aérea ${lc(e.viaAerea)}. Nível de consciência (AVDN): ${lc(e.avdn)}. Exposição: ${lc(e.exposicao==='Outro (descreva)'?(e.exposicaoOutro||''):e.exposicao)}.`);
+  const r = state.resp, h = state.hemo;
+  p.push(`Em ${lc(r.suporte)}. ${cap(classFC(h.fc))}, FC ${h.fc||'--'} bpm. ${cap(classPA(h.pas))}, PA ${h.pas||'--'}x${h.pad||'--'} mmHg. SpO₂ ${h.spo2||'--'}%. ${cap(classTemp(h.temp))}, temperatura ${h.temp||'--'} °C.`);
+  if(state.dor.escore !== '') p.push(`Refere dor de intensidade ${state.dor.escore}/10.`);
+  if(state.cuidados.length) p.push(`Realizadas ${state.cuidados.map(c=>c.toLowerCase()).join(', ')}.`);
+  p.push(state.intercorrencias==='Nenhuma intercorrência' ? 'Sem intercorrências durante o plantão.' : `Intercorrência: ${lc(state.intercorrencias)}.`);
+  if(state.obsLivre.trim()) p.push(state.obsLivre.trim());
+  return p.filter(Boolean).join('\n\n');
+}
+
+function buildTextClinMed(){
+  const turnoTxt = state.meta.turno==='Plantão diurno' ? 'diurno' : 'noturno';
+  const n = state.neuro, h = state.hemo;
+  const p = [];
+  p.push(`Avaliada durante plantão ${turnoTxt}. Paciente ${lc(n.modo)}. Mobilidade: ${lc(state.mobilidade.estado)}.`);
+  p.push(`${cap(classFC(h.fc))}, FC ${h.fc||'--'} bpm. ${cap(classPA(h.pas))}, PA ${h.pas||'--'}x${h.pad||'--'} mmHg. SpO₂ ${h.spo2||'--'}%. ${cap(classTemp(h.temp))}, temperatura ${h.temp||'--'} °C.`);
+  if(state.acessos.length) p.push(state.acessos.map(it => ACCESS_TYPES[it._tipo].render(it)).join(' '));
+  const dietaTxt = state.gi.dietaVia==='Oral' ? `Dieta oral, ${lc(state.gi.dietaAceitacao)}.` : state.gi.dietaVia==='Zero' ? 'Mantida em dieta zero.' : '';
+  p.push(`Abdome ${lc(state.gi.abdome)}, ruídos hidroaéreos ${lc(state.gi.ruidos)}.${dietaTxt?' '+dietaTxt:''}`);
+  const diureseTxt = state.elim.diurese==='Espontânea' ? `Diurese espontânea, aspecto ${lc(state.elim.diureseAspecto)}.` : '';
+  const evacMap = {'Presentes, preservadas':'Evacuações preservadas.','Ausentes há mais de 3 dias':'Sem evacuações há mais de 3 dias.','Diarreia':'Evacuações diarreicas.'};
+  p.push([diureseTxt, evacMap[state.elim.evacuacoes]].filter(Boolean).join(' '));
+  const peleMap = {'Íntegra':'Pele íntegra','Lesão por pressão':`Presença de lesão por pressão em ${lc(state.pele.lpLocal)||'--'} (${lc(state.pele.lpEstagio)||'--'})`,'Ressecada / prurido':'Pele ressecada, com relato de prurido'};
+  p.push((peleMap[state.pele.integridade]||'Pele avaliada') + (state.pele.braden? `, Braden ${state.pele.braden}` : '') + '.');
+  if(state.dor.escore !== '') p.push(`Refere dor de intensidade ${state.dor.escore}/10.`);
+  if(state.cuidados.length) p.push(`Realizadas ${state.cuidados.map(c=>c.toLowerCase()).join(', ')}.`);
+  p.push(state.intercorrencias==='Nenhuma intercorrência' ? 'Sem intercorrências durante o plantão.' : `Intercorrência: ${lc(state.intercorrencias)}.`);
+  if(state.obsLivre.trim()) p.push(state.obsLivre.trim());
+  return p.filter(Boolean).join('\n\n');
+}
+
+function buildTextClinCx(){
+  const cx = state.clinCx;
+  const turnoTxt = state.meta.turno==='Plantão diurno' ? 'diurno' : 'noturno';
+  const h = state.hemo;
+  const p = [];
+  p.push(`Avaliada durante plantão ${turnoTxt}. Paciente em ${cx.diasPO||'--'}º dia de pós-operatório de ${cx.cirurgia||'procedimento cirúrgico'}.`);
+  p.push(`Mobilidade: ${lc(state.mobilidade.estado)}.`);
+  p.push(`${cap(classFC(h.fc))}, FC ${h.fc||'--'} bpm. ${cap(classPA(h.pas))}, PA ${h.pas||'--'}x${h.pad||'--'} mmHg. ${cap(classTemp(h.temp))}, temperatura ${h.temp||'--'} °C.`);
+  if(state.acessos.length) p.push(state.acessos.map(it => ACCESS_TYPES[it._tipo].render(it)).join(' '));
+  if(state.drenos.length) p.push(state.drenos.map(it => DRAIN_TYPES[it._tipo].render(it)).join(' '));
+  p.push(`Ferida operatória com curativo ${lc(cx.curativo)}.`);
+  const dietaTxt = state.gi.dietaVia==='Oral' ? `Dieta oral, ${lc(state.gi.dietaAceitacao)}.` : state.gi.dietaVia==='Zero' ? 'Mantida em dieta zero.' : '';
+  p.push(`Abdome ${lc(state.gi.abdome)}, ruídos hidroaéreos ${lc(state.gi.ruidos)}.${dietaTxt?' '+dietaTxt:''}`);
+  if(state.dor.escore !== '') p.push(`Refere dor de intensidade ${state.dor.escore}/10.`);
+  if(state.cuidados.length) p.push(`Realizadas ${state.cuidados.map(c=>c.toLowerCase()).join(', ')}.`);
+  p.push(state.intercorrencias==='Nenhuma intercorrência' ? 'Sem intercorrências durante o plantão.' : `Intercorrência: ${lc(state.intercorrencias)}.`);
+  if(state.obsLivre.trim()) p.push(state.obsLivre.trim());
+  return p.filter(Boolean).join('\n\n');
+}
+
+function buildTextHemoDial(){
+  const hd = state.hemo_dial;
+  const h = state.hemo;
+  const turnoTxt = state.meta.turno==='Plantão diurno' ? 'diurno' : 'noturno';
+  const p = [];
+  p.push(`Avaliada durante plantão ${turnoTxt}. Em sessão de hemodiálise, acesso tipo ${lc(hd.acessoTipo)}.`);
+  if(state.acessos.length) p.push(state.acessos.map(it => ACCESS_TYPES[it._tipo].render(it)).join(' '));
+  const ganho = (hd.pesoPre && hd.pesoSeco) ? (parseFloat(hd.pesoPre) - parseFloat(hd.pesoSeco)).toFixed(1) : null;
+  p.push(`Peso seco ${hd.pesoSeco||'--'} kg, peso pré-diálise ${hd.pesoPre||'--'} kg${ganho?` (ganho interdialítico de ${ganho} kg)`:''}. Ultrafiltração prevista de ${hd.ufPrevista||'--'} mL. Tempo decorrido ${hd.tempoDecorrido||'--'}h de ${hd.tempoSessao||'--'}h previstas.`);
+  p.push(hd.intercorrenciaSessao==='Nenhuma intercorrência' ? 'Sessão transcorrendo sem intercorrências.' : `Intercorrência na sessão: ${lc(hd.intercorrenciaSessao)}.`);
+  p.push(`${cap(classFC(h.fc))}, FC ${h.fc||'--'} bpm. ${cap(classPA(h.pas))}, PA ${h.pas||'--'}x${h.pad||'--'} mmHg. ${cap(classTemp(h.temp))}, temperatura ${h.temp||'--'} °C.`);
+  if(state.dor.escore !== '') p.push(`Refere dor de intensidade ${state.dor.escore}/10.`);
+  const peleMap = {'Íntegra':'Pele íntegra','Lesão por pressão':'Presença de lesão por pressão','Ressecada / prurido':'Pele ressecada, com relato de prurido'};
+  p.push((peleMap[state.pele.integridade]||'Pele avaliada') + '.');
+  if(state.cuidados.length) p.push(`Realizadas ${state.cuidados.map(c=>c.toLowerCase()).join(', ')}.`);
+  p.push(state.intercorrencias==='Nenhuma intercorrência' ? 'Sem outras intercorrências durante o plantão.' : `Intercorrência: ${lc(state.intercorrencias)}.`);
+  if(state.obsLivre.trim()) p.push(state.obsLivre.trim());
+  return p.filter(Boolean).join('\n\n');
+}
+
+function buildTextSaudeMental(){
+  const sm = state.saudeMental;
+  const turnoTxt = state.meta.turno==='Plantão diurno' ? 'diurno' : 'noturno';
+  const p = [];
+  p.push(`Avaliada durante plantão ${turnoTxt}. Comportamento observado: ${lc(sm.comportamento==='Outro (descreva)'?(sm.comportamentoOutro||''):sm.comportamento)}. ${sm.orientacao}.`);
+  p.push(`${sm.adesao}.`);
+  p.push(sm.contencao==='Sim' ? `Em contenção mecânica. ${sm.contencaoMotivo||'Motivo não detalhado — registrar conforme protocolo institucional.'}` : 'Sem contenção mecânica.');
+  if(state.dor.escore !== '') p.push(`Refere dor de intensidade ${state.dor.escore}/10.`);
+  if(state.cuidados.length) p.push(`Realizadas ${state.cuidados.map(c=>c.toLowerCase()).join(', ')}.`);
+  p.push(state.intercorrencias==='Nenhuma intercorrência' ? 'Sem intercorrências durante o plantão.' : `Intercorrência: ${lc(state.intercorrencias)}.`);
+  if(state.obsLivre.trim()) p.push(state.obsLivre.trim());
+  return p.filter(Boolean).join('\n\n');
+}
+
+// ---------------- textos de condições especiais (anexados a qualquer setor) ----------------
+function buildTextPaliativosExtra(){
+  const pal = state.paliativos;
+  return `Em cuidados paliativos. Sintomas (escala 0-10): dor ${pal.sintomaDor||'--'}, dispneia ${pal.sintomaDispneia||'--'}, náusea ${pal.sintomaNausea||'--'}, ansiedade ${pal.sintomaAnsiedade||'--'}. Acompanhante ${lc(pal.acompanhante)}. Orientação fornecida à família: ${lc(pal.orientacaoFamilia)}.`;
+}
+function buildTextGeriatricoExtra(){
+  const g = state.geriatria;
+  return `Perfil geriátrico — independência funcional: ${lc(g.mobilidade)}. Risco de queda (Escala de Morse): ${lc(g.morse)}. Nutrição/hidratação: ${lc(g.nutricao)}.`;
+}
+
+function buildText(){
+  let base;
+  switch(state.setor){
+    case 'clinMed': base = buildTextClinMed(); break;
+    case 'clinCx': base = buildTextClinCx(); break;
+    case 'hemo_dial': base = buildTextHemoDial(); break;
+    case 'saudeMental': base = buildTextSaudeMental(); break;
+    case 'puerperio': base = buildTextPuerperio(); break;
+    case 'cc': base = buildTextCC(); break;
+    case 'emerg': base = buildTextEmerg(); break;
+    default: base = buildTextUTI();
+  }
+  const extras = [];
+  if(state.meta.condicoes.includes('Cuidados Paliativos')) extras.push(buildTextPaliativosExtra());
+  if(state.meta.condicoes.includes('Perfil geriátrico')) extras.push(buildTextGeriatricoExtra());
+  return [base, ...extras].filter(Boolean).join('\n\n');
+}
+
+const SETOR_LABEL = { uti:'UTI', clinMed:'Clínica Médica', clinCx:'Clínica Cirúrgica', hemo_dial:'Hemodiálise', saudeMental:'Saúde Mental', puerperio:'Puerpério', cc:'Centro cirúrgico', emerg:'Emergência' };
+
+function renderResult(){
+  const text = buildText();
+  content.innerHTML = `
+    <div class="back-link" onclick="renderAll()">← voltar e editar</div>
+    <div class="result-card">
+      <div class="result-label">Registro de Enfermagem · ${SETOR_LABEL[state.setor]}</div>
+      <div class="result-text" id="resultText">${text}</div>
+    </div>
+    <div class="bottom-bar">
+      <button class="btn" onclick="copyText()">Copiar texto</button>
+      <button class="btn ghost" onclick="renderAll()">Editar respostas</button>
+    </div>
+  `;
+}
+function copyText(){
+  navigator.clipboard.writeText(document.getElementById('resultText').innerText).then(()=>{
+    const t=document.getElementById('toast'); t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1600);
+  });
+}
+
+// Chegando de /nova-evolucao.html com setor já escolhido — pula a tela "Escolha o setor".
+const setorParam = new URLSearchParams(window.location.search).get('setor');
+if (setorParam && SETORES.some(s => s.key === setorParam)) {
+  state.setor = setorParam;
+}
+
+renderAll();
+</script>
+</body>
+</html>

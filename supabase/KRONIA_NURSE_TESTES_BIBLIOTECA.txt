@@ -1,0 +1,564 @@
+================================================================
+KRONIA NURSE — PROMPT MASTER DE TESTES
+Biblioteca Técnica: Pipeline Completo (Etapas 1–8)
+Gerado em: 2026-06-30
+================================================================
+
+OBJETIVO DESTE DOCUMENTO
+Execute cada bloco em ordem. Registre o resultado real ao lado
+do resultado esperado. Só avance ao próximo bloco se o anterior
+passar. Qualquer divergência é um bug — não prossiga.
+
+PREREQUISITOS
+- Servidor Next.js rodando (npm run dev)
+- Variáveis de ambiente configuradas:
+    SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+    NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY
+    GROQ_API_KEY, COHERE_API_KEY
+- SQL do arquivo KRONIA_NURSE_SQL_COMPLETO.txt já aplicado no Supabase
+- Usuário autenticado — copiar o JWT da sessão ativa:
+    No browser: localStorage.getItem('supabase.auth.token')
+    Ou via DevTools → Application → Local Storage
+- Salvar o token em variável de shell:
+    TOKEN="eyJ..."
+
+================================================================
+BLOCO 0 — VERIFICAÇÃO DE SCHEMA
+Execute no SQL Editor do Supabase antes de qualquer teste.
+================================================================
+
+-- 0A. Confirmar 5 tabelas existentes
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
+  AND table_name LIKE 'knowledge%'
+ORDER BY table_name;
+
+ESPERADO (5 linhas):
+  knowledge_audit
+  knowledge_base
+  knowledge_spec_audit
+  knowledge_specs
+  knowledge_versions
+
+-- 0B. Confirmar 16 colunas novas no knowledge_base
+SELECT column_name, data_type
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'knowledge_base'
+  AND column_name IN (
+    'objetivo','escopo','indicacoes','contraindicacoes',
+    'materiais','preparacao','procedimento','cuidados',
+    'complicacoes','prevencao_eventos_adversos','pontos_criticos',
+    'observacoes','limitacoes','variacoes_institucionais',
+    'spec_id','hash'
+  )
+ORDER BY column_name;
+
+ESPERADO: 16 linhas
+
+-- 0C. Confirmar RLS ativo
+SELECT tablename, rowsecurity
+FROM pg_tables
+WHERE schemaname = 'public'
+  AND tablename IN ('knowledge_specs','knowledge_spec_audit');
+
+ESPERADO: rowsecurity = true para ambas
+
+-- 0D. Confirmar função RPC
+SELECT routine_name
+FROM information_schema.routines
+WHERE routine_schema = 'public'
+  AND routine_name = 'buscar_conhecimento';
+
+ESPERADO: 1 linha
+
+SE QUALQUER VERIFICAÇÃO FALHAR: aplicar KRONIA_NURSE_SQL_COMPLETO.txt
+no Supabase e repetir antes de continuar.
+
+
+================================================================
+BLOCO 1 — DISPARO DO PIPELINE PARA 3 TEMAS REAIS
+Endpoint: POST /api/kronos/biblioteca/processar
+================================================================
+
+COMANDO:
+curl -s -X POST http://localhost:3000/api/kronos/biblioteca/processar \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "temas": [
+      "sonda vesical de demora",
+      "oxigenoterapia por cateter nasal",
+      "coleta de hemocultura"
+    ]
+  }' | jq .
+
+ESPERADO — estrutura da resposta:
+{
+  "ok": true,
+  "processados": [
+    {
+      "tema": "sonda vesical de demora",
+      "spec_id": "<uuid>",
+      "status": "aguardando_aprovacao",      <- ou "reprovado" se auditor reprovou
+      "classificacao": "verde|amarelo|vermelho",
+      "score": <número 0-100>,
+      "erro": null
+    },
+    { "tema": "oxigenoterapia por cateter nasal", ... },
+    { "tema": "coleta de hemocultura", ... }
+  ],
+  "total": 3,
+  "sucessos": 3,                             <- deve ser 3
+  "erros": 0                                 <- deve ser 0
+}
+
+ATENÇÃO: este endpoint chama Groq 7 vezes por tema (2 para Etapas 1-2,
+5 para Etapas 3-7). Para 3 temas = ~21 chamadas. Pode levar 3–6 minutos.
+O timeout padrão do curl é suficiente; se necessário: curl --max-time 600
+
+RESULTADO REAL (preencher):
+  tema 1 - spec_id: _________________ status: _________ classificacao: _________
+  tema 2 - spec_id: _________________ status: _________ classificacao: _________
+  tema 3 - spec_id: _________________ status: _________ classificacao: _________
+  sucessos: ___ / erros: ___
+
+GUARDAR OS 3 SPEC_IDs para uso nos blocos seguintes:
+  SPEC_ID_1="<uuid do tema 1>"
+  SPEC_ID_2="<uuid do tema 2>"
+  SPEC_ID_3="<uuid do tema 3>"
+
+CRITÉRIO DE APROVAÇÃO:
+  [ ] "ok": true
+  [ ] "sucessos" == 3 e "erros" == 0
+  [ ] todos os spec_ids são UUIDs válidos (não null)
+  [ ] todos os status são "aguardando_aprovacao" ou "reprovado" (nunca "rascunho")
+  [ ] todos têm classificacao preenchida (verde, amarelo ou vermelho)
+
+
+================================================================
+BLOCO 2 — VERIFICAÇÃO NO SUPABASE (APÓS BLOCO 1)
+Confirmar que os 3 registros foram gravados corretamente.
+================================================================
+
+-- 2A. Confirmar specs criadas com status correto
+SELECT
+  id,
+  titulo,
+  status,
+  pipeline_classificacao,
+  (pipeline_resultado->>'score')::int AS score,
+  criado_por,
+  created_at
+FROM knowledge_specs
+ORDER BY created_at DESC
+LIMIT 5;
+
+ESPERADO: 3 linhas com status IN ('aguardando_aprovacao','reprovado')
+e pipeline_classificacao IN ('verde','amarelo','vermelho')
+
+-- 2B. Confirmar auditoria de criação e pipeline
+SELECT spec_id, acao, dados->>'classificacao' AS classificacao, created_at
+FROM knowledge_spec_audit
+ORDER BY created_at DESC
+LIMIT 6;
+
+ESPERADO: 6 linhas (2 por spec: 'criar_automatico' e 'pipeline')
+
+-- 2C. Confirmar que knowledge_base está vazio (nenhuma aprovação ainda)
+SELECT COUNT(*) AS total_knowledge_base_antes
+FROM knowledge_base
+WHERE spec_id IN ('<SPEC_ID_1>','<SPEC_ID_2>','<SPEC_ID_3>');
+
+ESPERADO: 0 (nenhum conteúdo publicado sem aprovação humana)
+
+-- 2D. Confirmar referências foram salvas (Etapa 1)
+SELECT
+  id,
+  titulo,
+  jsonb_array_length(referencias_oficiais) AS total_referencias,
+  referencias_oficiais->0->>'instituicao' AS primeira_instituicao
+FROM knowledge_specs
+ORDER BY created_at DESC
+LIMIT 3;
+
+ESPERADO: total_referencias >= 2 para cada spec
+(se for 0, o Pesquisador não encontrou fontes suficientes — revisar o tema)
+
+-- 2E. Confirmar seções de conteúdo preenchidas (Etapa 2)
+SELECT
+  titulo,
+  CASE WHEN procedimento IS NOT NULL AND length(procedimento) > 50 THEN 'OK' ELSE 'VAZIO' END AS procedimento,
+  CASE WHEN indicacoes    IS NOT NULL AND length(indicacoes)    > 20 THEN 'OK' ELSE 'VAZIO' END AS indicacoes,
+  CASE WHEN materiais     IS NOT NULL AND length(materiais)     > 20 THEN 'OK' ELSE 'VAZIO' END AS materiais
+FROM knowledge_specs
+ORDER BY created_at DESC
+LIMIT 3;
+
+ESPERADO: procedimento=OK, indicacoes=OK, materiais=OK para todos
+
+RESULTADO REAL (preencher):
+  [ ] 3 specs com status correto
+  [ ] 6 registros de auditoria
+  [ ] knowledge_base vazio para estas specs
+  [ ] referencias >= 2 por spec
+  [ ] seções de conteúdo preenchidas
+
+
+================================================================
+BLOCO 3 — TESTE DA TELA DE APROVAÇÃO (UI)
+URL: http://localhost:3000/biblioteca-tecnica
+Clicar em "✅ Tela de Aprovação"
+================================================================
+
+3A. VERIFICAR AGRUPAMENTO
+  [ ] Specs com classificacao 'verde' aparecem na seção "🟢 Aprovação Rápida"
+  [ ] Specs com classificacao 'amarelo' aparecem em "🟡 Revisão Necessária"
+      com trechos de atenção em destaque (caixa amarela com pontos de atenção)
+  [ ] Specs com classificacao 'vermelho' aparecem em "🔴 Precisa Revisão Completa"
+      com a etapa de falha indicada
+
+3B. VERIFICAR FUNCIONALIDADE DE SELEÇÃO (apenas para verde)
+  [ ] Checkbox individual funciona em cada item verde
+  [ ] "Selecionar todos 🟢" seleciona todos os itens verdes
+  [ ] Botão "Aprovar selecionados (N)" aparece ao selecionar
+  [ ] Desmarcar "selecionar todos" desmarca todos
+
+3C. VERIFICAR BOTÃO "Abrir →"
+  [ ] Clicar "Abrir →" em qualquer item abre a view de Detalhe
+  [ ] No Detalhe, as Etapas 3–8 aparecem com resultado (✓ ou ✗)
+  [ ] Score e classificação aparecem no topo
+
+RESULTADO REAL:
+  Nº de itens verde: ___ amarelo: ___ vermelho: ___
+  Seleção em lote funciona: [ ] Sim [ ] Não
+  Trechos de atenção visíveis (amarelo): [ ] Sim [ ] Não [ ] N/A
+
+
+================================================================
+BLOCO 4 — APROVAR 1, REJEITAR 1, MANTER 1 PENDENTE
+================================================================
+
+AÇÃO 4A — APROVAR O PRIMEIRO ITEM (via API):
+curl -s -X POST http://localhost:3000/api/knowledge-spec/aprovar \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d "{\"id\": \"$SPEC_ID_1\"}" | jq .
+
+ESPERADO:
+{
+  "ok": true,
+  "id": "<SPEC_ID_1>",
+  "knowledge_base_id": "<uuid>"   <- novo registro no knowledge_base
+}
+
+GUARDAR: KB_ID_1="<knowledge_base_id>"
+
+CRITÉRIO:
+  [ ] "ok": true
+  [ ] "knowledge_base_id" é UUID válido (não null, não igual ao spec_id)
+
+---
+
+AÇÃO 4B — REJEITAR O SEGUNDO ITEM (via API):
+curl -s -X POST http://localhost:3000/api/knowledge-spec/reprovar \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d "{\"id\": \"$SPEC_ID_2\", \"motivo\": \"Teste de rejeição — fluxo de reprovação manual\"}" | jq .
+
+ESPERADO:
+{
+  "ok": true,
+  "id": "<SPEC_ID_2>"
+}
+
+CRITÉRIO:
+  [ ] "ok": true
+
+---
+
+AÇÃO 4C — MANTER O TERCEIRO PENDENTE
+Não chamar nenhuma API para $SPEC_ID_3.
+
+---
+
+ALTERNATIVA UI (se preferir testar via interface):
+  - "✅ Tela de Aprovação" → selecionar SPEC_ID_1 → "Aprovar selecionados (1)"
+  - Clicar "Abrir →" em SPEC_ID_2 → campo de motivo → "Reprovar"
+  - Não fazer nada com SPEC_ID_3
+
+
+================================================================
+BLOCO 5 — VERIFICAÇÃO PÓS-DECISÃO NO SUPABASE
+================================================================
+
+-- 5A. Status final das 3 specs
+SELECT
+  id,
+  titulo,
+  status,
+  aprovado_por,
+  knowledge_base_id,
+  aprovado_em
+FROM knowledge_specs
+WHERE id IN ('<SPEC_ID_1>','<SPEC_ID_2>','<SPEC_ID_3>');
+
+ESPERADO:
+  SPEC_ID_1: status='aprovado', knowledge_base_id=<KB_ID_1> (não nulo)
+  SPEC_ID_2: status='reprovado', knowledge_base_id=NULL
+  SPEC_ID_3: status='aguardando_aprovacao', knowledge_base_id=NULL
+
+-- 5B. RESTRIÇÃO ABSOLUTA: apenas o aprovado deve estar no knowledge_base
+SELECT id, titulo, embedding IS NOT NULL AS tem_embedding, spec_id
+FROM knowledge_base
+WHERE spec_id IN ('<SPEC_ID_1>','<SPEC_ID_2>','<SPEC_ID_3>');
+
+ESPERADO: exatamente 1 linha (SPEC_ID_1), com tem_embedding = true
+
+-- 5C. Confirmar seções estruturadas foram copiadas para o knowledge_base
+SELECT
+  titulo,
+  length(conteudo)  AS tamanho_conteudo,
+  length(procedimento) AS tamanho_procedimento,
+  spec_id,
+  hash
+FROM knowledge_base
+WHERE id = '<KB_ID_1>';
+
+ESPERADO:
+  tamanho_conteudo > 200   (texto composto de todas as seções)
+  tamanho_procedimento > 0  (seção estruturada copiada)
+  spec_id = SPEC_ID_1
+  hash IS NOT NULL
+
+-- 5D. Confirmar trilha de auditoria completa
+SELECT acao, usuario, created_at
+FROM knowledge_spec_audit
+WHERE spec_id IN ('<SPEC_ID_1>','<SPEC_ID_2>','<SPEC_ID_3>')
+ORDER BY created_at DESC;
+
+ESPERADO: pelo menos estas ações para SPEC_ID_1:
+  'criar_automatico', 'pipeline', 'aprovar'
+Para SPEC_ID_2:
+  'criar_automatico', 'pipeline', 'reprovar_manual' (ou 'reprovar')
+
+-- 5E. Confirmar knowledge_audit para o item aprovado
+SELECT knowledge_id, acao, usuario, created_at
+FROM knowledge_audit
+WHERE knowledge_id = '<KB_ID_1>';
+
+ESPERADO: 1 linha, acao='criar'
+
+RESULTADO REAL:
+  SPEC_ID_1 status: ________ knowledge_base_id: _________
+  SPEC_ID_2 status: ________ knowledge_base_id: _________
+  SPEC_ID_3 status: ________ knowledge_base_id: _________
+  knowledge_base tem 1 linha com embedding: [ ] Sim [ ] Não
+  conteudo preenchido: [ ] Sim [ ] Não
+  spec_id rastreável: [ ] Sim [ ] Não
+
+
+================================================================
+BLOCO 6 — TESTE DO KRONOS COM O ITEM APROVADO
+URL: http://localhost:3000/kronos
+================================================================
+
+6A. Formular pergunta relacionada ao tema aprovado (SPEC_ID_1):
+  Se tema 1 foi "sonda vesical de demora", perguntar:
+    "Quais são os materiais necessários para o cateterismo vesical de demora?"
+    "Quais são as contraindicações da sonda vesical de demora?"
+    "Como prevenir infecção no cateterismo vesical?"
+
+6B. CRITÉRIOS DE RESPOSTA:
+  [ ] Resposta presente (não "não encontrei informações")
+  [ ] Resposta cita a fonte ao final (marcador [1], [Fonte:], ou similar)
+  [ ] Conteúdo é coerente com procedimento de enfermagem
+  [ ] Não contém decisão clínica individualizada ("você deve fazer X")
+  [ ] Não repete verbatim o campo 'procedimento' (mostra que é RAG, não cópia)
+
+6C. Pergunta negativa (para item NÃO aprovado):
+  Perguntar algo sobre o tema 2 (rejeitado):
+    "Como realizar oxigenoterapia por cateter nasal?"  (se tema 2)
+
+  ESPERADO: KRONOS responde com conhecimento geral ou diz que não tem
+  informação específica na base de conhecimento — NÃO cita SPEC_ID_2
+  porque ele nunca foi aprovado.
+
+  [ ] KRONOS não retorna conteúdo do item rejeitado
+
+6D. VERIFICAÇÃO SQL do embedding usado:
+SELECT
+  (1 - (embedding <=> query)) AS similarity,
+  titulo, categoria
+FROM knowledge_base
+WHERE spec_id = '<SPEC_ID_1>'
+LIMIT 1;
+
+-- Nota: este SELECT não executa a busca por similaridade diretamente
+-- (precisa do vetor de query). Use para confirmar que o embedding existe.
+
+RESULTADO REAL:
+  KRONOS respondeu sobre tema aprovado: [ ] Sim [ ] Não
+  Citou fonte: [ ] Sim [ ] Não
+  KRONOS não vaza conteúdo do rejeitado: [ ] Sim [ ] Não
+
+
+================================================================
+BLOCO 7 — TESTES DE RESTRIÇÃO (NEGATIVE TESTS)
+Verificar que as salvaguardas bloqueiam o que devem bloquear.
+================================================================
+
+7A. Tentar aprovar spec com status errado (deve retornar 400):
+curl -s -X POST http://localhost:3000/api/knowledge-spec/aprovar \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d "{\"id\": \"$SPEC_ID_2\"}" | jq .
+
+ESPERADO: {"erro": "Aprovação requer status \"aguardando_aprovacao\"..."}
+STATUS HTTP: 400
+
+  [ ] Retornou erro 400 com mensagem descritiva
+  [ ] SPEC_ID_2 continua com status='reprovado' no banco
+
+---
+
+7B. Tentar aprovar spec inexistente:
+curl -s -X POST http://localhost:3000/api/knowledge-spec/aprovar \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"id": "00000000-0000-0000-0000-000000000000"}' | jq .
+
+ESPERADO: {"erro": "Spec não encontrada."}
+STATUS HTTP: 404
+
+  [ ] Retornou 404
+
+---
+
+7C. Tentar processar sem autenticação:
+curl -s -X POST http://localhost:3000/api/kronos/biblioteca/processar \
+  -H "Content-Type: application/json" \
+  -d '{"temas":["teste"]}' | jq .
+
+ESPERADO: {"erro": "Não autenticado."}
+STATUS HTTP: 401
+
+  [ ] Retornou 401
+
+---
+
+7D. Tentar enviar mais de 10 temas:
+curl -s -X POST http://localhost:3000/api/kronos/biblioteca/processar \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"temas":["a","b","c","d","e","f","g","h","i","j","k"]}' | jq .
+
+ESPERADO: {"erro": "Máximo de 10 temas por requisição..."}
+STATUS HTTP: 400
+
+  [ ] Retornou 400
+
+---
+
+7E. Confirmar que knowledge_base não recebeu novos registros pelos testes negativos:
+SELECT COUNT(*) FROM knowledge_base
+WHERE spec_id IN ('<SPEC_ID_2>','<SPEC_ID_3>');
+
+ESPERADO: 0
+
+  [ ] Retornou 0
+
+
+================================================================
+BLOCO 8 — TESTE DE APROVAÇÃO EM LOTE (UI)
+Criar 2 novos temas para testar o lote.
+================================================================
+
+8A. Processar 2 temas adicionais via UI ou API:
+curl -s -X POST http://localhost:3000/api/kronos/biblioteca/processar \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "temas": [
+      "higienização das mãos em serviços de saúde",
+      "punção venosa periférica"
+    ]
+  }' | jq .
+
+Guardar os IDs que ficarem com status 'aguardando_aprovacao' e classificacao 'verde'.
+
+8B. Na UI (/biblioteca-tecnica → Tela de Aprovação):
+  [ ] "Selecionar todos 🟢" seleciona os itens verde
+  [ ] Botão "Aprovar selecionados (N)" aparece com o número correto
+  [ ] Clicar o botão inicia aprovação sequencial
+  [ ] Log mostra "✓ <titulo> — aprovada" para cada um
+  [ ] Após conclusão, os itens somem da Tela de Aprovação
+  [ ] knowledge_base recebe N novos registros com embedding não-nulo
+
+8C. Confirmar no Supabase:
+SELECT COUNT(*), bool_and(embedding IS NOT NULL) AS todos_com_embedding
+FROM knowledge_base
+WHERE created_at > NOW() - INTERVAL '10 minutes';
+
+ESPERADO: COUNT = (1 do bloco 4 + N do lote), todos_com_embedding = true
+
+
+================================================================
+BLOCO 9 — CHECKLIST FINAL DE NÃO-REGRESSÃO
+Verificar que nenhuma funcionalidade existente foi afetada.
+================================================================
+
+9A. Fluxo de caderno de plantão:
+  [ ] /plantao carrega normalmente
+  [ ] Registro de eventos funciona
+  [ ] Geração de evolução funciona
+
+9B. Escalas:
+  [ ] NEWS2 calcula corretamente
+  [ ] qSOFA calcula corretamente
+  [ ] Braden calcula corretamente
+
+9C. KRONOS (chat geral):
+  [ ] /kronos responde a perguntas gerais
+  [ ] Perguntas fora do knowledge_base retornam resposta com aviso
+  [ ] Não houve alteração no endpoint /api/kronos/professor
+
+9D. Auth:
+  [ ] Login/logout funcionam
+  [ ] /cadastro funciona
+  [ ] Página protegida redireciona sem token
+
+9E. Admin legado:
+  [ ] /conhecimento-admin carrega (sem quebrar)
+  [ ] /api/conhecimento/salvar ainda funciona (path legado preservado)
+
+9F. TypeScript:
+  [ ] npx tsc --noEmit retorna 0 erros
+
+
+================================================================
+RESULTADO CONSOLIDADO
+================================================================
+
+Bloco 0 — Schema:         [ ] PASS  [ ] FAIL
+Bloco 1 — Pipeline:       [ ] PASS  [ ] FAIL
+Bloco 2 — Supabase:       [ ] PASS  [ ] FAIL
+Bloco 3 — UI Aprovação:   [ ] PASS  [ ] FAIL
+Bloco 4 — Aprovar/Rejeitar:[ ] PASS [ ] FAIL
+Bloco 5 — Pós-decisão:    [ ] PASS  [ ] FAIL
+Bloco 6 — KRONOS RAG:     [ ] PASS  [ ] FAIL
+Bloco 7 — Negative tests: [ ] PASS  [ ] FAIL
+Bloco 8 — Lote:           [ ] PASS  [ ] FAIL
+Bloco 9 — Não-regressão:  [ ] PASS  [ ] FAIL
+
+STATUS GERAL: ___________________________________________
+
+Observações / bugs encontrados:
+_____________________________________________________________
+_____________________________________________________________
+_____________________________________________________________
+
+================================================================
+FIM DO PROMPT MASTER DE TESTES
+================================================================
