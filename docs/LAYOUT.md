@@ -5,8 +5,7 @@ Referência do layout **como está no código hoje**: `pages/index.tsx` →
 home).
 
 **Escopo do app:** só o motor determinístico. A evolução é montada por regras
-(`schema` + `showIf` + `classify`) e sai nos blocos do Processo de
-Enfermagem. Nenhuma chamada de IA, nenhuma requisição de rede em todo o
+(`schema` + `showIf` + `classify`) e sai como Evolução de Enfermagem. Nenhuma chamada de IA, nenhuma requisição de rede em todo o
 fluxo. Custo de inferência: zero.
 
 **O que continua no repositório mas está desligado da interface:** todo o
@@ -163,50 +162,60 @@ Cards "Leito X · INICIAIS" com data/hora `pt-BR`, texto completo e Copiar.
 
 ---
 
-## 5. Formato de saída — Processo de Enfermagem
+## 5. Formato de saída — Evolução de Enfermagem
 
-`lib/evolucao/processo-enfermagem.js` monta o documento nos blocos da
-Resolução COFEN nº 736/2024, sempre todos presentes e nesta ordem:
+`lib/evolucao/evolucao.js` monta a evolução: a **foto do paciente no momento
+da avaliação**.
 
-| Bloco | Conteúdo |
+| Seção | Conteúdo |
 |---|---|
-| **Dados** | a prosa do motor: o que foi observado — vitais, exame físico, dispositivos presentes e condição dos sítios, suporte em curso, dieta, eliminações |
-| **Intervenção** | o que foi feito: condutas, fototerapia e medicação em infusão (`INTERVENCAO_IDS`) |
-| **Resultado** | a resposta do paciente às intervenções (`RESULTADO_IDS`) |
+| **Abertura** | identificação, consciência, estado geral, mobilidade; `Apresenta-se` com coloração, hidratação e os sinais vitais **alterados**; suporte de via aérea |
+| **Sinais vitais** | linha própria, sigla + valor exato: `PA 120x80 mmHg, FC 78 bpm, FR 16 irpm, SpO₂ 97%, T 38,4°C` |
+| **Ao exame físico** | um bullet por sistema: Neurológico, Cabeça e pescoço, Respiratório, Cardiovascular, Gastrointestinal, Geniturinário, Pele e tegumento, Membros, Dispositivos |
+| **Dieta e metabólico** | via de dieta, tolerância, balanço hídrico, glicemia |
+| **Cuidados realizados** | condutas frente a alertas, medicação em infusão, terapias |
+| **Resposta do paciente** | o que o enfermeiro registrou como resposta às intervenções |
+| **Fecho** | acompanhamento, achados psicossociais e de segurança |
 
-Depois dos blocos vêm as pendências `(CONFERIR — …)`, recolhidas **uma única
-vez** da sequência completa, e por fim
-`Enfermeiro(a) Responsável — [data/hora]`, com o marcador literal.
+Sistema sem achado não vira bullet vazio. Depois das seções vêm as pendências
+`(CONFERIR — …)`, recolhidas **uma única vez** da sequência completa, e por
+fim `Enfermeiro(a) Responsável — [data/hora]`, com o marcador literal.
 
-**Faltam duas das cinco etapas da Res. 736/2024 — de propósito.**
-**Diagnóstico** e **Planejamento** (a prescrição de enfermagem, o que a SAE
-antiga chamava assim) são registrados no sistema próprio de cada hospital, em
-documento à parte. O Art. 8º exige todas as etapas no *prontuário* — o
-prontuário, não necessariamente este documento.
+O destino de cada pergunta sai de `SISTEMA_POR_SUBGRUPO` (por subgrupo do
+motor) com exceções em `SISTEMA_POR_ID`. Mover um achado de seção é editar
+uma linha — o texto se reorganiza sozinho.
 
-A ausência das duas é **verificada por teste**, em
-`lib/__tests__/processo-enfermagem.test.ts`. Não é lacuna a fechar numa
-próxima auditoria; se um dia mudar, o caminho de volta está comentado no
-schema, no fecho do Processo de Enfermagem.
+### 5.1. Evolução não é o Processo de Enfermagem
 
-Como efeito colateral a trava antiga fica de graça: sem pergunta de
-diagnóstico no schema e sem bloco na saída, não existe caminho no código para
-um valor numérico virar rótulo clínico.
+O PE tem **cinco etapas** (Res. 736/2024, Art. 4º): Avaliação, Diagnóstico,
+Planejamento, Implementação e Evolução. A **Evolução é uma delas** — o § 5º a
+define como "a avaliação dos resultados alcançados (…) permite a análise e a
+revisão de todo o Processo de Enfermagem".
 
-### 5.1. Regras de redação — COREN-SP
+Diagnóstico e Planejamento são registros próprios, de documento separado, no
+sistema de cada hospital. A Res. 358/2009 já os listava como três coisas
+distintas. **A ausência deles aqui não é lacuna a fechar**, e está verificada
+em `lib/__tests__/evolucao.test.ts`.
 
-Do documento "Anotação de Enfermagem" (COREN-SP, 2022). Estão travadas por
-teste em `lib/__tests__/grafo-adaptativo.test.ts`, no bloco
-`regras de escrita do COREN-SP`:
+Uma versão anterior montava a saída em "blocos do Processo de Enfermagem",
+com `Dados / Diagnóstico / Intervenção / Resultado` — herança do Art. 6º da
+358/2009, que descreve o registro da execução do PE inteiro. Era o erro de
+enquadramento que esta estrutura desfaz.
+
+### 5.2. Regras de redação — COREN-SP
+
+Do documento "Anotação de Enfermagem" (COREN-SP, 2022). Travadas por teste em
+`lib/__tests__/grafo-adaptativo.test.ts`, no bloco `regras de escrita do
+COREN-SP`:
 
 | Regra | Como aparece no código |
 |---|---|
-| "os sinais vitais mensurados devem ser registrados pontualmente (…) Não registrar como 'normotenso', 'normocárdico'" | `classify()` devolve `frase` só com o valor quando está na faixa. O rótulo de normalidade fica em `label`, que é texto de apoio da tela e não entra no documento. Achado **alterado** continua nomeado — é sinal clínico observado. |
-| "Não conter termos que deem conotação de valor (bem, mal, muito, pouco, etc.)" | Nenhuma `frase` do schema usa esses termos. Exceção deliberada: os descritores oficiais da RASS, que são o nome do degrau de um instrumento validado e vêm sempre com o escore. |
+| "os sinais vitais mensurados devem ser registrados pontualmente (…) Não registrar como 'normotenso', 'normocárdico'" | o valor vai na linha de sinais vitais, uma vez só. O rótulo de normalidade fica em `label`, que é apoio de tela. Só o achado **alterado** vira descritor na abertura. |
+| "Não conter termos que deem conotação de valor (bem, mal, muito, pouco, etc.)" | nenhuma `frase` do schema usa esses termos. Exceção deliberada: os descritores oficiais da RASS. |
 | "dados de aplicação de Escala de dor (…) incluindo valor do escore aferido" | as opções de dor registram a faixa da EVA junto da queixa. |
-| "cateteres e como se encontram suas inserções e fixações; curativos e seu aspecto" | `avp_sitio_condicao`, `cvc_sitio_condicao` e `dreno_sitio_condicao`, abertas por `showIf` quando o dispositivo existe. |
-| "priorizar a descrição de características, como tamanho mensurado (cm, mm, etc.), quantidade (ml, l, etc.), coloração e forma" | lesão por pressão e deiscência levam região e medida em cm (`pele_lesao_local`, `pele_lesao_tamanho`, `ferida_operatoria_local`, `ferida_operatoria_tamanho`); a diurese leva aspecto além do volume (`diurese_aspecto`). |
-| "condições gerais (…) coloração da pele" | `pele_coloracao` no adulto, espelhando o `pele_neo` que o caminho neonatal já tinha. |
+| "cateteres e como se encontram suas inserções e fixações; curativos e seu aspecto" | `avp_sitio_condicao`, `cvc_sitio_condicao`, `dreno_sitio_condicao`. |
+| "priorizar a descrição de características, como tamanho mensurado (cm, mm, etc.), quantidade (ml, l, etc.), coloração e forma" | lesão e deiscência levam região e medida em cm; a diurese leva aspecto além do volume. |
+| "condições gerais (…) coloração da pele" | `pele_coloracao` e `hidratacao`, na abertura. |
 
 Decimais em padrão brasileiro (38,4°C); `120x80 mmHg` e `RASS -4` passam
 intactos.
