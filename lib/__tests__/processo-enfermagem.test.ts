@@ -11,7 +11,7 @@ const motor = require('../evolucao/grafo-adaptativo.js');
 const pe = require('../evolucao/processo-enfermagem.js');
 
 const { buildSequence, CONTEXTS } = motor;
-const { gerarEvolucaoPE, INTERVENCAO_IDS } = pe;
+const { gerarEvolucaoPE, INTERVENCAO_IDS, DIAGNOSTICO_IDS, RESULTADO_IDS } = pe;
 
 type Answers = Record<string, unknown>;
 
@@ -50,6 +50,7 @@ const ADULTO_FEBRIL: Answers = {
   psicossocial: 'normal', seguranca: 'normal',
   via_aerea: 'ar_ambiente', dispositivos: ['nenhum'], droga_vasoativa: 'nao',
   balanco_hidrico: { a: '2000', b: '1800' }, glicemia: '95',
+  tem_diagnostico: 'nao', tem_resultado: 'nao',
 };
 
 const CRITICO: Answers = {
@@ -93,22 +94,69 @@ describe('estrutura dos quatro blocos', () => {
 });
 
 describe('trava do diagnóstico', () => {
-  it('nunca preenche diagnóstico — nem com febre, hipotensão e hipoxemia juntas', () => {
+  it('não infere diagnóstico — nem com febre, hipotensão e hipoxemia juntas', () => {
+    // CRITICO responde "não" a "há diagnóstico a registrar".
     expect(corpo(CRITICO, 'Diagnóstico de Enfermagem')).toBe('Sem registro para esta seção');
   });
 
   it('não deixa rótulo clínico vazar do bloco Dados para o Diagnóstico', () => {
     const diagnostico = corpo(CRITICO, 'Diagnóstico de Enfermagem');
-    ['hipertermia', 'risco', 'prejudicada', 'hipotenso', 'febril'].forEach((rotulo) =>
+    ['hipertermia', 'prejudicada', 'hipotenso', 'febril'].forEach((rotulo) =>
       expect(diagnostico.toLowerCase()).not.toContain(rotulo),
     );
   });
 
-  it('não existe pergunta de diagnóstico no schema — a trava é estrutural', () => {
-    const temDiagnostico = CTX.questions.some((q: { id: string; titulo: string }) =>
-      /diagn[óo]stico/i.test(q.titulo),
-    );
-    expect(temDiagnostico).toBe(false);
+  it('o campo é livre — não há lista de rótulos para escolher', () => {
+    const pergunta = CTX.questions.find((q: { id: string }) => q.id === 'diagnostico_enfermagem');
+    expect(pergunta.type).toBe('texto_livre');
+    expect(pergunta.options).toBeUndefined();
+  });
+
+  it('escreve exatamente o que o enfermeiro nomeou, e nada além', () => {
+    const texto = 'Risco de queda relacionado à sedação';
+    const doc = {
+      ...CRITICO,
+      tem_diagnostico: 'sim',
+      diagnostico_enfermagem: texto,
+    };
+    expect(corpo(doc, 'Diagnóstico de Enfermagem')).toBe(texto + '.');
+  });
+});
+
+describe('bloco Resultado', () => {
+  it('registra a resposta do paciente quando informada', () => {
+    const texto = 'Afebril após antitérmico, sem novos picos';
+    const doc = { ...ADULTO_FEBRIL, tem_resultado: 'sim', resultado_avaliacao: texto };
+    expect(corpo(doc, 'Resultado')).toBe(texto + '.');
+  });
+
+  it('responder "não" deixa Sem registro, sem virar pendência', () => {
+    const doc = { ...ADULTO_FEBRIL, tem_resultado: 'nao' };
+    expect(corpo(doc, 'Resultado')).toBe('Sem registro para esta seção');
+    expect(documento(doc)).not.toContain('resposta do paciente às intervenções');
+  });
+
+  it('não responder vira pendência explícita, como qualquer outra pergunta', () => {
+    const { tem_resultado, tem_diagnostico, ...semFecho } = ADULTO_FEBRIL;
+    const doc = documento(semFecho);
+    expect(doc).toContain('(CONFERIR — Há diagnóstico de enfermagem a registrar? não respondido)');
+    expect(doc).toContain('(CONFERIR — Há resposta do paciente às intervenções para registrar? não respondido)');
+  });
+
+  it('o texto do fecho não vaza para o bloco Dados', () => {
+    const doc = {
+      ...ADULTO_FEBRIL,
+      tem_diagnostico: 'sim', diagnostico_enfermagem: 'Integridade da pele prejudicada',
+      tem_resultado: 'sim', resultado_avaliacao: 'Lesão sem progressão',
+    };
+    const dados = corpo(doc, 'Dados');
+    expect(dados).not.toContain('Integridade da pele prejudicada');
+    expect(dados).not.toContain('Lesão sem progressão');
+  });
+
+  it('todo id de DIAGNOSTICO_IDS e RESULTADO_IDS existe no schema', () => {
+    const todos = CTX.questions.map((q: { id: string }) => q.id);
+    [...DIAGNOSTICO_IDS, ...RESULTADO_IDS].forEach((id: string) => expect(todos).toContain(id));
   });
 });
 
