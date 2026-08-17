@@ -68,6 +68,7 @@ const ADULTO_ESTAVEL: Answers = {
   psicossocial: 'normal', seguranca: 'normal',
   via_aerea: 'ar_ambiente', dispositivos: ['nenhum'], droga_vasoativa: 'nao',
   balanco_hidrico: { a: '2000', b: '1800' }, glicemia: '95',
+  tem_diagnostico: 'nao', tem_resultado: 'nao',
 };
 
 describe('cenário 1 — adulto estável', () => {
@@ -205,6 +206,7 @@ const RN_ESTAVEL: Answers = {
   pele_neo: 'rosada', coto_umbilical: 'seco_integro', reflexos: 'presentes',
   eliminacoes_neo: 'presentes', dieta_neo: 'seio_livre_demanda',
   via_aerea_neo: 'ar_ambiente', dispositivos_neo: ['nenhum'],
+  tem_diagnostico: 'nao', tem_resultado: 'nao',
 };
 
 describe('cenário 3 — RN estável', () => {
@@ -390,7 +392,9 @@ describe('invariantes do motor', () => {
   });
 
   it('a sequência é recalculada a cada resposta — a árvore cresce', () => {
-    expect(ids({}).length).toBe(6); // só a camada universal
+    // Camada universal: idade, sexo, FC, FR, SpO2, temperatura, mais as duas
+    // perguntas de fecho do Processo de Enfermagem.
+    expect(ids({}).length).toBe(8);
     expect(ids({ idade_unidade: 'anos' }).length).toBeGreaterThan(6);
     expect(ids(CRITICO_VM).length).toBeGreaterThan(ids(ADULTO_ESTAVEL).length);
   });
