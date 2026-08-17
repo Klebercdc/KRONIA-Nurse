@@ -11,6 +11,19 @@ module.exports = {
         strict: true,
       },
     }],
+    // lib/evolucao/grafo-adaptativo.js é JS puro (motor extraído do protótipo
+    // sem reescrita). allowJs deixa o ts-jest transformá-lo sem que o arquivo
+    // precise ser convertido para TypeScript — converter significaria mexer
+    // em lógica já testada.
+    '^.+\\.jsx?$': ['ts-jest', {
+      tsconfig: {
+        module: 'CommonJS',
+        moduleResolution: 'node',
+        allowJs: true,
+        checkJs: false,
+        strict: false,
+      },
+    }],
   },
   testMatch: ['**/lib/__tests__/**/*.test.ts'],
 };
