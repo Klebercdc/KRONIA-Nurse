@@ -39,7 +39,7 @@ const ADULTO_FEBRIL: Answers = {
   consciencia: 'alerta',
   fc: '78', pa: { a: '120', b: '80' }, fr: '16', spo2: '97', temperatura: '38.4',
   conduta_febre: 'antitermico',
-  dor: 'sem_dor', pele: 'integra',
+  dor: 'sem_dor', pele: 'integra', pele_coloracao: 'corada',
   mobilidade: 'sem_auxilio', forca_motora: 'preservada',
   eliminacoes: 'espontaneas', dieta: 'oral',
   ausculta_pulmonar: 'mv_presente', ausculta_cardiaca: 'bnf_2t', perfusao_perif: 'adequada',

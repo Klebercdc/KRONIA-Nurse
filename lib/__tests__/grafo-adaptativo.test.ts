@@ -58,7 +58,7 @@ const ADULTO_ESTAVEL: Answers = {
   consciencia: 'alerta',
   fc: '78', pa: { a: '120', b: '80' }, fr: '16', spo2: '97', temperatura: '36.5',
   dor: 'sem_dor',
-  pele: 'integra',
+  pele: 'integra', pele_coloracao: 'corada',
   mobilidade: 'sem_auxilio', forca_motora: 'preservada',
   eliminacoes: 'espontaneas', dieta: 'oral',
   ausculta_pulmonar: 'mv_presente', ausculta_cardiaca: 'bnf_2t', perfusao_perif: 'adequada',
@@ -153,7 +153,7 @@ const CRITICO_VM: Answers = {
   conduta_febre: 'hemocultura',
   mobilidade: 'dependente',
   dieta: 'enteral', dieta_tolerancia: 'bem_tolerada',
-  eliminacoes: 'sonda_vesical', diurese_volume: '350',
+  eliminacoes: 'sonda_vesical', diurese_volume: '350', diurese_aspecto: 'amarelo_claro',
   via_aerea: 'vm', modo_ventilatorio: 'pcv', fio2: '60', peep: '10',
   dispositivos: ['avp', 'cvc', 'sng', 'dreno'],
   avp_calibre: '20g', avp_local: 'Antebraço direito', avp_sitio_condicao: 'sem_alteracao',
@@ -161,6 +161,7 @@ const CRITICO_VM: Answers = {
   dreno_debito: '120', dreno_aspecto: 'serosanguinolento', dreno_sitio_condicao: 'sem_alteracao',
   droga_vasoativa: 'sim', droga_vasoativa_qual: 'noradrenalina', droga_vasoativa_dose: '15',
   pele: 'lesao', pele_estadiamento: '2',
+  pele_lesao_local: 'Região sacral', pele_lesao_tamanho: { a: '4', b: '2.5' },
   perfusao_perif: 'tec_lento',
   mmss: 'alterado', mmss_detalhe: 'Edema em membro superior direito',
   mmii: 'alterado', mmii_detalhe: 'Edema bilateral +2/4',
@@ -200,7 +201,9 @@ describe('cenário 2 — crítico com sedação e ventilação mecânica', () =>
     expect(contem(CRITICO_VM, 'febril, temperatura axilar de 38.4°C')).toBe(true);
     expect(contem(CRITICO_VM, 'oligúrico, diurese de 350 mL nas últimas 24h')).toBe(true);
     expect(contem(CRITICO_VM, 'RASS -4, sedação profunda')).toBe(true);
-    expect(contem(CRITICO_VM, 'lesão por pressão estágio II')).toBe(true);
+    // Achado, estágio, região e medida vêm encadeados, sem repetir o nome do
+    // achado a cada elo.
+    expect(contem(CRITICO_VM, 'presença de lesão por pressão, estágio II, em região sacral, medindo 4 x 2.5 cm')).toBe(true);
   });
 
   it('anuncia sedação na abertura quando há sedação de verdade', () => {
@@ -502,6 +505,45 @@ describe('regras de escrita do COREN-SP', () => {
     expect(contem(semSitio, '(CONFERIR — Como está o local da punção do acesso venoso periférico? não respondido)')).toBe(true);
     expect(contem(CRITICO_VM, 'sítio de punção sem hiperemia, edema, dor à palpação ou secreção')).toBe(true);
     expect(contem(CRITICO_VM, 'com hiperemia no sítio de inserção do cateter central')).toBe(true);
+  });
+
+  it('mensura a lesão e diz onde ela está', () => {
+    // "priorizar a descrição de características, como tamanho mensurado
+    // (cm, mm, etc.)". Estágio sozinho não é característica mensurada.
+    const seq = ids(CRITICO_VM);
+    expect(seq).toEqual(expect.arrayContaining(['pele_lesao_local', 'pele_lesao_tamanho']));
+    expect(contem(CRITICO_VM, 'em região sacral, medindo 4 x 2.5 cm')).toBe(true);
+    // e só existem quando há lesão
+    expect(ids(ADULTO_ESTAVEL)).not.toContain('pele_lesao_tamanho');
+  });
+
+  it('mede a deiscência, mas não mede ferida fechada e seca', () => {
+    const cirurgico = {
+      ...ADULTO_ESTAVEL, situacao_clinica: 'cirurgico',
+      tipo_cirurgia: 'Colecistectomia', anestesia: 'geral',
+      ferida_operatoria_local: 'subcostal direita',
+    };
+    expect(ids({ ...cirurgico, ferida_operatoria: 'limpa_seca' })).not.toContain('ferida_operatoria_tamanho');
+    const comDeiscencia = {
+      ...cirurgico, ferida_operatoria: 'deiscencia',
+      ferida_operatoria_tamanho: { a: '3', b: '1.5' },
+    };
+    expect(contem(comDeiscencia, 'deiscência de ferida operatória, em região subcostal direita, medindo 3 x 1.5 cm')).toBe(true);
+    expect(texto(comDeiscencia)).not.toContain('deiscência medindo');
+  });
+
+  it('pergunta coloração da pele também no adulto, não só no recém-nascido', () => {
+    // O documento lista "coloração da pele" nas condições gerais, sem
+    // restringir por idade.
+    expect(ids(ADULTO_ESTAVEL)).toContain('pele_coloracao');
+    expect(contem(ADULTO_ESTAVEL, 'pele e mucosas coradas')).toBe(true);
+    expect(contem({ ...ADULTO_ESTAVEL, pele_coloracao: 'ictericia' }, 'presença de icterícia')).toBe(true);
+  });
+
+  it('registra o aspecto da diurese, não só o volume', () => {
+    expect(contem(CRITICO_VM, 'diurese de 350 mL nas últimas 24h, de aspecto amarelo-claro e límpido')).toBe(true);
+    // aberta pela sonda vesical, como o volume
+    expect(ids(ADULTO_ESTAVEL)).not.toContain('diurese_aspecto');
   });
 
   it('inclui o escore da escala de dor', () => {

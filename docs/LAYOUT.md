@@ -198,6 +198,8 @@ teste em `lib/__tests__/grafo-adaptativo.test.ts`, no bloco
 | "Não conter termos que deem conotação de valor (bem, mal, muito, pouco, etc.)" | Nenhuma `frase` do schema usa esses termos. Exceção deliberada: os descritores oficiais da RASS, que são o nome do degrau de um instrumento validado e vêm sempre com o escore. |
 | "dados de aplicação de Escala de dor (…) incluindo valor do escore aferido" | as opções de dor registram a faixa da EVA junto da queixa. |
 | "cateteres e como se encontram suas inserções e fixações; curativos e seu aspecto" | `avp_sitio_condicao`, `cvc_sitio_condicao` e `dreno_sitio_condicao`, abertas por `showIf` quando o dispositivo existe. |
+| "priorizar a descrição de características, como tamanho mensurado (cm, mm, etc.), quantidade (ml, l, etc.), coloração e forma" | lesão por pressão e deiscência levam região e medida em cm (`pele_lesao_local`, `pele_lesao_tamanho`, `ferida_operatoria_local`, `ferida_operatoria_tamanho`); a diurese leva aspecto além do volume (`diurese_aspecto`). |
+| "condições gerais (…) coloração da pele" | `pele_coloracao` no adulto, espelhando o `pele_neo` que o caminho neonatal já tinha. |
 
 Decimais em padrão brasileiro (38,4°C); `120x80 mmHg` e `RASS -4` passam
 intactos.
