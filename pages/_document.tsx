@@ -4,9 +4,6 @@ export default function Document() {
   return (
     <Html lang="pt-BR">
       <Head>
-        {/* O favicon.ico ainda é a marca azul antiga; o PNG novo vem primeiro
-            e os navegadores que entendem PNG usam ele. */}
-        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
         <link rel="icon" href="/favicon.ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
