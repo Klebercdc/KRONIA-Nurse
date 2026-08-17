@@ -198,6 +198,29 @@ describe('medicação e conduta ficam fora do bloco Dados', () => {
   });
 });
 
+describe('abertura do parágrafo não vaza para o bloco', () => {
+  const RN: Answers = {
+    idade_unidade: 'dias', idade_dias: '15', sexo: 'masculino',
+    idade_gestacional: '25', peso: '2850', estado_alerta: 'ativo_reativo',
+    fc: '120', fr: '25', spo2: '98', temperatura: '36',
+    conduta_termica_neo: 'incubadora_ajustada', silverman: 'ausente',
+    pele_neo: 'rosada', coto_umbilical: 'seco_integro', reflexos: 'presentes',
+    eliminacoes_neo: 'presentes', dieta_neo: 'seio_livre_demanda',
+    via_aerea_neo: 'ar_ambiente', dispositivos_neo: ['cateter_umbilical'],
+    tem_diagnostico: 'nao', tem_resultado: 'nao',
+  };
+
+  it('recém-nascido: Dados abre com o termo, Intervenção não o repete', () => {
+    expect(corpo(RN, 'Dados').startsWith('Recém-nascido de 15 dias de vida')).toBe(true);
+    expect(corpo(RN, 'Intervenção')).toBe('Incubadora ajustada frente à alteração térmica.');
+  });
+
+  it('adulto: mesma regra com o termo dele', () => {
+    expect(corpo(ADULTO_FEBRIL, 'Dados').startsWith('Paciente de 45 anos')).toBe(true);
+    expect(corpo(ADULTO_FEBRIL, 'Intervenção').startsWith('Paciente ')).toBe(false);
+  });
+});
+
 describe('pendências sobrevivem ao encaixe', () => {
   it('não perde (CONFERIR) de pergunta não respondida', () => {
     const { fc, ...semFc } = ADULTO_FEBRIL;
