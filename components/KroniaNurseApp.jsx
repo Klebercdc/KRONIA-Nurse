@@ -65,34 +65,98 @@ import {
   LogIn,
 } from "lucide-react";
 
-// Ícone real do logo (recorte do arquivo oficial enviado pelo usuário).
-const LOGO_ICON_B64 =
-  "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";
+// Marca desenhada em SVG, não em bitmap. O recorte PNG anterior tinha 240px
+// de largura e serrilhava em tela de celular (devicePixelRatio 3). Vetor é
+// nítido em qualquer tamanho, pesa alguns bytes e acompanha o accent.
+function LogoMark({ size = 150 }) {
+  return (
+    <svg
+      width={size}
+      height={size * (260 / 340)}
+      viewBox="0 0 340 260"
+      fill="none"
+      role="img"
+      aria-label="Kronia Nurse"
+      style={{ display: "block" }}
+    >
+      {/* Documento: canto superior direito dobrado, rodapé com degrau à
+          esquerda por onde o traçado de pulso sai. */}
+      <path
+        d="M58 42 Q58 20 80 20 H150 L190 60 V168 Q190 190 168 190 H120 V212 Q120 232 100 232 H78 Q58 232 58 210 Z"
+        stroke={TEXT}
+        strokeWidth="11"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+      {/* A dobra é preenchida, como no arquivo oficial. */}
+      <path d="M150 20 L190 60 H150 Z" fill={TEXT} />
+      {/* Três linhas de texto, alinhadas à esquerda. */}
+      <g stroke={TEXT} strokeWidth="11" strokeLinecap="round">
+        <line x1="84" y1="96" x2="150" y2="96" />
+        <line x1="84" y1="126" x2="162" y2="126" />
+        <line x1="84" y1="156" x2="140" y2="156" />
+      </g>
+      {/* Pulso: sai do rodapé e corre para fora do documento, não por cima. */}
+      <path
+        d="M120 212 H176 L188 190 L200 236 L214 96 L228 204 L240 178 L252 190 H292"
+        stroke={ACCENT}
+        strokeWidth="12"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="302" cy="190" r="11" fill={ACCENT} />
+    </svg>
+  );
+}
 
-// Wordmark do header, desenhado em texto (mesma proporção do arquivo oficial:
-// "KRONIA" fino e espaçado + "Nurse" itálico em verde).
+/**
+ * Wordmark do header.
+ *
+ * `letter-spacing` no CSS acrescenta o espaço DEPOIS de cada letra, inclusive
+ * da última — a caixa fica mais larga que os glifos e o texto centralizado
+ * aparece deslocado para a esquerda. `marginRight` negativo do mesmo valor
+ * devolve esse espaço e centraliza de verdade.
+ */
 function Wordmark({ height = 13 }) {
   return (
     <div style={{ display: "flex", alignItems: "baseline", gap: 7, lineHeight: 1 }}>
-      <span style={{ fontSize: height + 5, fontWeight: 300, letterSpacing: 3.5, color: TEXT }}>KRONIA</span>
+      <span style={{ fontSize: height + 5, fontWeight: 300, letterSpacing: 3.5, marginRight: -3.5, color: TEXT }}>
+        KRONIA
+      </span>
       <span style={{ fontSize: height + 3, fontWeight: 600, fontStyle: "italic", color: ACCENT }}>Nurse</span>
     </div>
   );
 }
 
-function LogoLockup({ size = 132 }) {
+function LogoLockup({ size = 150 }) {
+  const espacoKronia = size * 0.075;
+  const espacoNurse = size * 0.12;
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: size * 0.12 }}>
-      <img
-        src={`data:image/png;base64,${LOGO_ICON_B64}`}
-        alt="Kronia Nurse"
-        style={{ width: size, height: "auto", display: "block" }}
-      />
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: size * 0.03 }}>
-        <span style={{ fontSize: size * 0.26, fontWeight: 300, letterSpacing: size * 0.075, color: TEXT, paddingLeft: size * 0.075 }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: size * 0.1 }}>
+      <LogoMark size={size} />
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: size * 0.035 }}>
+        <span
+          style={{
+            fontSize: size * 0.26,
+            fontWeight: 300,
+            letterSpacing: espacoKronia,
+            marginRight: -espacoKronia,
+            color: TEXT,
+            lineHeight: 1,
+          }}
+        >
           KRONIA
         </span>
-        <span style={{ fontSize: size * 0.15, fontWeight: 400, letterSpacing: size * 0.12, color: ACCENT, paddingLeft: size * 0.12 }}>
+        <span
+          style={{
+            fontSize: size * 0.15,
+            fontWeight: 400,
+            letterSpacing: espacoNurse,
+            marginRight: -espacoNurse,
+            color: ACCENT,
+            lineHeight: 1,
+          }}
+        >
           NURSE
         </span>
       </div>
@@ -125,6 +189,11 @@ import {
 // medicação e conduta para Intervenção, e mantém Diagnóstico e Resultado
 // presentes — sem nunca inferir nada.
 import { gerarEvolucaoPE } from "../lib/evolucao/processo-enfermagem.js";
+
+// =============================================================================
+// Persistência local do histórico do plantão. Usa window.storage quando
+// existe (ambiente de artifact) e cai em localStorage no navegador comum.
+// Nada aqui sai do dispositivo — não há chamada de rede em todo o app.
 // =============================================================================
 const store = {
   async get(key) {
