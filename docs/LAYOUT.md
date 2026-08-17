@@ -5,7 +5,7 @@ Referência do layout **como está no código hoje**: `pages/index.tsx` →
 home).
 
 **Escopo do app:** só o motor determinístico. A evolução é montada por regras
-(`schema` + `showIf` + `classify`) e sai nos quatro blocos do Processo de
+(`schema` + `showIf` + `classify`) e sai nos blocos do Processo de
 Enfermagem. Nenhuma chamada de IA, nenhuma requisição de rede em todo o
 fluxo. Custo de inferência: zero.
 
@@ -165,24 +165,39 @@ Cards "Leito X · INICIAIS" com data/hora `pt-BR`, texto completo e Copiar.
 
 ## 5. Formato de saída — Processo de Enfermagem
 
-`lib/evolucao/processo-enfermagem.js` monta o documento nos quatro blocos da
+`lib/evolucao/processo-enfermagem.js` monta o documento nos blocos da
 Resolução COFEN nº 736/2024, sempre todos presentes e nesta ordem:
 
 | Bloco | Conteúdo |
 |---|---|
-| **Dados** | a prosa do motor: o que foi observado — vitais, exame físico, dispositivos presentes, suporte em curso, dieta, eliminações |
-| **Diagnóstico de Enfermagem** | sempre "Sem registro para esta seção" |
+| **Dados** | a prosa do motor: o que foi observado — vitais, exame físico, dispositivos presentes e condição dos sítios, suporte em curso, dieta, eliminações |
 | **Intervenção** | o que foi feito: condutas, fototerapia e medicação em infusão (`INTERVENCAO_IDS`) |
-| **Resultado** | sempre "Sem registro para esta seção" |
+| **Resultado** | a resposta do paciente às intervenções (`RESULTADO_IDS`) |
 
 Depois dos blocos vêm as pendências `(CONFERIR — …)`, recolhidas **uma única
 vez** da sequência completa, e por fim
 `Enfermeiro(a) Responsável — [data/hora]`, com o marcador literal.
 
-**Diagnóstico é estrutural, não interpretativo.** O schema não tem pergunta
-de diagnóstico nomeado, então não existe caminho no código para um valor
-numérico virar rótulo clínico. A trava deixou de ser instrução a um modelo e
-passou a ser ausência de caminho.
+**Não há bloco de Diagnóstico**, e isso é decisão de produto: o diagnóstico
+de enfermagem é registrado no sistema próprio de cada hospital, em documento
+à parte. O Art. 8º da Res. 736/2024 exige todas as etapas no *prontuário* —
+o prontuário, não necessariamente este documento. Como efeito colateral a
+trava antiga fica de graça: sem pergunta de diagnóstico no schema e sem bloco
+na saída, não existe caminho no código para um valor numérico virar rótulo
+clínico.
+
+### 5.1. Regras de redação — COREN-SP
+
+Do documento "Anotação de Enfermagem" (COREN-SP, 2022). Estão travadas por
+teste em `lib/__tests__/grafo-adaptativo.test.ts`, no bloco
+`regras de escrita do COREN-SP`:
+
+| Regra | Como aparece no código |
+|---|---|
+| "os sinais vitais mensurados devem ser registrados pontualmente (…) Não registrar como 'normotenso', 'normocárdico'" | `classify()` devolve `frase` só com o valor quando está na faixa. O rótulo de normalidade fica em `label`, que é texto de apoio da tela e não entra no documento. Achado **alterado** continua nomeado — é sinal clínico observado. |
+| "Não conter termos que deem conotação de valor (bem, mal, muito, pouco, etc.)" | Nenhuma `frase` do schema usa esses termos. Exceção deliberada: os descritores oficiais da RASS, que são o nome do degrau de um instrumento validado e vêm sempre com o escore. |
+| "dados de aplicação de Escala de dor (…) incluindo valor do escore aferido" | as opções de dor registram a faixa da EVA junto da queixa. |
+| "cateteres e como se encontram suas inserções e fixações; curativos e seu aspecto" | `avp_sitio_condicao`, `cvc_sitio_condicao` e `dreno_sitio_condicao`, abertas por `showIf` quando o dispositivo existe. |
 
 Decimais em padrão brasileiro (38,4°C); `120x80 mmHg` e `RASS -4` passam
 intactos.

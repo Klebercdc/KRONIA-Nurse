@@ -69,7 +69,7 @@ const ADULTO_ESTAVEL: Answers = {
   psicossocial: 'normal', seguranca: 'normal',
   via_aerea: 'ar_ambiente', dispositivos: ['nenhum'], droga_vasoativa: 'nao',
   balanco_hidrico: { a: '2000', b: '1800' }, glicemia: '95',
-  tem_diagnostico: 'nao', tem_resultado: 'nao',
+  tem_resultado: 'nao',
 };
 
 describe('cenário 1 — adulto estável', () => {
@@ -77,12 +77,13 @@ describe('cenário 1 — adulto estável', () => {
     expect(pendencias(ADULTO_ESTAVEL)).toEqual([]);
   });
 
-  it('abre o parágrafo com Paciente e classifica os vitais na faixa adulta', () => {
+  it('abre o parágrafo com Paciente e registra os vitais pelo valor aferido', () => {
     expect(texto(ADULTO_ESTAVEL).startsWith('Paciente ')).toBe(true);
-    expect(contem(ADULTO_ESTAVEL, 'normocárdico, com frequência cardíaca de 78 bpm')).toBe(true);
-    expect(contem(ADULTO_ESTAVEL, 'eupneico, com frequência respiratória de 16 irpm')).toBe(true);
-    expect(contem(ADULTO_ESTAVEL, 'afebril, temperatura axilar de 36.5°C')).toBe(true);
-    expect(contem(ADULTO_ESTAVEL, 'com PA normal, com pressão arterial de 120x80 mmHg')).toBe(true);
+    expect(contem(ADULTO_ESTAVEL, 'com frequência cardíaca de 78 bpm')).toBe(true);
+    expect(contem(ADULTO_ESTAVEL, 'com frequência respiratória de 16 irpm')).toBe(true);
+    expect(contem(ADULTO_ESTAVEL, 'com temperatura axilar de 36.5°C')).toBe(true);
+    expect(contem(ADULTO_ESTAVEL, 'com pressão arterial de 120x80 mmHg')).toBe(true);
+    expect(contem(ADULTO_ESTAVEL, 'com SpO₂ de 97%')).toBe(true);
   });
 
   it('não abre nenhuma pergunta de conduta de alerta', () => {
@@ -130,9 +131,9 @@ const CRITICO_VM: Answers = {
   eliminacoes: 'sonda_vesical', diurese_volume: '350',
   via_aerea: 'vm', modo_ventilatorio: 'pcv', fio2: '60', peep: '10',
   dispositivos: ['avp', 'cvc', 'sng', 'dreno'],
-  avp_calibre: '20g', avp_local: 'Antebraço direito',
-  cvc_sitio: 'jugular_d',
-  dreno_debito: '120', dreno_aspecto: 'serosanguinolento',
+  avp_calibre: '20g', avp_local: 'Antebraço direito', avp_sitio_condicao: 'sem_alteracao',
+  cvc_sitio: 'jugular_d', cvc_sitio_condicao: 'hiperemia',
+  dreno_debito: '120', dreno_aspecto: 'serosanguinolento', dreno_sitio_condicao: 'sem_alteracao',
   droga_vasoativa: 'sim', droga_vasoativa_qual: 'noradrenalina', droga_vasoativa_dose: '15',
   pele: 'lesao', pele_estadiamento: '2',
   perfusao_perif: 'tec_lento',
@@ -207,14 +208,17 @@ const RN_ESTAVEL: Answers = {
   pele_neo: 'rosada', coto_umbilical: 'seco_integro', reflexos: 'presentes',
   eliminacoes_neo: 'presentes', dieta_neo: 'seio_livre_demanda',
   via_aerea_neo: 'ar_ambiente', dispositivos_neo: ['nenhum'],
-  tem_diagnostico: 'nao', tem_resultado: 'nao',
+  tem_resultado: 'nao',
 };
 
 describe('cenário 3 — RN estável', () => {
   it('usa a faixa vital da idade, não a do adulto', () => {
-    // 140 bpm e 45 irpm seriam taquicardia/taquipneia em adulto.
-    expect(contem(RN_ESTAVEL, 'normocárdico para a idade, com frequência cardíaca de 140 bpm')).toBe(true);
-    expect(contem(RN_ESTAVEL, 'eupneico para a idade, com frequência respiratória de 45 irpm')).toBe(true);
+    // 140 bpm e 45 irpm seriam taquicardia/taquipneia em adulto — na faixa
+    // neonatal não abrem conduta e o registro fica só com o valor.
+    expect(contem(RN_ESTAVEL, 'com frequência cardíaca de 140 bpm')).toBe(true);
+    expect(contem(RN_ESTAVEL, 'com frequência respiratória de 45 irpm')).toBe(true);
+    expect(ids(RN_ESTAVEL)).not.toContain('conduta_fc_alterada');
+    expect(contem({ ...RN_ESTAVEL, fc: '190' }, 'taquicárdico para a idade, com frequência cardíaca de 190 bpm')).toBe(true);
     expect(faixaVitalPorIdade(RN_ESTAVEL)).toMatchObject({ minFc: 120, maxFc: 160 });
   });
 
@@ -300,7 +304,7 @@ describe('cenário 5 — gestante em trabalho de parto', () => {
   });
 
   it('classifica o BCF dentro da normalidade', () => {
-    expect(contem(TRABALHO_PARTO, 'BCF de 140 bpm, dentro da normalidade')).toBe(true);
+    expect(contem(TRABALHO_PARTO, 'com BCF de 140 bpm')).toBe(true);
     expect(contem({ ...TRABALHO_PARTO, bcf: '100' }, 'com bradicardia fetal, BCF de 100 bpm')).toBe(true);
   });
 
@@ -365,12 +369,113 @@ describe('como o paciente é chamado', () => {
   });
 });
 
+// ── Regras de escrita do COREN-SP ───────────────────────────────────────────
+//
+// COREN-SP, "Anotação de Enfermagem" (2022). Duas regras textuais explícitas
+// que o motor precisa respeitar em todo cenário, não só nos testados aqui —
+// por isso as asserções varrem o schema inteiro, e não uma evolução de
+// exemplo.
+describe('regras de escrita do COREN-SP', () => {
+  /** Todo texto que o motor pode mandar para o prontuário. */
+  function todasAsFrases(): string[] {
+    const frases = new Set<string>();
+    CTX.questions.forEach((q: any) => {
+      if (!q.options) return;
+      // `options` pode ser função (getOptions filtra por resposta anterior).
+      // Resolvemos nos dois sexos porque as opções obstétricas só existem em
+      // um deles — senão elas escapariam inteiras da varredura.
+      const opcoes =
+        typeof q.options === 'function'
+          ? [{ sexo: 'feminino' }, { sexo: 'masculino' }].flatMap((ctx) => getOptions(q, ctx))
+          : q.options;
+      opcoes.forEach((o: { frase?: string | null }) => {
+        if (o.frase) frases.add(o.frase);
+      });
+    });
+    // As frases de numérico são geradas por classify(), não estão no schema:
+    // os cenários acima cobrem a saída delas.
+    return [...frases];
+  }
+
+  it('não registra sinal vital como rótulo de normalidade', () => {
+    // "os sinais vitais mensurados devem ser registrados pontualmente, ou
+    // seja, os valores exatos aferidos. Não registrar como 'normotenso',
+    // 'normocárdico', etc."
+    const cenarios = [ADULTO_ESTAVEL, CRITICO_VM, RN_ESTAVEL, RN_CRITICO, TRABALHO_PARTO, PUERPERA];
+    const proibidos = [
+      'normocárdico', 'normotenso', 'eupneico', 'afebril', 'normotérmico',
+      'normoglicêmico', 'PA normal', 'PA ótima', 'dentro da normalidade',
+    ];
+    cenarios.forEach((cenario) =>
+      proibidos.forEach((rotulo) => expect(contem(cenario, rotulo)).toBe(false)),
+    );
+  });
+
+  it('o valor aferido sempre acompanha o sinal vital, alterado ou não', () => {
+    [ADULTO_ESTAVEL, CRITICO_VM].forEach((cenario) => {
+      expect(contem(cenario, `frequência cardíaca de ${cenario.fc} bpm`)).toBe(true);
+      expect(contem(cenario, `frequência respiratória de ${cenario.fr} irpm`)).toBe(true);
+      expect(contem(cenario, `SpO₂ de ${cenario.spo2}%`)).toBe(true);
+      expect(contem(cenario, `temperatura axilar de ${cenario.temperatura}°C`)).toBe(true);
+    });
+  });
+
+  it('a classificação de normalidade sobrevive na tela, não no prontuário', () => {
+    // `label` é o texto de apoio do campo numérico; `frase` é o que vai para
+    // o documento. A distinção é o que deixa o app orientar sem registrar
+    // juízo de normalidade.
+    const fc = CTX.questions.find((q: { id: string }) => q.id === 'fc');
+    const normal = fc.classify(78, ADULTO_ESTAVEL);
+    expect(normal.label).toContain('dentro da faixa de referência');
+    expect(normal.frase).toBe('com frequência cardíaca de 78 bpm');
+
+    const alterado = fc.classify(140, ADULTO_ESTAVEL);
+    expect(alterado.label).toBe('taquicárdico');
+    expect(alterado.frase).toContain('taquicárdico');
+  });
+
+  it('nenhuma frase do schema tem termo de conotação de valor', () => {
+    // "Não conter termos que deem conotação de valor (bem, mal, muito,
+    // pouco, etc.)". Os descritores oficiais da RASS são a exceção
+    // deliberada: são o nome do degrau de um instrumento validado, com o
+    // escore sempre junto.
+    const proibidos = /\b(boa|bom|bem|mal|muito|pouco|adequad\w*|discret\w*|satisfatóri\w*|importante|razoáve\w*|ótim\w*|ruim)\b/i;
+    const infratoras = todasAsFrases()
+      .filter((f) => !f.startsWith('RASS '))
+      .filter((f) => proibidos.test(f));
+    expect(infratoras).toEqual([]);
+  });
+
+  it('registra a condição do sítio de inserção de cada dispositivo', () => {
+    // "dispositivos em uso (ex.: cateteres e como se encontram suas
+    // inserções e fixações; curativos e seu aspecto visível externamente)".
+    const seq = ids(CRITICO_VM);
+    expect(seq).toEqual(
+      expect.arrayContaining(['avp_sitio_condicao', 'cvc_sitio_condicao', 'dreno_sitio_condicao']),
+    );
+    // e só quando o dispositivo existe
+    expect(ids({ ...CRITICO_VM, dispositivos: ['avp'] })).not.toContain('cvc_sitio_condicao');
+  });
+
+  it('sítio não avaliado vira pendência, não silêncio', () => {
+    const { avp_sitio_condicao, ...semSitio } = CRITICO_VM;
+    expect(contem(semSitio, '(CONFERIR — Como está o local da punção do acesso venoso periférico? não respondido)')).toBe(true);
+    expect(contem(CRITICO_VM, 'sítio de punção sem hiperemia, edema, dor à palpação ou secreção')).toBe(true);
+    expect(contem(CRITICO_VM, 'com hiperemia no sítio de inserção do cateter central')).toBe(true);
+  });
+
+  it('inclui o escore da escala de dor', () => {
+    // "dados de aplicação de Escala de dor (...) incluindo valor do escore".
+    expect(contem({ ...ADULTO_ESTAVEL, dor: 'moderada' }, 'refere dor, escore EVA entre 4 e 6')).toBe(true);
+  });
+});
+
 describe('invariantes do motor', () => {
   it('pergunta não respondida NUNCA some — vira pendência explícita', () => {
     const { fc, ...semFc } = ADULTO_ESTAVEL;
     expect(contem(semFc, '(CONFERIR — Qual a frequência cardíaca? não respondido)')).toBe(true);
-    // e não vira "normal" por omissão
-    expect(contem(semFc, 'normocárdico')).toBe(false);
+    // e não vira valor nenhum por omissão
+    expect(contem(semFc, 'frequência cardíaca de')).toBe(false);
   });
 
   it('valor numérico fora da faixa conta como não respondido', () => {
@@ -415,9 +520,9 @@ describe('invariantes do motor', () => {
   });
 
   it('a sequência é recalculada a cada resposta — a árvore cresce', () => {
-    // Camada universal: idade, sexo, FC, FR, SpO2, temperatura, mais as duas
-    // perguntas de fecho do Processo de Enfermagem.
-    expect(ids({}).length).toBe(8);
+    // Camada universal: idade, sexo, FC, FR, SpO2, temperatura, mais a
+    // pergunta de fecho do Processo de Enfermagem.
+    expect(ids({}).length).toBe(7);
     expect(ids({ idade_unidade: 'anos' }).length).toBeGreaterThan(6);
     expect(ids(CRITICO_VM).length).toBeGreaterThan(ids(ADULTO_ESTAVEL).length);
   });

@@ -1,8 +1,8 @@
 /**
- * Encaixe da prosa do motor nos quatro blocos do Processo de Enfermagem.
+ * Encaixe da prosa do motor nos blocos do Processo de Enfermagem.
  *
  * Trava o que a Resolução COFEN nº 736/2024 exige e o que o
- * CHECKLIST_NAO_REGRESSAO.md protege: os quatro blocos sempre presentes e na
+ * CHECKLIST_NAO_REGRESSAO.md protege: os três blocos sempre presentes e na
  * ordem, diagnóstico nunca inferido, medicação e conduta fora do bloco Dados,
  * e nenhuma pendência (CONFERIR) perdida na divisão entre blocos.
  */
@@ -11,7 +11,7 @@ const motor = require('../evolucao/grafo-adaptativo.js');
 const pe = require('../evolucao/processo-enfermagem.js');
 
 const { buildSequence, CONTEXTS } = motor;
-const { gerarEvolucaoPE, INTERVENCAO_IDS, DIAGNOSTICO_IDS, RESULTADO_IDS } = pe;
+const { gerarEvolucaoPE, INTERVENCAO_IDS, RESULTADO_IDS } = pe;
 
 type Answers = Record<string, unknown>;
 
@@ -24,7 +24,7 @@ function documento(answers: Answers): string {
 /** Devolve o corpo de um bloco, sem o título. */
 function corpo(answers: Answers, titulo: string): string {
   const doc = documento(answers);
-  const titulos = ['Dados', 'Diagnóstico de Enfermagem', 'Intervenção', 'Resultado'];
+  const titulos = ['Dados', 'Intervenção', 'Resultado'];
   const inicio = doc.indexOf(`\n${titulo}\n`) >= 0 ? doc.indexOf(`\n${titulo}\n`) + titulo.length + 2 : titulo.length + 1;
   const seguintes = titulos
     .slice(titulos.indexOf(titulo) + 1)
@@ -50,7 +50,7 @@ const ADULTO_FEBRIL: Answers = {
   psicossocial: 'normal', seguranca: 'normal',
   via_aerea: 'ar_ambiente', dispositivos: ['nenhum'], droga_vasoativa: 'nao',
   balanco_hidrico: { a: '2000', b: '1800' }, glicemia: '95',
-  tem_diagnostico: 'nao', tem_resultado: 'nao',
+  tem_resultado: 'nao',
 };
 
 const CRITICO: Answers = {
@@ -69,12 +69,10 @@ const CRITICO: Answers = {
   droga_vasoativa: 'sim', droga_vasoativa_qual: 'noradrenalina', droga_vasoativa_dose: '15',
 };
 
-describe('estrutura dos quatro blocos', () => {
-  it('sempre traz os quatro blocos, nesta ordem, com título em linha própria', () => {
+describe('estrutura dos blocos', () => {
+  it('sempre traz os três blocos, nesta ordem, com título em linha própria', () => {
     const doc = documento(ADULTO_FEBRIL);
-    const posicoes = ['Dados', 'Diagnóstico de Enfermagem', 'Intervenção', 'Resultado'].map((t) =>
-      doc.indexOf(`${t}\n`),
-    );
+    const posicoes = ['Dados', 'Intervenção', 'Resultado'].map((t) => doc.indexOf(`${t}\n`));
     posicoes.forEach((p) => expect(p).toBeGreaterThan(-1));
     expect(posicoes).toEqual([...posicoes].sort((a, b) => a - b));
   });
@@ -82,7 +80,6 @@ describe('estrutura dos quatro blocos', () => {
   it('nenhum bloco é omitido nem inventado quando não há dado — vira Sem registro', () => {
     // Árvore recém-aberta: nada respondido.
     const doc = documento({});
-    expect(doc).toContain('Diagnóstico de Enfermagem\nSem registro para esta seção');
     expect(doc).toContain('Intervenção\nSem registro para esta seção');
     expect(doc).toContain('Resultado\nSem registro para esta seção');
   });
@@ -93,33 +90,34 @@ describe('estrutura dos quatro blocos', () => {
   });
 });
 
-describe('trava do diagnóstico', () => {
-  it('não infere diagnóstico — nem com febre, hipotensão e hipoxemia juntas', () => {
-    // CRITICO responde "não" a "há diagnóstico a registrar".
-    expect(corpo(CRITICO, 'Diagnóstico de Enfermagem')).toBe('Sem registro para esta seção');
-  });
+describe('o diagnóstico de enfermagem não vive neste documento', () => {
+  // Decisão de produto, não esquecimento: o diagnóstico é registrado no
+  // sistema próprio de cada hospital, em documento à parte. A Res. 736/2024
+  // exige o registro de todas as etapas no PRONTUÁRIO (Art. 8º) — o
+  // prontuário, não necessariamente esta evolução. Estes testes existem para
+  // que a ausência seja verificada, e não reintroduzida por descuido.
 
-  it('não deixa rótulo clínico vazar do bloco Dados para o Diagnóstico', () => {
-    const diagnostico = corpo(CRITICO, 'Diagnóstico de Enfermagem');
-    ['hipertermia', 'prejudicada', 'hipotenso', 'febril'].forEach((rotulo) =>
-      expect(diagnostico.toLowerCase()).not.toContain(rotulo),
+  it('não há bloco de diagnóstico na saída', () => {
+    [documento(ADULTO_FEBRIL), documento(CRITICO), documento({})].forEach((doc) =>
+      expect(doc.toLowerCase()).not.toContain('diagnóstico'),
     );
   });
 
-  it('o campo é livre — não há lista de rótulos para escolher', () => {
-    const pergunta = CTX.questions.find((q: { id: string }) => q.id === 'diagnostico_enfermagem');
-    expect(pergunta.type).toBe('texto_livre');
-    expect(pergunta.options).toBeUndefined();
+  it('não há pergunta de diagnóstico no schema', () => {
+    const ids = CTX.questions.map((q: { id: string }) => q.id);
+    expect(ids.filter((id: string) => id.includes('diagnostico'))).toEqual([]);
+    const titulos = CTX.questions.map((q: { titulo: string }) => q.titulo.toLowerCase());
+    expect(titulos.filter((t: string) => t.includes('diagnóstico'))).toEqual([]);
   });
 
-  it('escreve exatamente o que o enfermeiro nomeou, e nada além', () => {
-    const texto = 'Risco de queda relacionado à sedação';
-    const doc = {
-      ...CRITICO,
-      tem_diagnostico: 'sim',
-      diagnostico_enfermagem: texto,
-    };
-    expect(corpo(doc, 'Diagnóstico de Enfermagem')).toBe(texto + '.');
+  it('não infere rótulo clínico a partir dos achados — nem com febre, hipotensão e hipoxemia juntas', () => {
+    // O texto registra o valor observado e a classificação da faixa vital.
+    // Rótulo de diagnóstico (taxonomia NANDA e afins) não é gerado em lugar
+    // nenhum: não existe caminho no código de achado numérico para rótulo.
+    const doc = documento(CRITICO).toLowerCase();
+    ['hipertermia', 'prejudicada', 'prejudicado', 'ineficaz', 'nanda'].forEach((rotulo) =>
+      expect(doc).not.toContain(rotulo),
+    );
   });
 });
 
@@ -137,26 +135,22 @@ describe('bloco Resultado', () => {
   });
 
   it('não responder vira pendência explícita, como qualquer outra pergunta', () => {
-    const { tem_resultado, tem_diagnostico, ...semFecho } = ADULTO_FEBRIL;
+    const { tem_resultado, ...semFecho } = ADULTO_FEBRIL;
     const doc = documento(semFecho);
-    expect(doc).toContain('(CONFERIR — Há diagnóstico de enfermagem a registrar? não respondido)');
     expect(doc).toContain('(CONFERIR — Há resposta do paciente às intervenções para registrar? não respondido)');
   });
 
   it('o texto do fecho não vaza para o bloco Dados', () => {
     const doc = {
       ...ADULTO_FEBRIL,
-      tem_diagnostico: 'sim', diagnostico_enfermagem: 'Integridade da pele prejudicada',
       tem_resultado: 'sim', resultado_avaliacao: 'Lesão sem progressão',
     };
-    const dados = corpo(doc, 'Dados');
-    expect(dados).not.toContain('Integridade da pele prejudicada');
-    expect(dados).not.toContain('Lesão sem progressão');
+    expect(corpo(doc, 'Dados')).not.toContain('Lesão sem progressão');
   });
 
-  it('todo id de DIAGNOSTICO_IDS e RESULTADO_IDS existe no schema', () => {
+  it('todo id de RESULTADO_IDS existe no schema', () => {
     const todos = CTX.questions.map((q: { id: string }) => q.id);
-    [...DIAGNOSTICO_IDS, ...RESULTADO_IDS].forEach((id: string) => expect(todos).toContain(id));
+    RESULTADO_IDS.forEach((id: string) => expect(todos).toContain(id));
   });
 });
 
