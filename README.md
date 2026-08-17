@@ -10,7 +10,7 @@ no prontuário.
 ```bash
 npm install
 npm run dev      # http://localhost:3000
-npm test         # 273 testes
+npm test         # 274 testes
 npm run typecheck
 ```
 
@@ -42,8 +42,7 @@ não digitado à mão.
   Número fora da faixa conta como não respondido.
 - **Diagnóstico nunca é inferido.** Não existe pergunta de diagnóstico
   nomeado no schema nem bloco para ele na saída, logo não existe caminho no
-  código para um valor virar rótulo clínico. O diagnóstico é registrado no
-  sistema próprio de cada hospital, em documento à parte.
+  código para um valor virar rótulo clínico.
 - **Sinal vital vai pelo valor aferido.** Nada de "normocárdico" ou
   "afebril": o COREN-SP manda registrar o número exato, e é o número que
   entra no prontuário. O rótulo de normalidade sobrevive só como texto de
@@ -58,9 +57,15 @@ Resolução COFEN nº 736/2024, montado por
 resposta do paciente). Todos os blocos sempre presentes; o que faltar vira
 "Sem registro para esta seção", nunca suposição.
 
-Não há bloco de **Diagnóstico**: cada hospital tem sistema próprio para ele,
-em documento à parte. O Art. 8º da Res. 736/2024 exige o registro de todas as
-etapas no *prontuário* — o prontuário, não necessariamente este documento.
+A Res. 736/2024 define **cinco** etapas. Duas não têm bloco aqui, por decisão
+de produto: **Diagnóstico** e **Planejamento** (a prescrição de enfermagem, o
+que a SAE antiga chamava assim). Cada hospital tem sistema próprio para as
+duas, em documento à parte. O Art. 8º exige o registro de todas as etapas no
+*prontuário* — o prontuário, não necessariamente este documento.
+
+Sobram aqui as três etapas que descrevem o paciente no momento, o que foi
+feito e como ele respondeu. As outras duas descrevem o plano, e o plano mora
+em outro lugar.
 
 A redação segue o COREN-SP, "Anotação de Enfermagem" (2022): valor exato do
 sinal vital sem rótulo de normalidade, escore junto quando há escala, nenhum
