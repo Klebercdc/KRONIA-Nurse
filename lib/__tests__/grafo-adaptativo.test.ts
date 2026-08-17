@@ -18,6 +18,7 @@ const {
   gerarTexto,
   getOptions,
   faixaVitalPorIdade,
+  comoChamar,
   CONTEXTS,
   CATEGORIA_POR_ID,
   SUBGRUPO_POR_ID,
@@ -236,6 +237,12 @@ describe('cenário 3 — RN estável', () => {
     expect(ids(RN_ESTAVEL)).not.toContain('sedativo_qual');
   });
 
+  it('chama de recém-nascido, não de paciente', () => {
+    // Período neonatal é até 28 dias completos (OMS / Ministério da Saúde).
+    expect(texto(RN_ESTAVEL).startsWith('Recém-nascido de 3 dias de vida')).toBe(true);
+    expect(texto(RN_ESTAVEL)).not.toContain('Paciente');
+  });
+
   it('classifica a termo e não deixa pendência', () => {
     expect(contem(RN_ESTAVEL, 'a termo, com 39 semanas de idade gestacional corrigida')).toBe(true);
     expect(pendencias(RN_ESTAVEL)).toEqual([]);
@@ -342,6 +349,22 @@ describe('cenário 6 — puérpera com lóquios de odor fétido', () => {
 });
 
 // ── Invariantes ─────────────────────────────────────────────────────────────
+describe('como o paciente é chamado', () => {
+  it('segue a faixa etária', () => {
+    expect(comoChamar({ idade_unidade: 'dias', idade_dias: '15' })).toBe('Recém-nascido');
+    expect(comoChamar({ idade_unidade: 'dias', idade_dias: '28' })).toBe('Recém-nascido');
+    // 29 dias já saiu do período neonatal.
+    expect(comoChamar({ idade_unidade: 'dias', idade_dias: '29' })).toBe('Lactente');
+    expect(comoChamar({ idade_unidade: 'meses', idade_meses: '6' })).toBe('Lactente');
+    expect(comoChamar({ idade_unidade: 'anos', idade_anos: '45' })).toBe('Paciente');
+  });
+
+  it('sem idade respondida, não arrisca um termo etário', () => {
+    expect(comoChamar({})).toBe('Paciente');
+    expect(comoChamar(undefined)).toBe('Paciente');
+  });
+});
+
 describe('invariantes do motor', () => {
   it('pergunta não respondida NUNCA some — vira pendência explícita', () => {
     const { fc, ...semFc } = ADULTO_ESTAVEL;
