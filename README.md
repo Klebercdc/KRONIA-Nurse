@@ -10,7 +10,7 @@ no prontuário.
 ```bash
 npm install
 npm run dev      # http://localhost:3000
-npm test         # 264 testes
+npm test         # 273 testes
 npm run typecheck
 ```
 
@@ -29,7 +29,7 @@ alucinação possível. O texto sai de três mecanismos, todos em
 | `classify()` | traduz valor numérico em achado clínico, com faixa que muda por idade (RN, lactente, criança, adulto, idoso). |
 | `validacoesCruzadas` | acusa combinações fisicamente impossíveis (ex.: dieta oral com paciente em ventilação mecânica invasiva). |
 
-São **127 perguntas** no schema — a home mostra esse número lido do código,
+São **133 perguntas** no schema — a home mostra esse número lido do código,
 não digitado à mão.
 
 ### Três regras que o motor não quebra
