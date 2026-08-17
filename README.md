@@ -1,55 +1,89 @@
 # KRONIA-Nurse
 
-## Visão Geral
+App de evolução de enfermagem por **perguntas adaptativas**. O profissional
+responde uma árvore que se reescreve a cada resposta, e o app devolve a
+evolução nos quatro blocos do Processo de Enfermagem, pronta para revisar e
+colar no prontuário.
 
-KRONIA-Nurse é um sistema de apoio à enfermagem focado na padronização da coleta de dados clínicos, geração de documentação assistencial e apoio à tomada de decisão por meio de IA.
-
-## Objetivos
-
-- Estruturar o processo de acolhimento.
-- Padronizar relatórios clínicos.
-- Automatizar documentação de enfermagem.
-- Utilizar agentes especializados para análise clínica.
-- Facilitar evolução futura do sistema.
-
-## Arquitetura (planejada)
-
-- Agente Orquestrador
-- Agentes Especialistas
-- Skills
-- Pipeline de validação
-- Base de conhecimento clínica
-
-## Configuração (variáveis de ambiente)
-
-Segredos ficam apenas em `.env.local` (local) e nas variáveis de ambiente da Vercel — nunca no repositório.
-
-| Variável | Obrigatória | Descrição |
-| --- | --- | --- |
-| `GROQ_API_KEY` | sim | Chave da Groq API (só no servidor). |
-| `GROQ_MODEL` | não | ID do modelo Groq usado em toda geração (plantão, pipeline, KRONOS). Default: `openai/gpt-oss-120b` — substituto indicado pela Groq para o `llama-3.3-70b-versatile`, descontinuado em 16/08/2026. Alternativa sugerida pela Groq: o Qwen 3.x vigente (conferir ID exato em console.groq.com/docs/models). |
-| `GROQ_MAX_TOKENS` | não | Limite de tokens de saída por chamada. Default: 4096. Atenção: no tier on_demand da Groq, prompt + max_tokens acima do TPM do modelo (8000 no gpt-oss-120b) é rejeitado com 413. |
-| `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | sim | Cliente Supabase server-side (só em `pages/api/**`). |
-| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | sim | Cliente Supabase do browser (sessão de autenticação). |
-| `COHERE_API_KEY` | sim | Geração de embeddings (só no servidor). |
-
-## Pipeline RAG de documentos oficiais
-
-O script `scripts/rag-pipeline.js` indexa PDFs oficiais (ANVISA, COFEN, COREN, Ministério da Saúde) na base de conhecimento documental:
-
-1. Baixa os PDFs da pasta `kronia-nurse-pdfs` do Google Drive (opcional — exige `credentials.json` OAuth na raiz; sem ele, usa os PDFs já presentes em `public/pdfs-conhecimento/`).
-2. Extrai o texto, divide em fragmentos (~500 caracteres, quebrando por sentença).
-3. Gera embeddings com Cohere `embed-multilingual-v3.0` (o mesmo modelo de `lib/embeddings.ts` — indexação e consulta precisam compartilhar o espaço vetorial).
-4. Grava em `conhecimento_documentos` / `conhecimento_fragmentos` (migration `20260703_conhecimento_rag.sql`), com deduplicação por hash SHA-256 do conteúdo.
-
-Execução (local, nunca na Vercel — exige `.env.local`):
+## Como rodar
 
 ```bash
-npm run rag:pipeline
+npm install
+npm run dev      # http://localhost:3000
+npm test         # 242 testes
+npm run typecheck
 ```
 
-A busca semântica sobre os fragmentos é exposta em `POST /api/conhecimento/buscar-rag` (body: `{ "consulta": "...", "match_count": 5 }`), que usa a função RPC `buscar_fragmentos_conhecimento`.
+Sem variável de ambiente, sem banco, sem chave de API. O app abre e funciona.
+
+## Como funciona
+
+O fluxo em uso é **100% determinístico**. Não há chamada de IA em ponto
+nenhum dele — nenhuma requisição de rede, nenhum custo de inferência, nenhuma
+alucinação possível. O texto sai de três mecanismos, todos em
+`lib/evolucao/grafo-adaptativo.js`:
+
+| Mecanismo | O que faz |
+| --- | --- |
+| `showIf` | decide se uma pergunta entra na sequência, a partir das respostas já dadas. `buildSequence()` recalcula a árvore a cada passo — ela começa em 6 perguntas e cresce. |
+| `classify()` | traduz valor numérico em achado clínico, com faixa que muda por idade (RN, lactente, criança, adulto, idoso). |
+| `validacoesCruzadas` | acusa combinações fisicamente impossíveis (ex.: dieta oral com paciente em ventilação mecânica invasiva). |
+
+São **122 perguntas** no schema — a home mostra esse número lido do código,
+não digitado à mão.
+
+### Três regras que o motor não quebra
+
+- **Nada de inventar.** Nenhuma condição é assumida por causa de outra.
+  Quando a resposta certa exigiria uma subárvore clínica sem fonte segura, o
+  app marca `(CONFERIR — …)` e devolve a decisão ao profissional.
+- **Não avaliado ≠ normal.** Pergunta não respondida nunca vira "sem
+  alterações" por omissão: vira pendência explícita no fim do documento.
+  Número fora da faixa conta como não respondido.
+- **Diagnóstico nunca é inferido.** Não existe pergunta de diagnóstico
+  nomeado no schema, logo não existe caminho no código para um valor virar
+  rótulo clínico. O bloco sai como "Sem registro para esta seção".
+
+### Formato de saída
+
+Resolução COFEN nº 736/2024, montado por
+`lib/evolucao/processo-enfermagem.js`: **Dados** (o que foi observado),
+**Diagnóstico de Enfermagem**, **Intervenção** (o que foi feito — condutas e
+medicação) e **Resultado**. Todos os blocos sempre presentes; o que faltar
+vira "Sem registro para esta seção", nunca suposição.
+
+## Estrutura
+
+```
+pages/index.tsx ......................... renderiza o app
+components/KroniaNurseApp.jsx ........... só as telas; importa o motor
+lib/evolucao/grafo-adaptativo.js ........ schema clínico + motor
+lib/evolucao/processo-enfermagem.js ..... encaixe nos quatro blocos
+lib/__tests__/grafo-adaptativo.test.ts .. 6 cenários clínicos + invariantes
+lib/__tests__/processo-enfermagem.test.ts  estrutura, travas e pendências
+docs/LAYOUT.md .......................... layout, tela a tela
+```
+
+Dados do plantão ficam em `localStorage`, no aparelho. Nada sai do
+dispositivo. Em tela só entram **leito e iniciais** — nunca o nome completo
+do paciente.
+
+## IA: parada, não removida
+
+Continua no repositório e compila, mas **nenhuma tela chama**: todo o
+`pages/api` (KRONOS, conhecimento, geração), `lib/groq-client`,
+`lib/prompts`, `lib/knowledge-*`, `lib/kronos-*`, o fluxo antigo de
+setor/tipo de documento, as migrations do Supabase e o
+`scripts/rag-pipeline.js`. Fica à espera da decisão de usar ou não IA.
+
+`gerarTexto()` é função pura de `(context, answers, sequence)` para string, e
+há um ponto de extensão comentado no motor: plugar uma revisão de fluidez por
+LLM depois não exige reestruturar nada.
+
+Enquanto o pipeline RAG estiver parado, as variáveis de ambiente que ele
+exigia (`GROQ_API_KEY`, `SUPABASE_*`, `COHERE_API_KEY`) não são necessárias
+para rodar o app.
 
 ## Status
 
-🚧 Projeto em desenvolvimento.
+🚧 Em desenvolvimento. Login é visual: não há autenticação, conta ou sessão.
