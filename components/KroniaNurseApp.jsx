@@ -55,7 +55,6 @@ import {
   Plus,
   ClipboardList,
   Building2,
-  Zap,
   Clock,
   Heart,
   Mail,
@@ -665,11 +664,8 @@ export default function KroniaNurseApp() {
 
             {/* Card de destaque — a promessa central do produto */}
             <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 12, background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 18, padding: "14px 14px" }}>
-              <div style={{ width: 40, height: 40, borderRadius: "50%", background: `${ACCENT}1A`, border: `1px solid ${ACCENT}44`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <Zap size={19} color={ACCENT} fill={ACCENT} />
-              </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 17, fontWeight: 800, lineHeight: 1.3 }}>
+                <div style={{ fontSize: 17, fontWeight: 800, lineHeight: 1.32 }}>
                   Evolua em minutos.<br />
                   <span style={{ color: ACCENT }}>Ganhe tempo no plantão.</span>
                 </div>
