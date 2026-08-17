@@ -178,13 +178,20 @@ Depois dos blocos vêm as pendências `(CONFERIR — …)`, recolhidas **uma ún
 vez** da sequência completa, e por fim
 `Enfermeiro(a) Responsável — [data/hora]`, com o marcador literal.
 
-**Não há bloco de Diagnóstico**, e isso é decisão de produto: o diagnóstico
-de enfermagem é registrado no sistema próprio de cada hospital, em documento
-à parte. O Art. 8º da Res. 736/2024 exige todas as etapas no *prontuário* —
-o prontuário, não necessariamente este documento. Como efeito colateral a
-trava antiga fica de graça: sem pergunta de diagnóstico no schema e sem bloco
-na saída, não existe caminho no código para um valor numérico virar rótulo
-clínico.
+**Faltam duas das cinco etapas da Res. 736/2024 — de propósito.**
+**Diagnóstico** e **Planejamento** (a prescrição de enfermagem, o que a SAE
+antiga chamava assim) são registrados no sistema próprio de cada hospital, em
+documento à parte. O Art. 8º exige todas as etapas no *prontuário* — o
+prontuário, não necessariamente este documento.
+
+A ausência das duas é **verificada por teste**, em
+`lib/__tests__/processo-enfermagem.test.ts`. Não é lacuna a fechar numa
+próxima auditoria; se um dia mudar, o caminho de volta está comentado no
+schema, no fecho do Processo de Enfermagem.
+
+Como efeito colateral a trava antiga fica de graça: sem pergunta de
+diagnóstico no schema e sem bloco na saída, não existe caminho no código para
+um valor numérico virar rótulo clínico.
 
 ### 5.1. Regras de redação — COREN-SP
 

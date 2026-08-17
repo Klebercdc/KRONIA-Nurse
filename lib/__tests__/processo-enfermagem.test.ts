@@ -90,24 +90,38 @@ describe('estrutura dos blocos', () => {
   });
 });
 
-describe('o diagnóstico de enfermagem não vive neste documento', () => {
-  // Decisão de produto, não esquecimento: o diagnóstico é registrado no
-  // sistema próprio de cada hospital, em documento à parte. A Res. 736/2024
-  // exige o registro de todas as etapas no PRONTUÁRIO (Art. 8º) — o
-  // prontuário, não necessariamente esta evolução. Estes testes existem para
-  // que a ausência seja verificada, e não reintroduzida por descuido.
+describe('diagnóstico e planejamento não vivem neste documento', () => {
+  // Decisão de produto, não esquecimento: os dois são registrados no sistema
+  // próprio de cada hospital, em documento à parte — o planejamento
+  // (prescrição de enfermagem, o que a SAE antiga chamava assim) pela mesma
+  // razão que o diagnóstico. A Res. 736/2024 exige o registro de todas as
+  // etapas no PRONTUÁRIO (Art. 8º) — o prontuário, não necessariamente esta
+  // evolução. Estes testes existem para que a ausência seja VERIFICADA, e não
+  // reintroduzida por descuido numa próxima auditoria.
 
-  it('não há bloco de diagnóstico na saída', () => {
-    [documento(ADULTO_FEBRIL), documento(CRITICO), documento({})].forEach((doc) =>
-      expect(doc.toLowerCase()).not.toContain('diagnóstico'),
-    );
+  it('não há bloco de diagnóstico nem de planejamento na saída', () => {
+    [documento(ADULTO_FEBRIL), documento(CRITICO), documento({})].forEach((doc) => {
+      expect(doc.toLowerCase()).not.toContain('diagnóstico');
+      expect(doc.toLowerCase()).not.toContain('planejamento');
+      expect(doc.toLowerCase()).not.toContain('prescrição de enfermagem');
+    });
   });
 
-  it('não há pergunta de diagnóstico no schema', () => {
+  it('o documento tem exatamente os três blocos, sem uma etapa a mais', () => {
+    const titulos = documento(ADULTO_FEBRIL)
+      .split('\n\n')
+      .map((bloco) => bloco.split('\n')[0])
+      .filter((linha) => /^(Dados|Intervenção|Resultado|Diagnóstico|Planejamento)/.test(linha));
+    expect(titulos).toEqual(['Dados', 'Intervenção', 'Resultado']);
+  });
+
+  it('não há pergunta de diagnóstico nem de planejamento no schema', () => {
     const ids = CTX.questions.map((q: { id: string }) => q.id);
-    expect(ids.filter((id: string) => id.includes('diagnostico'))).toEqual([]);
+    expect(ids.filter((id: string) => /diagnostico|planejamento|prescricao/.test(id))).toEqual([]);
     const titulos = CTX.questions.map((q: { titulo: string }) => q.titulo.toLowerCase());
-    expect(titulos.filter((t: string) => t.includes('diagnóstico'))).toEqual([]);
+    expect(
+      titulos.filter((t: string) => /diagnóstico|planejamento|prescrição de enfermagem/.test(t)),
+    ).toEqual([]);
   });
 
   it('não infere rótulo clínico a partir dos achados — nem com febre, hipotensão e hipoxemia juntas', () => {
