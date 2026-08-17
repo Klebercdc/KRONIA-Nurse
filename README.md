@@ -2,15 +2,15 @@
 
 App de evolução de enfermagem por **perguntas adaptativas**. O profissional
 responde uma árvore que se reescreve a cada resposta, e o app devolve a
-evolução nos quatro blocos do Processo de Enfermagem, pronta para revisar e
-colar no prontuário.
+evolução nos blocos do Processo de Enfermagem, pronta para revisar e colar
+no prontuário.
 
 ## Como rodar
 
 ```bash
 npm install
 npm run dev      # http://localhost:3000
-npm test         # 242 testes
+npm test         # 264 testes
 npm run typecheck
 ```
 
@@ -29,7 +29,7 @@ alucinação possível. O texto sai de três mecanismos, todos em
 | `classify()` | traduz valor numérico em achado clínico, com faixa que muda por idade (RN, lactente, criança, adulto, idoso). |
 | `validacoesCruzadas` | acusa combinações fisicamente impossíveis (ex.: dieta oral com paciente em ventilação mecânica invasiva). |
 
-São **122 perguntas** no schema — a home mostra esse número lido do código,
+São **127 perguntas** no schema — a home mostra esse número lido do código,
 não digitado à mão.
 
 ### Três regras que o motor não quebra
@@ -41,16 +41,31 @@ não digitado à mão.
   alterações" por omissão: vira pendência explícita no fim do documento.
   Número fora da faixa conta como não respondido.
 - **Diagnóstico nunca é inferido.** Não existe pergunta de diagnóstico
-  nomeado no schema, logo não existe caminho no código para um valor virar
-  rótulo clínico. O bloco sai como "Sem registro para esta seção".
+  nomeado no schema nem bloco para ele na saída, logo não existe caminho no
+  código para um valor virar rótulo clínico. O diagnóstico é registrado no
+  sistema próprio de cada hospital, em documento à parte.
+- **Sinal vital vai pelo valor aferido.** Nada de "normocárdico" ou
+  "afebril": o COREN-SP manda registrar o número exato, e é o número que
+  entra no prontuário. O rótulo de normalidade sobrevive só como texto de
+  apoio na tela. Achado alterado continua nomeado — é sinal clínico
+  observado, não juízo de normalidade.
 
 ### Formato de saída
 
 Resolução COFEN nº 736/2024, montado por
 `lib/evolucao/processo-enfermagem.js`: **Dados** (o que foi observado),
-**Diagnóstico de Enfermagem**, **Intervenção** (o que foi feito — condutas e
-medicação) e **Resultado**. Todos os blocos sempre presentes; o que faltar
-vira "Sem registro para esta seção", nunca suposição.
+**Intervenção** (o que foi feito — condutas e medicação) e **Resultado** (a
+resposta do paciente). Todos os blocos sempre presentes; o que faltar vira
+"Sem registro para esta seção", nunca suposição.
+
+Não há bloco de **Diagnóstico**: cada hospital tem sistema próprio para ele,
+em documento à parte. O Art. 8º da Res. 736/2024 exige o registro de todas as
+etapas no *prontuário* — o prontuário, não necessariamente este documento.
+
+A redação segue o COREN-SP, "Anotação de Enfermagem" (2022): valor exato do
+sinal vital sem rótulo de normalidade, escore junto quando há escala, nenhum
+termo de conotação de valor ("bem", "muito", "adequado"), e condição do sítio
+de inserção de cada dispositivo.
 
 ## Estrutura
 
@@ -58,7 +73,7 @@ vira "Sem registro para esta seção", nunca suposição.
 pages/index.tsx ......................... renderiza o app
 components/KroniaNurseApp.jsx ........... só as telas; importa o motor
 lib/evolucao/grafo-adaptativo.js ........ schema clínico + motor
-lib/evolucao/processo-enfermagem.js ..... encaixe nos quatro blocos
+lib/evolucao/processo-enfermagem.js ..... encaixe nos blocos do documento
 lib/__tests__/grafo-adaptativo.test.ts .. 6 cenários clínicos + invariantes
 lib/__tests__/processo-enfermagem.test.ts  estrutura, travas e pendências
 docs/LAYOUT.md .......................... layout, tela a tela
