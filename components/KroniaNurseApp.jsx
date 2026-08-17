@@ -55,7 +55,6 @@ import {
   Plus,
   ClipboardList,
   Building2,
-  Zap,
   Clock,
   Heart,
   Mail,
@@ -281,6 +280,9 @@ function GoogleIcon({ size = 18 }) {
 }
 
 // Onda de ECG do topo da home — traço grosso com brilho, sobre grade fraca.
+// Um batimento completo: linha de base, onda P, complexo QRS e onda T.
+const TRACADO_PULSO = "M0 56 H30 L42 44 L54 22 L66 76 L78 8 L90 62 L104 56 H150";
+
 function PulseHero({ width = 150, height = 82 }) {
   return (
     <svg width={width} height={height} viewBox="0 0 170 96" style={{ flexShrink: 0 }}>
@@ -290,11 +292,21 @@ function PulseHero({ width = 150, height = 82 }) {
         </pattern>
       </defs>
       <rect x="14" y="4" width="156" height="88" fill="url(#knGrid)" />
+      {/* A onda fica SEMPRE inteira. Antes ela era desenhada por
+          stroke-dashoffset animado, então durante 60% do ciclo o batimento
+          aparecia cortado — e qualquer captura pegava a onda pela metade.
+          Agora o traço completo é fixo e a animação é um brilho que percorre
+          por cima. */}
       <path
-        className="kn-pulso-path"
-        d="M0 56 H30 L42 44 L54 22 L66 76 L78 8 L90 62 L104 56 H150"
+        d={TRACADO_PULSO}
         fill="none" stroke={ACCENT} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"
-        strokeDasharray="340"
+        style={{ filter: `drop-shadow(0 0 5px ${ACCENT}) drop-shadow(0 0 14px ${ACCENT}66)` }}
+      />
+      <path
+        className="kn-pulso-brilho"
+        d={TRACADO_PULSO}
+        fill="none" stroke={ACCENT_2} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"
+        strokeOpacity="0.9"
       />
       <circle cx="150" cy="56" r="6" fill={ACCENT} style={{ filter: `drop-shadow(0 0 8px ${ACCENT})` }} />
     </svg>
@@ -431,6 +443,17 @@ export default function KroniaNurseApp() {
       100% { stroke-dashoffset: 0; }
     }
     .kn-pulso-path { animation: pulsoLinha 2.6s ease-out infinite; filter: drop-shadow(0 0 6px ${ACCENT}) drop-shadow(0 0 16px ${ACCENT}80); }
+    /* Segmento curto de brilho correndo sobre a onda já desenhada. */
+    @keyframes pulsoBrilho {
+      0% { stroke-dashoffset: 330; opacity: 0; }
+      12% { opacity: 1; }
+      88% { opacity: 1; }
+      100% { stroke-dashoffset: -30; opacity: 0; }
+    }
+    .kn-pulso-brilho {
+      stroke-dasharray: 26 330;
+      animation: pulsoBrilho 2.6s linear infinite;
+    }
     @keyframes vivoDot {
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.4; transform: scale(0.7); }
@@ -444,6 +467,7 @@ export default function KroniaNurseApp() {
     .kn-input::placeholder { color: ${DIM}; font-weight: 400; }
     @media (prefers-reduced-motion: reduce) {
       .kn-pulso-path { animation: none; stroke-dashoffset: 0; }
+      .kn-pulso-brilho { animation: none; opacity: 0; }
       .kn-vivo-dot, .kn-fade { animation: none; }
     }
   `;
@@ -451,7 +475,7 @@ export default function KroniaNurseApp() {
   return (
     <div style={{ minHeight: "100vh", background: BG, color: TEXT, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", display: "flex", justifyContent: "center" }}>
       <style>{estilosGlobais}</style>
-      <div style={{ width: "100%", maxWidth: 480, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      <div style={{ width: "100%", maxWidth: 480, minHeight: "100vh", display: "flex", flexDirection: "column", paddingTop: "env(safe-area-inset-top)" }}>
 
         {/* Header — só nas telas internas */}
         {!semShell && (
@@ -493,7 +517,11 @@ export default function KroniaNurseApp() {
         {/* LOGIN                                                             */}
         {/* ---------------------------------------------------------------- */}
         {screen === "login" && (
-          <div style={{ position: "relative", flex: 1, padding: "26px 22px 30px", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          // overflowX só, nunca overflow: com o conteúdo centralizado e
+          // `overflow: hidden`, em tela baixa o excesso era cortado nas duas
+          // pontas e o botão Entrar ficava inalcançável. Assim os grafismos
+          // seguem contidos na horizontal e a tela rola quando não couber.
+          <div style={{ position: "relative", flex: 1, padding: "20px 22px 24px", overflowX: "hidden", display: "flex", flexDirection: "column", justifyContent: "center" }}>
             {/* Grafismos de fundo: arcos à esquerda, onda à direita */}
             <svg width="220" height="240" viewBox="0 0 220 240" style={{ position: "absolute", left: -70, top: 150, opacity: 0.5, pointerEvents: "none" }}>
               {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -504,7 +532,7 @@ export default function KroniaNurseApp() {
               <path d="M0 60 H24 L38 24 L54 130 L70 6 L86 96 L100 60 H150" fill="none" stroke={ACCENT} strokeOpacity="0.5" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
 
-            <div style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "center", marginTop: 18 }}>
+            <div style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "center" }}>
               <LogoLockup size={128} />
             </div>
 
@@ -599,7 +627,7 @@ export default function KroniaNurseApp() {
         {/* HOME                                                              */}
         {/* ---------------------------------------------------------------- */}
         {screen === "home" && (
-          <div style={{ position: "relative", padding: "14px 18px 84px", display: "flex", flexDirection: "column", gap: 12, overflow: "hidden" }}>
+          <div style={{ position: "relative", padding: "12px 18px 84px", display: "flex", flexDirection: "column", gap: 9, overflow: "hidden" }}>
             {/* Glow radial de fundo */}
             <div style={{
               position: "absolute", top: -110, right: -70, width: 330, height: 330, borderRadius: "50%",
@@ -615,17 +643,17 @@ export default function KroniaNurseApp() {
                 </span>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 14 }}>
-                <div style={{ fontSize: 30, fontWeight: 800, lineHeight: 1.06, letterSpacing: -0.8 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 11 }}>
+                <div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.06, letterSpacing: -0.8 }}>
                   Um caminho.<br />
                   <span style={{ fontStyle: "italic", fontWeight: 700, color: ACCENT, textShadow: `0 0 22px ${ACCENT}55` }}>Toda a clínica.</span>
                 </div>
-                <PulseHero width={148} height={80} />
+                <PulseHero width={132} height={64} />
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14 }}>
-                <div style={{ width: 44, height: 44, borderRadius: "50%", background: `${ACCENT}12`, border: `1px solid ${ACCENT}33`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <Building2 size={20} color={ACCENT} />
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 11 }}>
+                <div style={{ width: 40, height: 40, borderRadius: "50%", background: `${ACCENT}12`, border: `1px solid ${ACCENT}33`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <Building2 size={18} color={ACCENT} />
                 </div>
                 <div>
                   <div style={{ fontSize: 15.5, fontWeight: 700 }}>Todas as áreas hospitalares.</div>
@@ -635,21 +663,15 @@ export default function KroniaNurseApp() {
             </div>
 
             {/* Card de destaque — a promessa central do produto */}
-            <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "flex-start", gap: 12, background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 18, padding: "14px 14px" }}>
-              <div style={{ width: 40, height: 40, borderRadius: "50%", background: `${ACCENT}1A`, border: `1px solid ${ACCENT}44`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <Zap size={19} color={ACCENT} fill={ACCENT} />
-              </div>
+            <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 12, background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 18, padding: "14px 14px" }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 800, lineHeight: 1.25 }}>
+                <div style={{ fontSize: 17, fontWeight: 800, lineHeight: 1.32 }}>
                   Evolua em minutos.<br />
                   <span style={{ color: ACCENT }}>Ganhe tempo no plantão.</span>
                 </div>
-                <div style={{ fontSize: 11.5, color: MUTED, marginTop: 7, lineHeight: 1.4 }}>
-                  Responda às perguntas. O KRONIA conduz o fluxo, organiza as informações e gera sua evolução pronta para revisar e copiar.
-                </div>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 9, flexShrink: 0 }}>
-                <Clock size={30} color={ACCENT} style={{ filter: `drop-shadow(0 0 10px ${ACCENT}66)` }} />
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                <Clock size={26} color={ACCENT} style={{ filter: `drop-shadow(0 0 10px ${ACCENT}66)` }} />
                 <div style={{ border: `1px solid ${ACCENT}55`, borderRadius: 8, padding: "6px 8px", textAlign: "center", lineHeight: 1.25 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     <span style={{ fontSize: 9, fontWeight: 700, color: ACCENT, letterSpacing: 0.3, textTransform: "uppercase" }}>Mais tempo<br />para cuidar</span>
@@ -667,8 +689,8 @@ export default function KroniaNurseApp() {
                 { icon: <ShieldCheck size={18} color={ACCENT} />, titulo: "Clínica & Segurança", sub: "Conteúdo validado e estruturado", tag: "Confiável" },
                 { icon: <FileText size={18} color={ACCENT} />, titulo: "Evolução completa", sub: "Gere, revise e copie para o prontuário", tag: "Pronta para uso" },
               ].map((item, i, arr) => (
-                <div key={item.titulo} style={{ display: "flex", alignItems: "center", gap: 11, padding: "12px 0", borderBottom: i < arr.length - 1 ? `1px solid ${BORDER}` : "none" }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 11, background: `${ACCENT}12`, border: `1px solid ${ACCENT}33`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <div key={item.titulo} style={{ display: "flex", alignItems: "center", gap: 11, padding: "8px 0", borderBottom: i < arr.length - 1 ? `1px solid ${BORDER}` : "none" }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 10, background: `${ACCENT}12`, border: `1px solid ${ACCENT}33`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     {item.icon}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -680,7 +702,7 @@ export default function KroniaNurseApp() {
                   </span>
                 </div>
               ))}
-              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 0 12px", color: MUTED, fontSize: 11.5 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0 10px", color: MUTED, fontSize: 11.5 }}>
                 <ShieldCheck size={14} color={MUTED} /> Privacidade e segurança de dados garantidas
               </div>
             </div>
@@ -691,7 +713,7 @@ export default function KroniaNurseApp() {
               style={{
                 position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 13,
                 background: `linear-gradient(100deg, ${ACCENT} 0%, ${ACCENT_2} 100%)`,
-                border: "none", borderRadius: 18, padding: "15px 15px", cursor: "pointer", textAlign: "left",
+                border: "none", borderRadius: 18, padding: "13px 14px", cursor: "pointer", textAlign: "left",
                 boxShadow: `0 16px 32px -12px ${ACCENT}88`,
               }}
             >
@@ -708,7 +730,7 @@ export default function KroniaNurseApp() {
             </button>
 
             {/* Dica */}
-            <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "flex-start", gap: 9, background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "12px 13px" }}>
+            <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "flex-start", gap: 9, background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "10px 12px" }}>
               <Lightbulb size={16} color={ACCENT} style={{ flexShrink: 0, marginTop: 1 }} />
               <div style={{ fontSize: 12, color: "#C9D8D2", lineHeight: 1.4 }}>
                 <span style={{ fontWeight: 700, color: TEXT }}>Dica: </span>
@@ -724,35 +746,35 @@ export default function KroniaNurseApp() {
           <div style={{
             position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)",
             width: "100%", maxWidth: 480, display: "flex", alignItems: "center", justifyContent: "space-around",
-            background: BG, borderTop: `1px solid ${BORDER}`, padding: "8px 8px calc(8px + env(safe-area-inset-bottom))",
+            background: BG, borderTop: `1px solid ${BORDER}`, padding: "10px 8px calc(12px + env(safe-area-inset-bottom))",
             boxShadow: `0 -8px 24px -8px rgba(0,0,0,0.6)`, zIndex: 2,
           }}>
-            <button style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: 3 }}>
-              <Home size={19} color={ACCENT} />
-              <span style={{ fontSize: 9.5, fontWeight: 700, color: ACCENT }}>Início</span>
+            <button style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "4px 6px" }}>
+              <Home size={23} color={ACCENT} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: ACCENT }}>Início</span>
             </button>
-            <button style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: 3 }}>
-              <Users size={19} color={DIM} />
-              <span style={{ fontSize: 9.5, fontWeight: 600, color: DIM }}>Pacientes</span>
+            <button style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "4px 6px" }}>
+              <Users size={23} color={DIM} />
+              <span style={{ fontSize: 11, fontWeight: 600, color: DIM }}>Pacientes</span>
             </button>
             <button
               onClick={() => CONTEXTS[0] && pickContext(CONTEXTS[0])}
-              style={{ width: 52, height: 52, borderRadius: "50%", background: ACCENT, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 8px 22px -6px ${ACCENT}AA`, marginTop: -18 }}
+              style={{ width: 60, height: 60, borderRadius: "50%", background: ACCENT, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 10px 26px -6px ${ACCENT}AA`, marginTop: -22 }}
             >
-              <Plus size={24} color={BG} strokeWidth={2.5} />
+              <Plus size={28} color={BG} strokeWidth={2.5} />
             </button>
-            <button onClick={abrirHistorico} style={{ position: "relative", background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: 3 }}>
-              <ClipboardList size={19} color={DIM} />
-              <span style={{ fontSize: 9.5, fontWeight: 600, color: DIM }}>Evoluções</span>
+            <button onClick={abrirHistorico} style={{ position: "relative", background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "4px 6px" }}>
+              <ClipboardList size={23} color={DIM} />
+              <span style={{ fontSize: 11, fontWeight: 600, color: DIM }}>Evoluções</span>
               {historicoCarregado && historico.length > 0 && (
-                <span style={{ position: "absolute", top: -3, right: 4, minWidth: 15, height: 15, borderRadius: 999, background: ACCENT, color: BG, fontSize: 9, fontWeight: 800, lineHeight: "15px", textAlign: "center" }}>
+                <span style={{ position: "absolute", top: -2, right: 2, minWidth: 16, height: 16, borderRadius: 999, background: ACCENT, color: BG, fontSize: 9.5, fontWeight: 800, lineHeight: "16px", textAlign: "center" }}>
                   {historico.length}
                 </span>
               )}
             </button>
-            <button style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: 3 }}>
-              <User size={19} color={DIM} />
-              <span style={{ fontSize: 9.5, fontWeight: 600, color: DIM }}>Perfil</span>
+            <button style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "4px 6px" }}>
+              <User size={23} color={DIM} />
+              <span style={{ fontSize: 11, fontWeight: 600, color: DIM }}>Perfil</span>
             </button>
           </div>
         )}
