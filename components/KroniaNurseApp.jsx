@@ -70,10 +70,36 @@ const LOGO_ICON_B64 =
 
 // Wordmark do header, desenhado em texto (mesma proporção do arquivo oficial:
 // "KRONIA" fino e espaçado + "Nurse" itálico em verde).
+/** Caminho do arquivo oficial do wordmark. Basta commitar a imagem aqui. */
+const WORDMARK_ARQUIVO = "/kronia-wordmark.png";
+
+/**
+ * Wordmark do cabeçalho.
+ *
+ * Usa o arquivo oficial quando ele existe em public/. Enquanto não existir, o
+ * onError cai no desenho em texto — o cabeçalho nunca fica com imagem
+ * quebrada nem vazio. Trocar a marca é commitar o PNG no caminho acima;
+ * nenhuma linha de código precisa mudar.
+ */
 function Wordmark({ height = 13 }) {
+  const [semArquivo, setSemArquivo] = useState(false);
+
+  if (!semArquivo) {
+    return (
+      <img
+        src={WORDMARK_ARQUIVO}
+        alt="KRONIA Nurse"
+        onError={() => setSemArquivo(true)}
+        style={{ height: height * 1.7, width: "auto", display: "block" }}
+      />
+    );
+  }
+
   return (
     <div style={{ display: "flex", alignItems: "baseline", gap: 7, lineHeight: 1 }}>
-      <span style={{ fontSize: height + 5, fontWeight: 300, letterSpacing: 3.5, color: TEXT }}>KRONIA</span>
+      <span style={{ fontSize: height + 5, fontWeight: 300, letterSpacing: 3.5, marginRight: -3.5, color: TEXT }}>
+        KRONIA
+      </span>
       <span style={{ fontSize: height + 3, fontWeight: 600, fontStyle: "italic", color: ACCENT }}>Nurse</span>
     </div>
   );
