@@ -58,7 +58,7 @@ const ADULTO_ESTAVEL: Answers = {
   consciencia: 'alerta',
   fc: '78', pa: { a: '120', b: '80' }, fr: '16', spo2: '97', temperatura: '36.5',
   dor: 'sem_dor',
-  pele: 'integra', pele_coloracao: 'corada',
+  pele: 'integra', pele_coloracao: 'corada', hidratacao: 'hidratado',
   mobilidade: 'sem_auxilio', forca_motora: 'preservada',
   eliminacoes: 'espontaneas', dieta: 'oral',
   ausculta_pulmonar: 'mv_presente', ausculta_cardiaca: 'bnf_2t', perfusao_perif: 'adequada',
@@ -246,7 +246,7 @@ const RN_ESTAVEL: Answers = {
   idade_gestacional: '39', peso: '3200',
   estado_alerta: 'ativo_reativo',
   fc: '140', fr: '45', spo2: '97', temperatura: '36.8',
-  silverman: 'ausente',
+  silverman: 'ausente', hidratacao: 'hidratado',
   pele_neo: 'rosada', coto_umbilical: 'seco_integro', reflexos: 'presentes',
   eliminacoes_neo: 'presentes', dieta_neo: 'seio_livre_demanda',
   via_aerea_neo: 'ar_ambiente', dispositivos_neo: ['nenhum'],
@@ -536,8 +536,8 @@ describe('regras de escrita do COREN-SP', () => {
     // O documento lista "coloração da pele" nas condições gerais, sem
     // restringir por idade.
     expect(ids(ADULTO_ESTAVEL)).toContain('pele_coloracao');
-    expect(contem(ADULTO_ESTAVEL, 'pele e mucosas coradas')).toBe(true);
-    expect(contem({ ...ADULTO_ESTAVEL, pele_coloracao: 'ictericia' }, 'presença de icterícia')).toBe(true);
+    expect(contem(ADULTO_ESTAVEL, 'corado')).toBe(true);
+    expect(contem({ ...ADULTO_ESTAVEL, pele_coloracao: 'ictericia' }, 'ictérico')).toBe(true);
   });
 
   it('registra o aspecto da diurese, não só o volume', () => {

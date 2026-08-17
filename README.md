@@ -2,15 +2,14 @@
 
 App de evolução de enfermagem por **perguntas adaptativas**. O profissional
 responde uma árvore que se reescreve a cada resposta, e o app devolve a
-evolução nos blocos do Processo de Enfermagem, pronta para revisar e colar
-no prontuário.
+**Evolução de Enfermagem** pronta para revisar e colar no prontuário.
 
 ## Como rodar
 
 ```bash
 npm install
 npm run dev      # http://localhost:3000
-npm test         # 274 testes
+npm test         # 268 testes
 npm run typecheck
 ```
 
@@ -29,7 +28,7 @@ alucinação possível. O texto sai de três mecanismos, todos em
 | `classify()` | traduz valor numérico em achado clínico, com faixa que muda por idade (RN, lactente, criança, adulto, idoso). |
 | `validacoesCruzadas` | acusa combinações fisicamente impossíveis (ex.: dieta oral com paciente em ventilação mecânica invasiva). |
 
-São **133 perguntas** no schema — a home mostra esse número lido do código,
+São **134 perguntas** no schema — a home mostra esse número lido do código,
 não digitado à mão.
 
 ### Três regras que o motor não quebra
@@ -51,26 +50,73 @@ não digitado à mão.
 
 ### Formato de saída
 
-Resolução COFEN nº 736/2024, montado por
-`lib/evolucao/processo-enfermagem.js`: **Dados** (o que foi observado),
-**Intervenção** (o que foi feito — condutas e medicação) e **Resultado** (a
-resposta do paciente). Todos os blocos sempre presentes; o que faltar vira
-"Sem registro para esta seção", nunca suposição.
+A evolução é a **foto do paciente no momento da avaliação** — e isso não é
+detalhe de nomenclatura, é o que define o formato:
 
-A Res. 736/2024 define **cinco** etapas. Duas não têm bloco aqui, por decisão
-de produto: **Diagnóstico** e **Planejamento** (a prescrição de enfermagem, o
-que a SAE antiga chamava assim). Cada hospital tem sistema próprio para as
-duas, em documento à parte. O Art. 8º exige o registro de todas as etapas no
-*prontuário* — o prontuário, não necessariamente este documento.
+```
+Paciente de 45 anos, alerta e orientado, estado geral preservado.
+Deambulando sem auxílio. Apresenta-se corado, hidratado, febril.
+Em ar ambiente.
 
-Sobram aqui as três etapas que descrevem o paciente no momento, o que foi
-feito e como ele respondeu. As outras duas descrevem o plano, e o plano mora
-em outro lugar.
+Sinais vitais: PA 120x80 mmHg, FC 78 bpm, FR 16 irpm, SpO₂ 97%, T 38,4°C.
 
-A redação segue o COREN-SP, "Anotação de Enfermagem" (2022): valor exato do
-sinal vital sem rótulo de normalidade, escore junto quando há escala, nenhum
-termo de conotação de valor ("bem", "muito", "adequado"), e condição do sítio
-de inserção de cada dispositivo.
+Ao exame físico:
+- Neurológico: ...
+- Cabeça e pescoço: ...
+- Respiratório: ...
+- Cardiovascular: ...
+- Gastrointestinal: ...
+- Geniturinário: ...
+- Pele e tegumento: ...
+- Membros: ...
+- Dispositivos: ...
+
+Aceitando dieta por via oral. Com balanço hídrico neutro nas últimas 24h...
+
+Realizados cuidados de enfermagem: administrado antitérmico...
+
+Paciente apresentou: cedeu a febre.
+
+Mantido em acompanhamento pela equipe de enfermagem...
+
+Enfermeiro(a) Responsável — [data/hora]
+```
+
+Sistema sem achado não vira bullet vazio — o recém-nascido não tem "Cabeça e
+pescoço" porque o caminho neonatal não faz exame céfalo-podal.
+
+### Evolução não é o Processo de Enfermagem
+
+Vale escrever porque a confusão já custou uma refatoração aqui.
+
+O Processo de Enfermagem tem **cinco etapas** (Res. COFEN 736/2024, Art. 4º):
+Avaliação, Diagnóstico, Planejamento, Implementação e Evolução. A **Evolução
+é uma delas**, não o invólucro das outras — o § 5º a define como "a avaliação
+dos resultados alcançados (…) permite a análise e a revisão de todo o
+Processo de Enfermagem".
+
+Diagnóstico e Planejamento (a prescrição de enfermagem, o que a SAE antiga
+chamava assim) são registros **próprios e separados**. A Res. 358/2009 já os
+listava assim: "privativo do enfermeiro o registro dos diagnósticos de
+enfermagem, da prescrição de enfermagem e da evolução ou avaliação de
+enfermagem" — três coisas, não uma com três seções. Cada hospital os registra
+no sistema próprio.
+
+Por isso não há aqui seção de diagnóstico nem de planejamento, e a ausência
+**não é lacuna a fechar**: eles nunca pertenceram a este documento. Está
+travado por teste.
+
+### Redação
+
+Segue o COREN-SP, "Anotação de Enfermagem" (2022): valor exato do sinal vital
+sem rótulo de normalidade, escore junto quando há escala, nenhum termo de
+conotação de valor ("bem", "muito", "adequado"), medida e localização de
+lesão, e condição do sítio de inserção de cada dispositivo.
+
+O descritor do sinal vital **alterado** aparece na abertura ("febril",
+"taquicárdico"); o **valor** aparece uma vez só, na linha de sinais vitais. O
+que está dentro da faixa não ganha descritor — é exatamente o "normocárdico"
+que o COREN proíbe, e o número já está logo abaixo.
 
 ## Estrutura
 
@@ -78,9 +124,10 @@ de inserção de cada dispositivo.
 pages/index.tsx ......................... renderiza o app
 components/KroniaNurseApp.jsx ........... só as telas; importa o motor
 lib/evolucao/grafo-adaptativo.js ........ schema clínico + motor
-lib/evolucao/processo-enfermagem.js ..... encaixe nos blocos do documento
+lib/evolucao/evolucao.js ................ monta a evolução: abertura, vitais,
+                                          exame por sistema, cuidados, fecho
 lib/__tests__/grafo-adaptativo.test.ts .. 6 cenários clínicos + invariantes
-lib/__tests__/processo-enfermagem.test.ts  estrutura, travas e pendências
+lib/__tests__/evolucao.test.ts .......... forma do documento e travas
 docs/LAYOUT.md .......................... layout, tela a tela
 ```
 
