@@ -118,9 +118,13 @@ import {
   getOptions,
   buildSequence,
   isAnswered,
-  gerarTexto,
   CONTEXTS,
 } from "../lib/evolucao/grafo-adaptativo.js";
+// A evolução sai nos quatro blocos do Processo de Enfermagem (COFEN
+// 736/2024). gerarEvolucaoPE encaixa a prosa do motor em Dados, separa
+// medicação e conduta para Intervenção, e mantém Diagnóstico e Resultado
+// presentes — sem nunca inferir nada.
+import { gerarEvolucaoPE } from "../lib/evolucao/processo-enfermagem.js";
 // =============================================================================
 const store = {
   async get(key) {
@@ -351,7 +355,7 @@ export default function KroniaNurseApp() {
         leito,
         iniciais: iniciais.toUpperCase(),
         dataHora: new Date().toISOString(),
-        texto: gerarTexto(context, answers, sequence),
+        texto: gerarEvolucaoPE(context, answers, sequence),
       };
       const novaLista = [registro, ...historico];
       setHistorico(novaLista);
@@ -964,13 +968,13 @@ export default function KroniaNurseApp() {
                 <div style={{ fontSize: 14, fontWeight: 700 }}>Evolução gerada</div>
                 <div style={{ display: "flex", gap: 8 }}>
                   <IconButton icon={<RotateCcw size={15} color={ACCENT} />} onClick={() => pickContext(context)} />
-                  <button onClick={() => navigator.clipboard?.writeText(gerarTexto(context, answers, sequence))} style={{ display: "flex", alignItems: "center", gap: 6, background: ACCENT, border: "none", borderRadius: 8, padding: "7px 14px", color: BG, fontSize: 13, fontWeight: 800, cursor: "pointer", boxShadow: `0 6px 16px -6px ${ACCENT}99` }}>
+                  <button onClick={() => navigator.clipboard?.writeText(gerarEvolucaoPE(context, answers, sequence))} style={{ display: "flex", alignItems: "center", gap: 6, background: ACCENT, border: "none", borderRadius: 8, padding: "7px 14px", color: BG, fontSize: 13, fontWeight: 800, cursor: "pointer", boxShadow: `0 6px 16px -6px ${ACCENT}99` }}>
                     <Copy size={13} /> Copiar
                   </button>
                 </div>
               </div>
               <div style={{ padding: 18, fontSize: 15, lineHeight: 1.6, whiteSpace: "pre-wrap", color: "#E4EDE9" }}>
-                {gerarTexto(context, answers, sequence)}
+                {gerarEvolucaoPE(context, answers, sequence)}
               </div>
             </div>
 

@@ -369,3 +369,7 @@ describe('invariantes do motor', () => {
     expect(ids(CRITICO_VM).length).toBeGreaterThan(ids(ADULTO_ESTAVEL).length);
   });
 });
+
+// Marca o arquivo como módulo: sem isto os dois testes compartilham escopo
+// global e o tsc acusa redeclaração de CONTEXTS/CTX/Answers.
+export {};
