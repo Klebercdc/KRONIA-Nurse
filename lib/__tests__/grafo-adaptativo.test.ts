@@ -94,8 +94,20 @@ describe('cenário 1 — adulto estável', () => {
   it('separa os achados em parágrafos por sistema', () => {
     const t = texto(ADULTO_ESTAVEL);
     expect(t).toContain('Ao exame físico,');
-    expect(t).toContain('Em suporte respiratório e sedação,');
-    expect(t).toContain('Em uso de dispositivos e terapias,');
+    expect(t).toContain('Em suporte respiratório,');
+  });
+
+  it('não anuncia sedação em paciente sem sedação', () => {
+    const t = texto(ADULTO_ESTAVEL);
+    expect(t).toContain('Em suporte respiratório,');
+    expect(t).not.toContain('e sedação');
+  });
+
+  it('não anuncia dispositivos quando o parágrafo só tem balanço e glicemia', () => {
+    // dispositivos: ["nenhum"] e droga vasoativa "não" não geram frase; sobra
+    // o metabólico, que não é dispositivo nem terapia.
+    expect(texto(ADULTO_ESTAVEL)).not.toContain('Em uso de dispositivos e terapias,');
+    expect(contem(ADULTO_ESTAVEL, 'balanço hídrico neutro')).toBe(true);
   });
 });
 
@@ -163,6 +175,14 @@ describe('cenário 2 — crítico com sedação e ventilação mecânica', () =>
     expect(contem(CRITICO_VM, 'lesão por pressão estágio II')).toBe(true);
   });
 
+  it('anuncia sedação na abertura quando há sedação de verdade', () => {
+    expect(texto(CRITICO_VM)).toContain('Em suporte respiratório e sedação,');
+  });
+
+  it('anuncia dispositivos quando há acesso ou droga', () => {
+    expect(texto(CRITICO_VM)).toContain('Em uso de dispositivos e terapias,');
+  });
+
   it('mantém o pedido de detalhamento mesmo com o campo livre preenchido', () => {
     // "Alterado" carrega needsReview: o texto livre descreve o achado, mas a
     // marca (CONFERIR) permanece — quem confere é o profissional, não o motor.
@@ -206,6 +226,12 @@ describe('cenário 3 — RN estável', () => {
     expect(seq).not.toContain('pele');
     expect(seq).not.toContain('via_aerea');
     expect(seq).not.toContain('dieta');
+  });
+
+  it('nunca menciona sedação — o caminho neonatal não tem essa pergunta', () => {
+    expect(texto(RN_ESTAVEL)).not.toContain('sedação');
+    expect(texto(RN_ESTAVEL)).toContain('Em suporte respiratório,');
+    expect(ids(RN_ESTAVEL)).not.toContain('sedativo_qual');
   });
 
   it('classifica a termo e não deixa pendência', () => {
