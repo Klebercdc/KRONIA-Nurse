@@ -1,5 +1,15 @@
 # KRONIA Nurse — LAYOUT_ATUAL
 
+> **HISTÓRICO — não descreve mais o app.** Este documento extraiu os tokens do
+> tema claro e das telas (`plantao`, `evoluir`, `registrar`, `encerramento`,
+> `escalas`, `pacientes`, `biblioteca`, `conhecimento`, `Layout.tsx`,
+> `ShiftPulseBar`) que foram removidas quando o motor adaptativo virou o app.
+> O layout em vigor está em [`docs/LAYOUT.md`](docs/LAYOUT.md).
+>
+> Continua aqui porque `styles/globals.css` ainda existe e serve o código que
+> ficou parado no repositório — os valores abaixo seguem verdadeiros para
+> aquele CSS, só não para nenhuma tela.
+
 Referência extraída do código. Todos os valores são cópias literais dos
 arquivos citados. Nenhum valor arredondado ou inferido.
 
