@@ -97,13 +97,38 @@ describe('cenário 1 — adulto estável', () => {
   it('separa os achados em parágrafos por sistema', () => {
     const t = texto(ADULTO_ESTAVEL);
     expect(t).toContain('Ao exame físico,');
-    expect(t).toContain('Em suporte respiratório,');
+    // Vitais, exame céfalo-podal, funcional, via aérea e metabólico saem em
+    // parágrafos próprios, separados por linha em branco.
+    expect(t.split('\n\n').length).toBeGreaterThanOrEqual(5);
   });
 
-  it('não anuncia sedação em paciente sem sedação', () => {
+  it('não anuncia suporte respiratório em paciente em ar ambiente', () => {
+    // "Em suporte respiratório, em ar ambiente" se contradiz na mesma frase.
     const t = texto(ADULTO_ESTAVEL);
-    expect(t).toContain('Em suporte respiratório,');
+    expect(t).toContain('Em ar ambiente.');
+    expect(t).not.toContain('Em suporte respiratório');
     expect(t).not.toContain('e sedação');
+  });
+
+  it('anuncia suporte quando há suporte de verdade', () => {
+    const comCateter = { ...ADULTO_ESTAVEL, via_aerea: 'cateter_o2', fluxo_o2: '3' };
+    expect(texto(comCateter)).toContain('Em suporte respiratório, em uso de cateter nasal de oxigênio');
+  });
+
+  it('sedação sem suporte ventilatório abre o parágrafo por si mesma', () => {
+    const t = texto({
+      ...ADULTO_ESTAVEL,
+      consciencia: 'sedado', sedativo_qual: ['midazolam'], dose_midazolam: '12', sedacao_rass: '-2',
+      via_aerea: 'ar_ambiente',
+    });
+    expect(t).toContain('Em sedação, midazolam em infusão contínua a 12 mL/h');
+    expect(t).not.toContain('Em suporte respiratório');
+  });
+
+  it('via aérea não respondida não vira suporte anunciado', () => {
+    const { via_aerea, ...semVia } = ADULTO_ESTAVEL;
+    expect(texto(semVia)).not.toContain('Em suporte respiratório');
+    expect(contem(semVia, '(CONFERIR — Qual o suporte de via aérea? não respondido)')).toBe(true);
   });
 
   it('não anuncia dispositivos quando o parágrafo só tem balanço e glicemia', () => {
@@ -182,6 +207,20 @@ describe('cenário 2 — crítico com sedação e ventilação mecânica', () =>
     expect(texto(CRITICO_VM)).toContain('Em suporte respiratório e sedação,');
   });
 
+  it('não repete o nome da droga sedativa entre a seleção e a dose', () => {
+    // A droga é nomeada uma vez só, na frase da dose — é ela que amarra cada
+    // dose à sua droga quando há mais de uma em curso.
+    const t = texto(CRITICO_VM);
+    expect(t).toContain('midazolam em infusão contínua a 12 mL/h, fentanil em infusão contínua a 8 mL/h');
+    expect(t).not.toContain('midazolam, midazolam');
+    expect(t).not.toContain('fentanil, fentanil');
+  });
+
+  it('dose não respondida ainda nomeia a droga, na pendência', () => {
+    const { dose_midazolam, ...semDose } = CRITICO_VM;
+    expect(contem(semDose, '(CONFERIR — Qual a dose de midazolam? não respondido)')).toBe(true);
+  });
+
   it('anuncia dispositivos quando há acesso ou droga', () => {
     expect(texto(CRITICO_VM)).toContain('Em uso de dispositivos e terapias,');
   });
@@ -237,7 +276,8 @@ describe('cenário 3 — RN estável', () => {
 
   it('nunca menciona sedação — o caminho neonatal não tem essa pergunta', () => {
     expect(texto(RN_ESTAVEL)).not.toContain('sedação');
-    expect(texto(RN_ESTAVEL)).toContain('Em suporte respiratório,');
+    expect(texto(RN_ESTAVEL)).toContain('Em ar ambiente.');
+    expect(texto(RN_ESTAVEL)).not.toContain('Em suporte respiratório');
     expect(ids(RN_ESTAVEL)).not.toContain('sedativo_qual');
   });
 
