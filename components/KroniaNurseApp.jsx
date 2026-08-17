@@ -451,7 +451,7 @@ export default function KroniaNurseApp() {
   return (
     <div style={{ minHeight: "100vh", background: BG, color: TEXT, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", display: "flex", justifyContent: "center" }}>
       <style>{estilosGlobais}</style>
-      <div style={{ width: "100%", maxWidth: 480, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      <div style={{ width: "100%", maxWidth: 480, minHeight: "100vh", display: "flex", flexDirection: "column", paddingTop: "env(safe-area-inset-top)" }}>
 
         {/* Header — só nas telas internas */}
         {!semShell && (
@@ -493,7 +493,11 @@ export default function KroniaNurseApp() {
         {/* LOGIN                                                             */}
         {/* ---------------------------------------------------------------- */}
         {screen === "login" && (
-          <div style={{ position: "relative", flex: 1, padding: "26px 22px 30px", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          // overflowX só, nunca overflow: com o conteúdo centralizado e
+          // `overflow: hidden`, em tela baixa o excesso era cortado nas duas
+          // pontas e o botão Entrar ficava inalcançável. Assim os grafismos
+          // seguem contidos na horizontal e a tela rola quando não couber.
+          <div style={{ position: "relative", flex: 1, padding: "20px 22px 24px", overflowX: "hidden", display: "flex", flexDirection: "column", justifyContent: "center" }}>
             {/* Grafismos de fundo: arcos à esquerda, onda à direita */}
             <svg width="220" height="240" viewBox="0 0 220 240" style={{ position: "absolute", left: -70, top: 150, opacity: 0.5, pointerEvents: "none" }}>
               {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -504,7 +508,7 @@ export default function KroniaNurseApp() {
               <path d="M0 60 H24 L38 24 L54 130 L70 6 L86 96 L100 60 H150" fill="none" stroke={ACCENT} strokeOpacity="0.5" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
 
-            <div style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "center", marginTop: 18 }}>
+            <div style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "center" }}>
               <LogoLockup size={128} />
             </div>
 
@@ -599,7 +603,7 @@ export default function KroniaNurseApp() {
         {/* HOME                                                              */}
         {/* ---------------------------------------------------------------- */}
         {screen === "home" && (
-          <div style={{ position: "relative", padding: "14px 18px 84px", display: "flex", flexDirection: "column", gap: 12, overflow: "hidden" }}>
+          <div style={{ position: "relative", padding: "12px 18px 70px", display: "flex", flexDirection: "column", gap: 9, overflow: "hidden" }}>
             {/* Glow radial de fundo */}
             <div style={{
               position: "absolute", top: -110, right: -70, width: 330, height: 330, borderRadius: "50%",
@@ -615,17 +619,17 @@ export default function KroniaNurseApp() {
                 </span>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 14 }}>
-                <div style={{ fontSize: 30, fontWeight: 800, lineHeight: 1.06, letterSpacing: -0.8 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 11 }}>
+                <div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.06, letterSpacing: -0.8 }}>
                   Um caminho.<br />
                   <span style={{ fontStyle: "italic", fontWeight: 700, color: ACCENT, textShadow: `0 0 22px ${ACCENT}55` }}>Toda a clínica.</span>
                 </div>
-                <PulseHero width={148} height={80} />
+                <PulseHero width={134} height={72} />
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14 }}>
-                <div style={{ width: 44, height: 44, borderRadius: "50%", background: `${ACCENT}12`, border: `1px solid ${ACCENT}33`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <Building2 size={20} color={ACCENT} />
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 11 }}>
+                <div style={{ width: 40, height: 40, borderRadius: "50%", background: `${ACCENT}12`, border: `1px solid ${ACCENT}33`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <Building2 size={18} color={ACCENT} />
                 </div>
                 <div>
                   <div style={{ fontSize: 15.5, fontWeight: 700 }}>Todas as áreas hospitalares.</div>
@@ -635,21 +639,18 @@ export default function KroniaNurseApp() {
             </div>
 
             {/* Card de destaque — a promessa central do produto */}
-            <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "flex-start", gap: 12, background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 18, padding: "14px 14px" }}>
+            <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 12, background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 18, padding: "14px 14px" }}>
               <div style={{ width: 40, height: 40, borderRadius: "50%", background: `${ACCENT}1A`, border: `1px solid ${ACCENT}44`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <Zap size={19} color={ACCENT} fill={ACCENT} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 800, lineHeight: 1.25 }}>
+                <div style={{ fontSize: 17, fontWeight: 800, lineHeight: 1.3 }}>
                   Evolua em minutos.<br />
                   <span style={{ color: ACCENT }}>Ganhe tempo no plantão.</span>
                 </div>
-                <div style={{ fontSize: 11.5, color: MUTED, marginTop: 7, lineHeight: 1.4 }}>
-                  Responda às perguntas. O KRONIA conduz o fluxo, organiza as informações e gera sua evolução pronta para revisar e copiar.
-                </div>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 9, flexShrink: 0 }}>
-                <Clock size={30} color={ACCENT} style={{ filter: `drop-shadow(0 0 10px ${ACCENT}66)` }} />
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                <Clock size={26} color={ACCENT} style={{ filter: `drop-shadow(0 0 10px ${ACCENT}66)` }} />
                 <div style={{ border: `1px solid ${ACCENT}55`, borderRadius: 8, padding: "6px 8px", textAlign: "center", lineHeight: 1.25 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     <span style={{ fontSize: 9, fontWeight: 700, color: ACCENT, letterSpacing: 0.3, textTransform: "uppercase" }}>Mais tempo<br />para cuidar</span>
@@ -667,8 +668,8 @@ export default function KroniaNurseApp() {
                 { icon: <ShieldCheck size={18} color={ACCENT} />, titulo: "Clínica & Segurança", sub: "Conteúdo validado e estruturado", tag: "Confiável" },
                 { icon: <FileText size={18} color={ACCENT} />, titulo: "Evolução completa", sub: "Gere, revise e copie para o prontuário", tag: "Pronta para uso" },
               ].map((item, i, arr) => (
-                <div key={item.titulo} style={{ display: "flex", alignItems: "center", gap: 11, padding: "12px 0", borderBottom: i < arr.length - 1 ? `1px solid ${BORDER}` : "none" }}>
-                  <div style={{ width: 38, height: 38, borderRadius: 11, background: `${ACCENT}12`, border: `1px solid ${ACCENT}33`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <div key={item.titulo} style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 0", borderBottom: i < arr.length - 1 ? `1px solid ${BORDER}` : "none" }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 10, background: `${ACCENT}12`, border: `1px solid ${ACCENT}33`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     {item.icon}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -680,7 +681,7 @@ export default function KroniaNurseApp() {
                   </span>
                 </div>
               ))}
-              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 0 12px", color: MUTED, fontSize: 11.5 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0 10px", color: MUTED, fontSize: 11.5 }}>
                 <ShieldCheck size={14} color={MUTED} /> Privacidade e segurança de dados garantidas
               </div>
             </div>
@@ -691,7 +692,7 @@ export default function KroniaNurseApp() {
               style={{
                 position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 13,
                 background: `linear-gradient(100deg, ${ACCENT} 0%, ${ACCENT_2} 100%)`,
-                border: "none", borderRadius: 18, padding: "15px 15px", cursor: "pointer", textAlign: "left",
+                border: "none", borderRadius: 18, padding: "13px 14px", cursor: "pointer", textAlign: "left",
                 boxShadow: `0 16px 32px -12px ${ACCENT}88`,
               }}
             >
@@ -708,7 +709,7 @@ export default function KroniaNurseApp() {
             </button>
 
             {/* Dica */}
-            <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "flex-start", gap: 9, background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "12px 13px" }}>
+            <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "flex-start", gap: 9, background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "10px 12px" }}>
               <Lightbulb size={16} color={ACCENT} style={{ flexShrink: 0, marginTop: 1 }} />
               <div style={{ fontSize: 12, color: "#C9D8D2", lineHeight: 1.4 }}>
                 <span style={{ fontWeight: 700, color: TEXT }}>Dica: </span>
