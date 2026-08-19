@@ -151,8 +151,8 @@ import {
 // de outro documento. gerarEvolucao encaixa a prosa do motor na abertura, na
 // linha de sinais vitais, no exame por sistema e nos cuidados realizados.
 import { gerarEvolucao } from "../lib/evolucao/evolucao.js";
-// Aviso de versão nova publicada. O service worker que o alimenta é gerado no
-// build por scripts/gerar-sw.js — ver README, "Atualização".
+// Atualização automática: o service worker é gerado no build por
+// scripts/gerar-sw.js — ver README, "Atualização".
 import { useAtualizacao } from "./useAtualizacao";
 // =============================================================================
 const store = {
@@ -184,29 +184,6 @@ function CheckBox({ checked }) {
     <span style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${checked ? ACCENT : "#3A4F47"}`, background: checked ? ACCENT : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
       {checked && <Check size={14} color={BG} strokeWidth={3} />}
     </span>
-  );
-}
-
-/**
- * Barra de "nova versão disponível".
- *
- * NÃO aparece durante o questionário: as respostas em andamento vivem em
- * estado de React, e recarregar no meio de uma evolução apagaria o trabalho do
- * plantão. O worker novo espera — o aviso reaparece assim que a evolução fecha.
- */
-function AvisoAtualizacao({ visivel, onAtualizar }) {
-  if (!visivel) return null;
-  return (
-    <div className="kn-fade" style={{ display: "flex", alignItems: "center", gap: 12, margin: "10px 18px 0", padding: "12px 14px", background: `${ACCENT}14`, border: `1px solid ${ACCENT}44`, borderRadius: 12 }}>
-      <RotateCcw size={16} color={ACCENT} style={{ flexShrink: 0 }} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 700 }}>Nova versão disponível</div>
-        <div style={{ fontSize: 12, color: MUTED }}>Atualize para receber as últimas mudanças.</div>
-      </div>
-      <button onClick={onAtualizar} style={{ flexShrink: 0, background: ACCENT, border: "none", borderRadius: 9, padding: "9px 14px", color: BG, fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
-        Atualizar
-      </button>
-    </div>
   );
 }
 
@@ -398,6 +375,58 @@ export default function KroniaNurseApp() {
     return () => clearTimeout(t);
   }, [screen]);
 
+  // ── Rascunho da evolução em andamento ────────────────────────────────────
+  //
+  // O app se atualiza sozinho, e atualizar recarrega a página. Sem isto, uma
+  // troca de versão no meio do questionário apagaria o trabalho do plantão:
+  // as respostas vivem em estado de React e morrem no reload.
+  //
+  // Com o rascunho no aparelho, recarregar é invisível — o enfermeiro volta na
+  // mesma pergunta, com as mesmas respostas. É o que torna o botão
+  // "Atualizar" desnecessário.
+  const [rascunhoLido, setRascunhoLido] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const bruto = await store.get("rascunho_evolucao");
+        const r = bruto ? JSON.parse(bruto) : null;
+        // Rascunho velho não é retomada, é confusão: um plantão de distância
+        // já basta para a evolução não ser mais a daquele paciente.
+        const valido = r && Date.now() - r.salvoEm < 12 * 60 * 60 * 1000;
+        if (valido && r.contextId) {
+          setContextId(r.contextId);
+          setAnswers(r.answers || {});
+          setStep(r.step || 0);
+          setLeito(r.leito || "");
+          setIniciais(r.iniciais || "");
+          setShowResult(Boolean(r.showResult));
+          setSavedThisResult(Boolean(r.showResult));
+          // Volta direto para onde estava: é isso que faz a atualização
+          // automática passar despercebida.
+          setScreen("quiz");
+        } else if (r) {
+          store.set("rascunho_evolucao", "").catch(() => {});
+        }
+      } catch (e) {
+        /* rascunho ilegível não pode impedir o app de abrir */
+      } finally {
+        setRascunhoLido(true);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!rascunhoLido) return;
+    if (screen !== "quiz" || !contextId) return;
+    const r = { contextId, answers, step, leito, iniciais, showResult, salvoEm: Date.now() };
+    store.set("rascunho_evolucao", JSON.stringify(r)).catch(() => {});
+  }, [rascunhoLido, screen, contextId, answers, step, leito, iniciais, showResult]);
+
+  function limparRascunho() {
+    store.set("rascunho_evolucao", "").catch(() => {});
+  }
+
   // Carrega o histórico do plantão (persistente entre sessões) uma vez.
   useEffect(() => {
     (async () => {
@@ -433,6 +462,7 @@ export default function KroniaNurseApp() {
   }, [showResult]);
 
   function pickContext(c) {
+    limparRascunho();
     setContextId(c.id);
     setAnswers({});
     setStep(0);
@@ -448,6 +478,7 @@ export default function KroniaNurseApp() {
   }
 
   function backToHome() {
+    limparRascunho();
     setContextId(null);
     setAnswers({});
     setStep(0);
@@ -492,10 +523,9 @@ export default function KroniaNurseApp() {
   const identificacaoValida = leito.trim().length > 0 && iniciais.trim().length > 0;
   const semShell = screen === "splash" || screen === "login";
 
-  // Versão nova publicada. O aviso fica fora do splash/login (onde não há
-  // casco) e fora do questionário (onde recarregar perderia as respostas).
-  const { temAtualizacao, atualizar } = useAtualizacao();
-  const podeAvisar = temAtualizacao && !semShell && !(screen === "quiz" && !showResult);
+  // O app se mantém na última versão publicada sozinho. Pode recarregar a
+  // qualquer momento: a evolução em andamento está no rascunho.
+  useAtualizacao();
 
   const estilosGlobais = `
     @keyframes pulsoLinha {
@@ -562,8 +592,6 @@ export default function KroniaNurseApp() {
             </div>
           </div>
         )}
-
-        <AvisoAtualizacao visivel={podeAvisar} onAtualizar={atualizar} />
 
         {/* ---------------------------------------------------------------- */}
         {/* SPLASH                                                            */}
