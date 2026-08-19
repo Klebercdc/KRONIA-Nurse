@@ -22,9 +22,11 @@ const CACHE = `kronia-nurse-${VERSAO}`;
 const CASCO = ['/', '/manifest.json', '/kronia-wordmark.png', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', (evento) => {
-  // SEM skipWaiting automático: o worker novo espera. Quem decide a hora de
-  // trocar é o enfermeiro, pelo aviso na tela — trocar sozinho recarregaria a
-  // página no meio de uma evolução em andamento.
+  // ASSUME NA HORA. O app se atualiza sozinho, sem botão e sem perguntar: a
+  // evolução em andamento sobrevive porque fica salva em rascunho no
+  // aparelho (ver o rascunho em components/KroniaNurseApp.jsx), então
+  // recarregar devolve o enfermeiro na mesma pergunta.
+  self.skipWaiting();
   evento.waitUntil(caches.open(CACHE).then((c) => c.addAll(CASCO)).catch(() => {}));
 });
 
@@ -38,8 +40,6 @@ self.addEventListener('activate', (evento) => {
 });
 
 self.addEventListener('message', (evento) => {
-  // Disparado pelo botão "Atualizar" do aviso na tela.
-  if (evento.data === 'TROCAR_AGORA') self.skipWaiting();
   if (evento.data === 'QUAL_VERSAO') {
     evento.source && evento.source.postMessage({ tipo: 'VERSAO', versao: VERSAO });
   }

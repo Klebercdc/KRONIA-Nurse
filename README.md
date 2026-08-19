@@ -143,17 +143,17 @@ publicação; o repositório não muda.
 Actions*. Sem isso o job de publicação falha dizendo que Pages não está
 habilitado.
 
-### 2. Avisar — service worker
+### 2. Chegar no telefone — service worker
 
-Publicar não basta: o app instalado no telefone serviria o cache velho. O
-service worker resolve isso, e de quebra faz a evolução abrir sem sinal —
-plantão em subsolo de hospital é o caso real.
+Publicar não basta: o app instalado serviria o cache velho. O service worker
+resolve isso, e de quebra faz a evolução abrir sem sinal — plantão em subsolo
+de hospital é o caso real.
 
 ```
 scripts/sw-template.js ....... fonte do worker
 scripts/gerar-sw.js .......... roda no prebuild; injeta a versão do commit
 public/sw.js ................. GERADO, não versionado — não edite
-components/useAtualizacao.ts . detecta e devolve o gatilho
+components/useAtualizacao.ts . registra e recarrega quando troca a versão
 ```
 
 A versão do build fica embutida no `sw.js`. O navegador só reconhece um worker
@@ -166,13 +166,40 @@ nova chegar assim que existe, com o cache entrando só quando não há sinal);
 `/_next/static/` vai ao cache primeiro (nunca muda sob o mesmo nome); o resto
 serve do cache e revalida atrás.
 
-**O app nunca se atualiza sozinho.** O worker novo espera e a tela mostra
-"Nova versão disponível · Atualizar" — recarregar no meio de uma evolução
-apagaria as respostas do plantão, que vivem em estado de React. E o aviso não
-aparece durante o questionário: ele volta quando a evolução fecha.
+#### Sem botão: o app se atualiza sozinho
 
-Checa ao abrir, toda vez que o app volta ao primeiro plano, e a cada 30
-minutos para a aba que fica aberta o turno inteiro.
+O worker novo assume assim que instala (`skipWaiting`) e a página recarrega em
+seguida. Não há aviso, não há "Atualizar", não há decisão a tomar.
+
+**O que torna isso seguro é o rascunho.** A evolução em andamento é salva no
+aparelho a cada resposta (`rascunho_evolucao`), e ao abrir o app ela é
+retomada no mesmo ponto — mesma pergunta, mesmas respostas, mesmo leito. Sem
+o rascunho, uma atualização no meio do questionário apagaria o trabalho do
+plantão, porque as respostas vivem em estado de React.
+
+O rascunho vale por 12 horas — um plantão. Passou disso, é descartado: retomar
+uma evolução de ontem não é retomada, é confusão. Ele também é apagado ao
+fechar a evolução ou começar outra.
+
+Um detalhe que custou um bug: a primeira tomada de controle do worker também
+dispara `controllerchange`, e recarregar ali seria um reload gratuito em toda
+primeira visita. A bandeira que guarda isso precisa ser **mutável** — uma foto
+tirada no início deixa a página sem atualizar para sempre, porque no primeiro
+carregamento nunca há controlador.
+
+Verificado contando carregamentos reais do documento:
+
+| Cenário | Cargas | |
+|---|---|---|
+| primeira visita | 1 | não recarrega à toa |
+| recarga manual, sem deploy | 2 | não recarrega de novo |
+| depois de um deploy | 3 | recarregou sozinho |
+
+E com uma evolução aberta: reload automático no meio do questionário devolve
+o enfermeiro na mesma pergunta, com as respostas intactas.
+
+Procura versão nova ao abrir, toda vez que o app volta ao primeiro plano, e a
+cada 30 minutos para a aba que fica aberta o turno inteiro.
 
 ## Estrutura
 
@@ -187,7 +214,7 @@ lib/__tests__/evolucao.test.ts .......... forma do documento e travas
 docs/LAYOUT.md .......................... layout, tela a tela
 scripts/sw-template.js .................. service worker (fonte)
 scripts/gerar-sw.js ..................... injeta a versão no prebuild
-components/useAtualizacao.ts ............ detecta versão nova
+components/useAtualizacao.ts ............ atualização automática
 .github/workflows/ ...................... CI e publicação
 ```
 
