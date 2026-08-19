@@ -567,17 +567,28 @@ export default function KroniaNurseApp() {
      * "solto": arrastar deslizava a página toda, aparecia faixa vazia acima do
      * cabeçalho e os botões do rodapé saíam da vista. Travar html/body e dar a
      * rolagem a um único contêiner interno é o que fixa o casco.
-     *
-     * 100dvh acompanha o teclado; 100vh fica como fallback de navegador velho.
      */
-    html, body {
+    /* #__next entra aqui porque o Next envolve a página nele. Sem altura no
+     * wrapper, o height:100% do casco resolve contra um pai de altura auto e
+     * é simplesmente ignorado — a cadeia html > body > #__next > casco
+     * precisa estar inteira. */
+    html, body, #__next {
       height: 100%;
       overflow: hidden;
       overscroll-behavior: none;
     }
+    /* height: 100% e NÃO 100dvh.
+     *
+     * Foi o erro que descolou a navegação do rodapé: no iOS, dvh é a viewport
+     * DINÂMICA, a menor das alturas possíveis. Num app em tela cheia ela fica
+     * mais curta que a tela de verdade, o casco encolhe junto e sobra faixa
+     * preta embaixo da navegação.
+     *
+     * Com html e body em 100%, o 100% daqui é a altura real da janela, sem
+     * depender de como cada navegador calcula vh e dvh. O que trava a rolagem
+     * do casco é o overflow hidden, não a unidade. */
     .kn-tela {
-      height: 100vh;
-      height: 100dvh;
+      height: 100%;
       overflow: hidden;
     }
     /* Sem -webkit-overflow-scrolling aqui: além de obsoleto, ele faz o iOS
