@@ -198,7 +198,8 @@ function NumericField({ question, value, onChange, answers }) {
           value={value === undefined ? "" : value}
           placeholder={question.placeholder || `Ex: ${Math.round((question.min + question.max) / 2)}`}
           onChange={(e) => onChange(e.target.value)}
-          style={{ flex: 1, background: "none", border: "none", outline: "none", color: TEXT, fontSize: 28, fontWeight: 700, fontFamily: "inherit" }}
+          className="kn-num"
+          style={{ flex: 1, minWidth: 0, width: "100%", background: "none", border: "none", outline: "none", color: TEXT, fontSize: 28, fontWeight: 700, fontFamily: "inherit" }}
         />
         <span style={{ color: MUTED, fontSize: 15, fontWeight: 600 }}>{question.unit}</span>
       </div>
@@ -233,7 +234,8 @@ function BPField({ question, value, onChange, answers }) {
               value={value && value.a !== undefined ? value.a : ""}
               placeholder={`${Math.round((question.minA + question.maxA) / 2)}`}
               onChange={(e) => onChange({ ...(value || {}), a: e.target.value })}
-              style={{ width: "100%", background: "none", border: "none", outline: "none", color: TEXT, fontSize: 26, fontWeight: 700, fontFamily: "inherit" }}
+              className="kn-num"
+              style={{ width: "100%", minWidth: 0, background: "none", border: "none", outline: "none", color: TEXT, fontSize: 26, fontWeight: 700, fontFamily: "inherit" }}
             />
           </div>
         </div>
@@ -247,7 +249,8 @@ function BPField({ question, value, onChange, answers }) {
               value={value && value.b !== undefined ? value.b : ""}
               placeholder={`${Math.round((question.minB + question.maxB) / 2)}`}
               onChange={(e) => onChange({ ...(value || {}), b: e.target.value })}
-              style={{ width: "100%", background: "none", border: "none", outline: "none", color: TEXT, fontSize: 26, fontWeight: 700, fontFamily: "inherit" }}
+              className="kn-num"
+              style={{ width: "100%", minWidth: 0, background: "none", border: "none", outline: "none", color: TEXT, fontSize: 26, fontWeight: 700, fontFamily: "inherit" }}
             />
           </div>
         </div>
@@ -492,6 +495,13 @@ export default function KroniaNurseApp() {
     }
     .kn-fade { animation: fadeUp 0.6s ease-out both; }
     .kn-input::placeholder { color: ${DIM}; font-weight: 400; }
+    .kn-num::placeholder { color: ${DIM}; font-weight: 400; }
+    /* Setinhas do input numérico só ocupam espaço e roubam largura da unidade. */
+    .kn-num::-webkit-outer-spin-button,
+    .kn-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .kn-num { -moz-appearance: textfield; appearance: textfield; }
+    /* 100dvh acompanha o teclado; 100vh fica como fallback de navegador velho. */
+    .kn-tela { min-height: 100vh; min-height: 100dvh; }
     @media (prefers-reduced-motion: reduce) {
       .kn-pulso-path { animation: none; stroke-dashoffset: 0; }
       .kn-pulso-brilho { animation: none; opacity: 0; }
@@ -500,9 +510,9 @@ export default function KroniaNurseApp() {
   `;
 
   return (
-    <div style={{ minHeight: "100vh", background: BG, color: TEXT, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", display: "flex", justifyContent: "center" }}>
+    <div className="kn-tela" style={{ background: BG, color: TEXT, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", display: "flex", justifyContent: "center" }}>
       <style>{estilosGlobais}</style>
-      <div style={{ width: "100%", maxWidth: 480, minHeight: "100vh", display: "flex", flexDirection: "column", paddingTop: "env(safe-area-inset-top)" }}>
+      <div className="kn-tela" style={{ width: "100%", maxWidth: 480, display: "flex", flexDirection: "column", paddingTop: "env(safe-area-inset-top)" }}>
 
         {/* Header — só nas telas internas */}
         {!semShell && (
@@ -918,7 +928,7 @@ export default function KroniaNurseApp() {
 
             <div style={{
               position: "relative", marginTop: 18, background: `linear-gradient(165deg, ${SURFACE} 0%, ${BG} 100%)`,
-              border: `1px solid ${BORDER}`, borderRadius: 20, padding: 20, flex: 1,
+              border: `1px solid ${BORDER}`, borderRadius: 20, padding: 20, flex: "0 1 auto",
               boxShadow: `0 20px 48px -20px rgba(0,0,0,0.65), 0 0 0 1px ${ACCENT}0D`,
             }}>
               <div style={{ position: "absolute", top: 0, left: 20, right: 20, height: 2, borderRadius: 2, background: `linear-gradient(90deg, ${ACCENT}00, ${ACCENT}CC, ${ACCENT}00)` }} />
@@ -968,7 +978,9 @@ export default function KroniaNurseApp() {
               )}
             </div>
 
-            <div style={{ display: "flex", gap: 12, padding: "18px 0" }}>
+            <div style={{ flex: 1, minHeight: 18 }} />
+
+            <div style={{ display: "flex", gap: 12, padding: "0 0 18px" }}>
               <button onClick={back} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "none", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px", color: TEXT, fontSize: 15, fontWeight: 600, cursor: "pointer" }}>
                 <ArrowLeft size={17} /> Voltar
               </button>
