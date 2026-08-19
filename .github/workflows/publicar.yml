@@ -1,0 +1,69 @@
+# Publica no GitHub Pages a cada push no main — é o "toda vez que mudar aqui,
+# atualiza no web".
+#
+# Só roda depois do CI passar: publicar uma evolução com o motor quebrado é
+# pior do que não publicar.
+#
+# Pré-requisito, uma vez só, no GitHub: Settings → Pages → Source: "GitHub
+# Actions". Sem isso o job falha dizendo que Pages não está habilitado.
+name: Publicar
+
+on:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Uma publicação por vez; se chegar push novo no meio, o antigo é cancelado.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # As rotas de pages/api estão PARADAS (nenhuma tela chama), mas o Next
+      # se recusa a exportar um projeto que as tenha. Saem do caminho só
+      # durante a publicação — o repositório não muda, e religar a IA um dia
+      # continua sendo mover de volta.
+      - name: Tirar do caminho as rotas de API paradas
+        run: mv pages/api "$RUNNER_TEMP/api-parado"
+
+      # KRONIA_ESTATICO liga o export estático em next.config.js. O app é
+      # 100% cliente — motor determinístico, sem chamada de rede, dados em
+      # localStorage — então site estático é o formato certo.
+      - name: Build estático
+        run: npm run build
+        env:
+          KRONIA_ESTATICO: '1'
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./out
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

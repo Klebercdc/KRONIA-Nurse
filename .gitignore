@@ -8,3 +8,10 @@ tsconfig.tsbuildinfo
 credentials.json
 google-drive-token.json
 public/pdfs-conhecimento/
+
+# Gerados no build (scripts/gerar-sw.js) — a fonte é scripts/sw-template.js
+public/sw.js
+public/versao.json
+
+# Export estático (KRONIA_ESTATICO=1) — artefato de publicação
+/out
