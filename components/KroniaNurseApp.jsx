@@ -151,6 +151,9 @@ import {
 // de outro documento. gerarEvolucao encaixa a prosa do motor na abertura, na
 // linha de sinais vitais, no exame por sistema e nos cuidados realizados.
 import { gerarEvolucao } from "../lib/evolucao/evolucao.js";
+// Aviso de versão nova publicada. O service worker que o alimenta é gerado no
+// build por scripts/gerar-sw.js — ver README, "Atualização".
+import { useAtualizacao } from "./useAtualizacao";
 // =============================================================================
 const store = {
   async get(key) {
@@ -181,6 +184,29 @@ function CheckBox({ checked }) {
     <span style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${checked ? ACCENT : "#3A4F47"}`, background: checked ? ACCENT : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
       {checked && <Check size={14} color={BG} strokeWidth={3} />}
     </span>
+  );
+}
+
+/**
+ * Barra de "nova versão disponível".
+ *
+ * NÃO aparece durante o questionário: as respostas em andamento vivem em
+ * estado de React, e recarregar no meio de uma evolução apagaria o trabalho do
+ * plantão. O worker novo espera — o aviso reaparece assim que a evolução fecha.
+ */
+function AvisoAtualizacao({ visivel, onAtualizar }) {
+  if (!visivel) return null;
+  return (
+    <div className="kn-fade" style={{ display: "flex", alignItems: "center", gap: 12, margin: "10px 18px 0", padding: "12px 14px", background: `${ACCENT}14`, border: `1px solid ${ACCENT}44`, borderRadius: 12 }}>
+      <RotateCcw size={16} color={ACCENT} style={{ flexShrink: 0 }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 700 }}>Nova versão disponível</div>
+        <div style={{ fontSize: 12, color: MUTED }}>Atualize para receber as últimas mudanças.</div>
+      </div>
+      <button onClick={onAtualizar} style={{ flexShrink: 0, background: ACCENT, border: "none", borderRadius: 9, padding: "9px 14px", color: BG, fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
+        Atualizar
+      </button>
+    </div>
   );
 }
 
@@ -466,6 +492,11 @@ export default function KroniaNurseApp() {
   const identificacaoValida = leito.trim().length > 0 && iniciais.trim().length > 0;
   const semShell = screen === "splash" || screen === "login";
 
+  // Versão nova publicada. O aviso fica fora do splash/login (onde não há
+  // casco) e fora do questionário (onde recarregar perderia as respostas).
+  const { temAtualizacao, atualizar } = useAtualizacao();
+  const podeAvisar = temAtualizacao && !semShell && !(screen === "quiz" && !showResult);
+
   const estilosGlobais = `
     @keyframes pulsoLinha {
       0% { stroke-dashoffset: 340; }
@@ -531,6 +562,8 @@ export default function KroniaNurseApp() {
             </div>
           </div>
         )}
+
+        <AvisoAtualizacao visivel={podeAvisar} onAtualizar={atualizar} />
 
         {/* ---------------------------------------------------------------- */}
         {/* SPLASH                                                            */}

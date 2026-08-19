@@ -118,6 +118,62 @@ O descritor do sinal vital **alterado** aparece na abertura ("febril",
 que está dentro da faixa não ganha descritor — é exatamente o "normocárdico"
 que o COREN proíbe, e o número já está logo abaixo.
 
+## Atualização: o que muda aqui chega no telefone
+
+Duas metades, porque uma sem a outra não entrega nada.
+
+### 1. Publicar — `.github/workflows/`
+
+| Workflow | Quando | O que faz |
+|---|---|---|
+| `ci.yml` | todo push e todo PR | `npm test`, `typecheck`, `build` |
+| `publicar.yml` | push no `main`, **depois do CI passar** | build estático e deploy no GitHub Pages |
+
+O CI é portão, não enfeite: os testes do motor são a trava clínica (faixa
+vital, `(CONFERIR)`, validações cruzadas, regras do COREN-SP, forma da
+evolução). Falhou ali, não publica.
+
+O build de publicação roda com `KRONIA_ESTATICO=1`, que liga `output: export`
+em `next.config.js`. O app é 100% cliente — motor determinístico, zero chamada
+de rede, dados em `localStorage` — então site estático é o formato dele. As
+rotas de `pages/api`, que estão paradas, saem do caminho só durante a
+publicação; o repositório não muda.
+
+**Passo manual, uma vez só:** no GitHub, *Settings -> Pages -> Source: GitHub
+Actions*. Sem isso o job de publicação falha dizendo que Pages não está
+habilitado.
+
+### 2. Avisar — service worker
+
+Publicar não basta: o app instalado no telefone serviria o cache velho. O
+service worker resolve isso, e de quebra faz a evolução abrir sem sinal —
+plantão em subsolo de hospital é o caso real.
+
+```
+scripts/sw-template.js ....... fonte do worker
+scripts/gerar-sw.js .......... roda no prebuild; injeta a versão do commit
+public/sw.js ................. GERADO, não versionado — não edite
+components/useAtualizacao.ts . detecta e devolve o gatilho
+```
+
+A versão do build fica embutida no `sw.js`. O navegador só reconhece um worker
+novo se os **bytes** do arquivo mudarem — com a versão lá dentro, todo deploy
+produz um `sw.js` diferente e a troca é detectada sem depender de cabeçalho de
+cache do servidor.
+
+Estratégia de rede: navegação vai **à rede primeiro** (é o que faz a versão
+nova chegar assim que existe, com o cache entrando só quando não há sinal);
+`/_next/static/` vai ao cache primeiro (nunca muda sob o mesmo nome); o resto
+serve do cache e revalida atrás.
+
+**O app nunca se atualiza sozinho.** O worker novo espera e a tela mostra
+"Nova versão disponível · Atualizar" — recarregar no meio de uma evolução
+apagaria as respostas do plantão, que vivem em estado de React. E o aviso não
+aparece durante o questionário: ele volta quando a evolução fecha.
+
+Checa ao abrir, toda vez que o app volta ao primeiro plano, e a cada 30
+minutos para a aba que fica aberta o turno inteiro.
+
 ## Estrutura
 
 ```
@@ -129,6 +185,10 @@ lib/evolucao/evolucao.js ................ monta a evolução: abertura, vitais,
 lib/__tests__/grafo-adaptativo.test.ts .. 6 cenários clínicos + invariantes
 lib/__tests__/evolucao.test.ts .......... forma do documento e travas
 docs/LAYOUT.md .......................... layout, tela a tela
+scripts/sw-template.js .................. service worker (fonte)
+scripts/gerar-sw.js ..................... injeta a versão no prebuild
+components/useAtualizacao.ts ............ detecta versão nova
+.github/workflows/ ...................... CI e publicação
 ```
 
 Dados do plantão ficam em `localStorage`, no aparelho. Nada sai do

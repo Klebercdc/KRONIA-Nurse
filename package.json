@@ -8,7 +8,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "rag:pipeline": "node --env-file=.env.local scripts/rag-pipeline.js"
+    "rag:pipeline": "node --env-file=.env.local scripts/rag-pipeline.js",
+    "prebuild": "node scripts/gerar-sw.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
