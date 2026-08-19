@@ -561,56 +561,8 @@ export default function KroniaNurseApp() {
     .kn-num::-webkit-outer-spin-button,
     .kn-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     .kn-num { -moz-appearance: textfield; appearance: textfield; }
-    /* A TELA NÃO ROLA — só o miolo dela.
-     *
-     * Antes o documento inteiro era rolável e no iPhone isso deixava o app
-     * "solto": arrastar deslizava a página toda, aparecia faixa vazia acima do
-     * cabeçalho e os botões do rodapé saíam da vista. Travar html/body e dar a
-     * rolagem a um único contêiner interno é o que fixa o casco.
-     */
-    /* #__next entra aqui porque o Next envolve a página nele. Sem altura no
-     * wrapper, o height:100% do casco resolve contra um pai de altura auto e
-     * é simplesmente ignorado — a cadeia html > body > #__next > casco
-     * precisa estar inteira. */
-    html, body, #__next {
-      height: 100%;
-      overflow: hidden;
-      overscroll-behavior: none;
-    }
-    /* height: 100% e NÃO 100dvh.
-     *
-     * Foi o erro que descolou a navegação do rodapé: no iOS, dvh é a viewport
-     * DINÂMICA, a menor das alturas possíveis. Num app em tela cheia ela fica
-     * mais curta que a tela de verdade, o casco encolhe junto e sobra faixa
-     * preta embaixo da navegação.
-     *
-     * Com html e body em 100%, o 100% daqui é a altura real da janela, sem
-     * depender de como cada navegador calcula vh e dvh. O que trava a rolagem
-     * do casco é o overflow hidden, não a unidade. */
-    .kn-tela {
-      height: 100%;
-      overflow: hidden;
-    }
-    /* Sem -webkit-overflow-scrolling aqui: além de obsoleto, ele faz o iOS
-     * prender position:fixed a este contêiner, e a navegação inferior — que é
-     * fixed no rodapé da JANELA — descola da base da tela. */
-    .kn-rolagem {
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-      /* Chegou ao fim da lista, para: não repassa o gesto para a página. */
-      overscroll-behavior: contain;
-      display: flex;
-      flex-direction: column;
-    }
-    /* As telas são itens de flex e, por padrão, ENCOLHEM para caber. Numa
-     * lista longa de opções isso espremeria o conteúdo em vez de rolar — e
-     * como o casco tem overflow hidden, o que sobrasse ficaria inalcançável.
-     * Proibir o encolhimento é o que devolve a rolagem ao miolo.
-     *
-     * !important porque as telas trazem flex:1 em style inline, para
-     * preencher a altura quando o conteúdo é curto. Aqui só o shrink muda. */
-    .kn-rolagem > * { flex-shrink: 0 !important; }
+    /* 100dvh acompanha o teclado; 100vh fica como fallback de navegador velho. */
+    .kn-tela { min-height: 100vh; min-height: 100dvh; }
     @media (prefers-reduced-motion: reduce) {
       .kn-pulso-path { animation: none; stroke-dashoffset: 0; }
       .kn-pulso-brilho { animation: none; opacity: 0; }
@@ -641,9 +593,6 @@ export default function KroniaNurseApp() {
           </div>
         )}
 
-        {/* Só o miolo rola: o cabeçalho fica fixo e a página não desliza. */}
-        <div className="kn-rolagem">
-
         {/* ---------------------------------------------------------------- */}
         {/* SPLASH                                                            */}
         {/* ---------------------------------------------------------------- */}
@@ -653,7 +602,7 @@ export default function KroniaNurseApp() {
             style={{
               flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
               background: `radial-gradient(circle at 50% 45%, #08201A 0%, ${BG} 62%)`,
-              border: "none", cursor: "pointer", flex: 1, width: "100%",
+              border: "none", cursor: "pointer", minHeight: "100vh", width: "100%",
             }}
           >
             <div className="kn-fade">
@@ -776,7 +725,7 @@ export default function KroniaNurseApp() {
         {/* HOME                                                              */}
         {/* ---------------------------------------------------------------- */}
         {screen === "home" && (
-          <div style={{ position: "relative", padding: "12px 18px 22px", display: "flex", flexDirection: "column", gap: 9, overflow: "hidden" }}>
+          <div style={{ position: "relative", padding: "12px 18px 84px", display: "flex", flexDirection: "column", gap: 9, overflow: "hidden" }}>
             {/* Glow radial de fundo */}
             <div style={{
               position: "absolute", top: -110, right: -70, width: 330, height: 330, borderRadius: "50%",
@@ -886,6 +835,45 @@ export default function KroniaNurseApp() {
                 tenha em mãos os dados do paciente para <span style={{ color: ACCENT, fontWeight: 600 }}>respostas mais precisas e evoluções ainda mais rápidas</span>.
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Navegação inferior — "Início" e "Evoluções" funcionam de verdade
+            aqui; os demais itens vivem no app principal do Kronia Nurse. */}
+        {screen === "home" && (
+          <div style={{
+            position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)",
+            width: "100%", maxWidth: 480, display: "flex", alignItems: "center", justifyContent: "space-around",
+            background: BG, borderTop: `1px solid ${BORDER}`, padding: "10px 8px calc(12px + env(safe-area-inset-bottom))",
+            boxShadow: `0 -8px 24px -8px rgba(0,0,0,0.6)`, zIndex: 2,
+          }}>
+            <button style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "4px 6px" }}>
+              <Home size={23} color={ACCENT} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: ACCENT }}>Início</span>
+            </button>
+            <button style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "4px 6px" }}>
+              <Users size={23} color={DIM} />
+              <span style={{ fontSize: 11, fontWeight: 600, color: DIM }}>Pacientes</span>
+            </button>
+            <button
+              onClick={() => CONTEXTS[0] && pickContext(CONTEXTS[0])}
+              style={{ width: 60, height: 60, borderRadius: "50%", background: ACCENT, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 10px 26px -6px ${ACCENT}AA`, marginTop: -22 }}
+            >
+              <Plus size={28} color={BG} strokeWidth={2.5} />
+            </button>
+            <button onClick={abrirHistorico} style={{ position: "relative", background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "4px 6px" }}>
+              <ClipboardList size={23} color={DIM} />
+              <span style={{ fontSize: 11, fontWeight: 600, color: DIM }}>Evoluções</span>
+              {historicoCarregado && historico.length > 0 && (
+                <span style={{ position: "absolute", top: -2, right: 2, minWidth: 16, height: 16, borderRadius: 999, background: ACCENT, color: BG, fontSize: 9.5, fontWeight: 800, lineHeight: "16px", textAlign: "center" }}>
+                  {historico.length}
+                </span>
+              )}
+            </button>
+            <button style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "4px 6px" }}>
+              <User size={23} color={DIM} />
+              <span style={{ fontSize: 11, fontWeight: 600, color: DIM }}>Perfil</span>
+            </button>
           </div>
         )}
 
@@ -1114,51 +1102,6 @@ export default function KroniaNurseApp() {
 
             <button onClick={backToHome} style={{ width: "100%", marginTop: 18, background: "none", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px", color: TEXT, fontSize: 15, fontWeight: 600, cursor: "pointer" }}>
               Voltar às evoluções
-            </button>
-          </div>
-        )}
-
-        </div>
-
-        {/* Navegação inferior — "Início" e "Evoluções" funcionam de verdade
-            aqui; os demais itens vivem no app principal do Kronia Nurse.
-            
-            Fica FORA da área rolável, como irmã dela: assim ocupa o rodapé
-            por estrutura e não por position:fixed, que dentro de um contêiner
-            de rolagem o iOS prende ao contêiner em vez da janela. */}
-        {screen === "home" && (
-          <div style={{
-            flexShrink: 0,
-            width: "100%", display: "flex", alignItems: "center", justifyContent: "space-around",
-            background: BG, borderTop: `1px solid ${BORDER}`, padding: "10px 8px calc(12px + env(safe-area-inset-bottom))",
-            boxShadow: `0 -8px 24px -8px rgba(0,0,0,0.6)`, zIndex: 2,
-          }}>
-            <button style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "4px 6px" }}>
-              <Home size={23} color={ACCENT} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: ACCENT }}>Início</span>
-            </button>
-            <button style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "4px 6px" }}>
-              <Users size={23} color={DIM} />
-              <span style={{ fontSize: 11, fontWeight: 600, color: DIM }}>Pacientes</span>
-            </button>
-            <button
-              onClick={() => CONTEXTS[0] && pickContext(CONTEXTS[0])}
-              style={{ width: 60, height: 60, borderRadius: "50%", background: ACCENT, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 10px 26px -6px ${ACCENT}AA`, marginTop: -22 }}
-            >
-              <Plus size={28} color={BG} strokeWidth={2.5} />
-            </button>
-            <button onClick={abrirHistorico} style={{ position: "relative", background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "4px 6px" }}>
-              <ClipboardList size={23} color={DIM} />
-              <span style={{ fontSize: 11, fontWeight: 600, color: DIM }}>Evoluções</span>
-              {historicoCarregado && historico.length > 0 && (
-                <span style={{ position: "absolute", top: -2, right: 2, minWidth: 16, height: 16, borderRadius: 999, background: ACCENT, color: BG, fontSize: 9.5, fontWeight: 800, lineHeight: "16px", textAlign: "center" }}>
-                  {historico.length}
-                </span>
-              )}
-            </button>
-            <button style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "4px 6px" }}>
-              <User size={23} color={DIM} />
-              <span style={{ fontSize: 11, fontWeight: 600, color: DIM }}>Perfil</span>
             </button>
           </div>
         )}
