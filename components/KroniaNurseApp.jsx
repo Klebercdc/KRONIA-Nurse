@@ -561,8 +561,43 @@ export default function KroniaNurseApp() {
     .kn-num::-webkit-outer-spin-button,
     .kn-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     .kn-num { -moz-appearance: textfield; appearance: textfield; }
-    /* 100dvh acompanha o teclado; 100vh fica como fallback de navegador velho. */
-    .kn-tela { min-height: 100vh; min-height: 100dvh; }
+    /* A TELA NÃO ROLA — só o miolo dela.
+     *
+     * Antes o documento inteiro era rolável e no iPhone isso deixava o app
+     * "solto": arrastar deslizava a página toda, aparecia faixa vazia acima do
+     * cabeçalho e os botões do rodapé saíam da vista. Travar html/body e dar a
+     * rolagem a um único contêiner interno é o que fixa o casco.
+     *
+     * 100dvh acompanha o teclado; 100vh fica como fallback de navegador velho.
+     */
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+    .kn-tela {
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+    }
+    .kn-rolagem {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      /* Chegou ao fim da lista, para: não repassa o gesto para a página. */
+      overscroll-behavior: contain;
+      display: flex;
+      flex-direction: column;
+    }
+    /* As telas são itens de flex e, por padrão, ENCOLHEM para caber. Numa
+     * lista longa de opções isso espremeria o conteúdo em vez de rolar — e
+     * como o casco tem overflow hidden, o que sobrasse ficaria inalcançável.
+     * Proibir o encolhimento é o que devolve a rolagem ao miolo.
+     *
+     * !important porque as telas trazem flex:1 em style inline, para
+     * preencher a altura quando o conteúdo é curto. Aqui só o shrink muda. */
+    .kn-rolagem > * { flex-shrink: 0 !important; }
     @media (prefers-reduced-motion: reduce) {
       .kn-pulso-path { animation: none; stroke-dashoffset: 0; }
       .kn-pulso-brilho { animation: none; opacity: 0; }
@@ -573,7 +608,7 @@ export default function KroniaNurseApp() {
   return (
     <div className="kn-tela" style={{ background: BG, color: TEXT, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", display: "flex", justifyContent: "center" }}>
       <style>{estilosGlobais}</style>
-      <div className="kn-tela" style={{ width: "100%", maxWidth: 480, display: "flex", flexDirection: "column", paddingTop: "env(safe-area-inset-top)" }}>
+      <div className="kn-tela" style={{ width: "100%", maxWidth: 480, display: "flex", flexDirection: "column", paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}>
 
         {/* Header — só nas telas internas */}
         {!semShell && (
@@ -593,6 +628,9 @@ export default function KroniaNurseApp() {
           </div>
         )}
 
+        {/* Só o miolo rola: o cabeçalho fica fixo e a página não desliza. */}
+        <div className="kn-rolagem">
+
         {/* ---------------------------------------------------------------- */}
         {/* SPLASH                                                            */}
         {/* ---------------------------------------------------------------- */}
@@ -602,7 +640,7 @@ export default function KroniaNurseApp() {
             style={{
               flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
               background: `radial-gradient(circle at 50% 45%, #08201A 0%, ${BG} 62%)`,
-              border: "none", cursor: "pointer", minHeight: "100vh", width: "100%",
+              border: "none", cursor: "pointer", flex: 1, width: "100%",
             }}
           >
             <div className="kn-fade">
@@ -1105,6 +1143,8 @@ export default function KroniaNurseApp() {
             </button>
           </div>
         )}
+
+        </div>
       </div>
     </div>
   );
