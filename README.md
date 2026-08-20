@@ -139,9 +139,15 @@ de rede, dados em `localStorage` — então site estático é o formato dele. As
 rotas de `pages/api`, que estão paradas, saem do caminho só durante a
 publicação; o repositório não muda.
 
-**Passo manual, uma vez só:** no GitHub, *Settings -> Pages -> Source: GitHub
-Actions*. Sem isso o job de publicação falha dizendo que Pages não está
-habilitado.
+**Sem passo manual.** O `publicar.yml` liga o Pages sozinho
+(`configure-pages` com `enablement: true`).
+
+Aqui houve um buraco que vale registrar, porque ele deixou a atualização
+automática parada desde o primeiro dia: a versão original pedia um
+*Settings -> Pages -> Source: GitHub Actions* feito na mão. Ninguém fez, e as
+oito execuções do workflow falharam todas no mesmo passo — build passando,
+site nunca subindo. As duas metades desta seção estavam certas o tempo todo;
+o que faltava era o site existir.
 
 ### 2. Chegar no telefone — service worker
 

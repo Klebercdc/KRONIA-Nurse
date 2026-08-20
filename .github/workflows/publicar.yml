@@ -4,8 +4,10 @@
 # Só roda depois do CI passar: publicar uma evolução com o motor quebrado é
 # pior do que não publicar.
 #
-# Pré-requisito, uma vez só, no GitHub: Settings → Pages → Source: "GitHub
-# Actions". Sem isso o job falha dizendo que Pages não está habilitado.
+# NÃO há pré-requisito manual. Havia — Settings → Pages → Source: "GitHub
+# Actions" — e foi exatamente por isso que este workflow nunca publicou:
+# ninguém fez o passo, e as 8 execuções falharam todas em configure-pages.
+# Agora o próprio workflow liga o Pages (enablement: true, mais abaixo).
 name: Publicar
 
 on:
@@ -59,7 +61,29 @@ jobs:
         env:
           KRONIA_ESTATICO: '1'
 
+      # enablement: true LIGA o Pages pela API, em vez de depender de alguém
+      # ter ido em Settings → Pages → Source: "GitHub Actions" na mão.
+      #
+      # Não é conveniência — sem isto o workflow nunca publicou. As 8
+      # execuções que existiram morreram todas nesta linha, com o build
+      # passando e o deploy não acontecendo:
+      #
+      #   Get Pages site failed. Please verify that the repository has Pages
+      #   enabled and configured to build using GitHub Actions.
+      #   Error: Not Found
+      #
+      # Ou seja: a versão nova era gerada a cada push e o service worker
+      # estava pronto pra detectá-la, mas nada disso chegava no telefone
+      # porque o site nunca subiu. As duas metades da atualização automática
+      # estavam certas; o que faltava era o site existir.
+      #
+      # Um passo manual que ninguém lembra de fazer é um passo que não
+      # existe. Sai do manual e entra no workflow.
+      #
+      # Precisa de "pages: write", que este workflow já declara acima.
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
