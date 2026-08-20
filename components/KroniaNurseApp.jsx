@@ -573,20 +573,11 @@ export default function KroniaNurseApp() {
   return (
     <div className="kn-tela" style={{ background: BG, color: TEXT, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", display: "flex", justifyContent: "center" }}>
       <style>{estilosGlobais}</style>
-      <div className="kn-tela" style={{ width: "100%", maxWidth: 480, display: "flex", flexDirection: "column", paddingTop: semShell ? "env(safe-area-inset-top)" : 0 }}>
+      <div className="kn-tela" style={{ width: "100%", maxWidth: 480, display: "flex", flexDirection: "column", paddingTop: "env(safe-area-inset-top)" }}>
 
-        {/* Header — só nas telas internas.
-
-            É STICKY porque o teclado do iOS não encolhe a página, só a área
-            visível: com ele aberto sobra menos altura, a página passa a ter
-            mais conteúdo do que cabe e o Safari a rola sozinho para trazer o
-            campo em foco à vista. Sem sticky o cabeçalho sobe junto e some
-            atrás da barra de status — era o que acontecia ao digitar.
-
-            O recuo do recorte superior vem para cá junto: quem encosta no
-            topo da tela agora é o cabeçalho, não o contêiner. */}
+        {/* Header — só nas telas internas */}
         {!semShell && (
-          <div style={{ position: "sticky", top: 0, zIndex: 3, background: BG, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "calc(12px + env(safe-area-inset-top)) 18px 10px", borderBottom: `1px solid ${BORDER}`, boxShadow: `0 1px 0 0 ${ACCENT}12` }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px 10px", borderBottom: `1px solid ${BORDER}`, boxShadow: `0 1px 0 0 ${ACCENT}12` }}>
             <button onClick={backToHome} style={{ display: "flex", alignItems: "center", background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0 }}>
               <Wordmark height={13} />
             </button>
