@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { ArrowLeft, Check, Plus, Trash2, Calendar, Search, Copy, Download, Upload, X } from "lucide-react";
 import { ACCENT, BG, SURFACE, BORDER, TEXT, MUTED, DIM } from "./tema.js";
-import { GRUPOS, RESPOSTAS, TODOS_OS_ITENS, formatarData, resumir, gerarResumo, nomeDoBackup } from "../lib/comorbidades/indice.js";
+import { GRUPOS, RESPOSTAS, TODOS_OS_ITENS, TURNOS, ESCALAS, formatarData, resumir, gerarResumo, nomeDoBackup, rotuloDoTurno, turnosPresentes } from "../lib/comorbidades/indice.js";
 
 /**
  * Aba de comorbidades e procedimentos.
@@ -157,9 +157,12 @@ function Grupo({ grupo, respostas, setResposta, marcarGrupoComoNao }) {
 export default function Comorbidades({ registros, onSalvar, onExcluir, onImportar, onSair }) {
   const [tela, setTela] = useState("lista");
   const [nome, setNome] = useState("");
+  const [turno, setTurno] = useState("");
+  const [escala, setEscala] = useState("");
   const [respostas, setRespostas] = useState({});
   const [editandoId, setEditandoId] = useState(null);
   const [busca, setBusca] = useState("");
+  const [filtroTurno, setFiltroTurno] = useState(null);
   const [resumoTexto, setResumoTexto] = useState(null);
   const [copiado, setCopiado] = useState(false);
   const inputArquivo = useRef(null);
@@ -225,6 +228,8 @@ export default function Comorbidades({ registros, onSalvar, onExcluir, onImporta
 
   function novo() {
     setNome("");
+    setTurno("");
+    setEscala("");
     setRespostas({});
     setEditandoId(null);
     setTela("form");
@@ -232,6 +237,8 @@ export default function Comorbidades({ registros, onSalvar, onExcluir, onImporta
 
   function abrir(reg) {
     setNome(reg.nome || reg.inicial || "");
+    setTurno(reg.turno || "");
+    setEscala(reg.escala || "");
     setRespostas(reg.respostas || {});
     setEditandoId(reg.id);
     setTela("form");
@@ -241,6 +248,8 @@ export default function Comorbidades({ registros, onSalvar, onExcluir, onImporta
     onSalvar({
       id: editandoId || Date.now(),
       nome: nome.trim(),
+      turno,
+      escala,
       respostas,
       atualizadoEm: new Date().toISOString(),
     });
@@ -250,9 +259,14 @@ export default function Comorbidades({ registros, onSalvar, onExcluir, onImporta
   // ── Lista de pacientes levantados ────────────────────────────────────────
   if (tela === "lista") {
     const termo = busca.trim().toLowerCase();
-    const visiveis = termo
-      ? registros.filter((r) => (r.nome || r.inicial || "").toLowerCase().includes(termo))
-      : registros;
+    const turnos = turnosPresentes(registros);
+    const visiveis = registros.filter((r) => {
+      const baterNome = !termo || (r.nome || r.inicial || "").toLowerCase().includes(termo);
+      const baterTurno =
+        !filtroTurno ||
+        ((r.turno || "") === filtroTurno.turno && (r.escala || "") === filtroTurno.escala);
+      return baterNome && baterTurno;
+    });
 
     return (
       <div style={{ padding: "20px 20px 28px", display: "flex", flexDirection: "column", flex: 1 }}>
@@ -292,8 +306,34 @@ export default function Comorbidades({ registros, onSalvar, onExcluir, onImporta
           />
         </div>
 
+        {/* Filtro por turno. Só aparecem as combinações que existem: oferecer
+            um turno vazio para tocar é ruído. */}
+        {turnos.length > 0 && (
+          <div style={{ display: "flex", gap: 7, marginTop: 16, overflowX: "auto", paddingBottom: 2 }}>
+            <button
+              onClick={() => setFiltroTurno(null)}
+              style={{ flexShrink: 0, padding: "8px 14px", borderRadius: 999, cursor: "pointer", border: `1px solid ${!filtroTurno ? ACCENT : BORDER}`, background: !filtroTurno ? `${ACCENT}1A` : "transparent", color: !filtroTurno ? ACCENT : DIM, fontSize: 13, fontWeight: !filtroTurno ? 800 : 600, fontFamily: "inherit", whiteSpace: "nowrap" }}
+            >
+              Todos
+            </button>
+            {turnos.map((t) => {
+              const ativo = filtroTurno && filtroTurno.turno === t.turno && filtroTurno.escala === t.escala;
+              const quantos = registros.filter((r) => (r.turno || "") === t.turno && (r.escala || "") === t.escala).length;
+              return (
+                <button
+                  key={t.rotulo}
+                  onClick={() => setFiltroTurno(ativo ? null : { turno: t.turno, escala: t.escala })}
+                  style={{ flexShrink: 0, padding: "8px 14px", borderRadius: 999, cursor: "pointer", border: `1px solid ${ativo ? ACCENT : BORDER}`, background: ativo ? `${ACCENT}1A` : "transparent", color: ativo ? ACCENT : DIM, fontSize: 13, fontWeight: ativo ? 800 : 600, fontFamily: "inherit", whiteSpace: "nowrap" }}
+                >
+                  {t.rotulo} <span style={{ opacity: 0.7 }}>({quantos})</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {registros.length > 0 && (
-          <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 16, background: BG, border: `1px solid ${BORDER}`, borderRadius: 11, padding: "10px 12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 12, background: BG, border: `1px solid ${BORDER}`, borderRadius: 11, padding: "10px 12px" }}>
             <Search size={15} color={DIM} />
             <input
               value={busca}
@@ -311,12 +351,12 @@ export default function Comorbidades({ registros, onSalvar, onExcluir, onImporta
         )}
 
         <div style={{ marginTop: 18, fontSize: 13, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6 }}>
-          Pacientes ({visiveis.length}{busca ? ` de ${registros.length}` : ""})
+          Pacientes ({visiveis.length}{busca || filtroTurno ? ` de ${registros.length}` : ""})
         </div>
 
         {visiveis.length === 0 ? (
           <div style={{ marginTop: 12, padding: 18, border: `1px dashed ${BORDER}`, borderRadius: 12, color: DIM, fontSize: 13.5, textAlign: "center", lineHeight: 1.5 }}>
-            {busca ? "Nenhum paciente com esse nome." : <>Nenhum paciente ainda.<br />O que você acrescentar fica salvo aqui no aparelho.</>}
+            {busca || filtroTurno ? "Nenhum paciente nesse filtro." : <>Nenhum paciente ainda.<br />O que você acrescentar fica salvo aqui no aparelho.</>}
           </div>
         ) : (
           visiveis.map((reg) => {
@@ -324,7 +364,14 @@ export default function Comorbidades({ registros, onSalvar, onExcluir, onImporta
             return (
               <div key={reg.id} style={{ marginTop: 10, border: `1px solid ${BORDER}`, borderRadius: 12, background: SURFACE, display: "flex", alignItems: "center", gap: 10, padding: "13px 14px" }}>
                 <button onClick={() => abrir(reg)} style={{ flex: 1, minWidth: 0, background: "none", border: "none", cursor: "pointer", color: TEXT, textAlign: "left", padding: 0, fontFamily: "inherit" }}>
-                  <div style={{ fontSize: 16, fontWeight: 800 }}>{reg.nome || reg.inicial}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 16, fontWeight: 800 }}>{reg.nome || reg.inicial}</span>
+                    {rotuloDoTurno(reg) && (
+                      <span style={{ flexShrink: 0, padding: "2px 8px", borderRadius: 999, background: `${ACCENT}18`, border: `1px solid ${ACCENT}33`, color: ACCENT, fontSize: 11, fontWeight: 800 }}>
+                        {rotuloDoTurno(reg)}
+                      </span>
+                    )}
+                  </div>
                   <div style={{ fontSize: 12, color: MUTED, marginTop: 3 }}>
                     <span style={{ color: ACCENT, fontWeight: 700 }}>{r.sim} sim</span>
                     {" · "}{r.respondidas} de {r.total} respondidas
@@ -372,6 +419,35 @@ export default function Comorbidades({ registros, onSalvar, onExcluir, onImporta
         style={{ width: "100%", minWidth: 0, marginTop: 7, background: BG, border: `1.5px solid ${nome.trim() ? ACCENT : BORDER}`, borderRadius: 12, padding: "14px 16px", color: TEXT, fontSize: 17, fontWeight: 700, fontFamily: "inherit", outline: "none" }}
       />
 
+      {/* Turno e escala como CAMPOS, não escritos dentro do nome: é o que
+          permite filtrar a lista depois. */}
+      <div style={{ marginTop: 16, fontSize: 13, color: MUTED, fontWeight: 600 }}>Turno</div>
+      <div style={{ display: "flex", gap: 8, marginTop: 7 }}>
+        {TURNOS.map((t) => (
+          <button
+            key={t.valor}
+            onClick={() => setTurno(turno === t.valor ? "" : t.valor)}
+            style={{ flex: 1, padding: "11px 4px", borderRadius: 10, cursor: "pointer", border: `1.5px solid ${turno === t.valor ? ACCENT : BORDER}`, background: turno === t.valor ? `${ACCENT}1A` : "transparent", color: turno === t.valor ? ACCENT : DIM, fontSize: 14.5, fontWeight: turno === t.valor ? 800 : 600, fontFamily: "inherit" }}
+          >
+            {t.rotulo}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ marginTop: 14, fontSize: 13, color: MUTED, fontWeight: 600 }}>Dias</div>
+      <div style={{ display: "flex", gap: 8, marginTop: 7 }}>
+        {ESCALAS.map((e) => (
+          <button
+            key={e.valor}
+            onClick={() => setEscala(escala === e.valor ? "" : e.valor)}
+            style={{ flex: 1, padding: "10px 6px", borderRadius: 10, cursor: "pointer", border: `1.5px solid ${escala === e.valor ? ACCENT : BORDER}`, background: escala === e.valor ? `${ACCENT}1A` : "transparent", color: escala === e.valor ? ACCENT : DIM, fontFamily: "inherit" }}
+          >
+            <div style={{ fontSize: 14.5, fontWeight: escala === e.valor ? 800 : 700 }}>{e.rotulo}</div>
+            <div style={{ fontSize: 10.5, marginTop: 2, opacity: 0.85 }}>{e.descricao}</div>
+          </button>
+        ))}
+      </div>
+
       <div style={{ marginTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 14px", background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 11 }}>
         <span style={{ fontSize: 12.5, color: MUTED }}>Respondidas</span>
         <span style={{ fontSize: 13, fontWeight: 800, color: resumo.respondidas === resumo.total ? ACCENT : TEXT }}>
@@ -390,7 +466,7 @@ export default function Comorbidades({ registros, onSalvar, onExcluir, onImporta
       ))}
 
       <button
-        onClick={() => { setResumoTexto(gerarResumo({ nome, respostas })); setCopiado(false); }}
+        onClick={() => { setResumoTexto(gerarResumo({ nome, turno, escala, respostas })); setCopiado(false); }}
         style={{ width: "100%", marginTop: 20, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "none", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "13px", color: TEXT, fontSize: 14.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
       >
         <Copy size={16} color={ACCENT} /> Ver resumo para o prontuário
