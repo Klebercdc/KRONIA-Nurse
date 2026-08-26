@@ -1,14 +1,18 @@
-import { useState } from "react";
-import { ArrowLeft, Check, Plus, Trash2, Calendar } from "lucide-react";
+import { useRef, useState } from "react";
+import { ArrowLeft, Check, Plus, Trash2, Calendar, Search, Copy, Download, Upload, X } from "lucide-react";
 import { ACCENT, BG, SURFACE, BORDER, TEXT, MUTED, DIM } from "./tema.js";
-import { GRUPOS, RESPOSTAS, TODOS_OS_ITENS, formatarData, resumir } from "../lib/comorbidades/indice.js";
+import { GRUPOS, RESPOSTAS, TODOS_OS_ITENS, formatarData, resumir, gerarResumo, nomeDoBackup } from "../lib/comorbidades/indice.js";
 
 /**
  * Aba de comorbidades e procedimentos.
  *
  * Duas telas: a lista de pacientes já levantados e o formulário de um
- * levantamento. Tudo fica no aparelho, como o resto do app — em tela só entra
- * a INICIAL do paciente, nunca o nome.
+ * levantamento. Tudo fica no aparelho, e SÓ no aparelho — não há servidor
+ * guardando cópia, por isso a exportação em arquivo não é enfeite.
+ *
+ * O campo de identificação aceita nome ou iniciais: quem decide o que
+ * escrever no próprio aparelho é o profissional. O resto do app usa só
+ * iniciais porque aquele texto vai para o prontuário; aqui não vai.
  */
 
 function BotaoResposta({ valor, rotulo, ativo, onClick }) {
@@ -150,14 +154,18 @@ function Grupo({ grupo, respostas, setResposta, marcarGrupoComoNao }) {
   );
 }
 
-export default function Comorbidades({ registros, onSalvar, onExcluir, onSair }) {
+export default function Comorbidades({ registros, onSalvar, onExcluir, onImportar, onSair }) {
   const [tela, setTela] = useState("lista");
-  const [inicial, setInicial] = useState("");
+  const [nome, setNome] = useState("");
   const [respostas, setRespostas] = useState({});
   const [editandoId, setEditandoId] = useState(null);
+  const [busca, setBusca] = useState("");
+  const [resumoTexto, setResumoTexto] = useState(null);
+  const [copiado, setCopiado] = useState(false);
+  const inputArquivo = useRef(null);
 
   const resumo = resumir(respostas);
-  const podeSalvar = inicial.trim().length > 0;
+  const podeSalvar = nome.trim().length > 0;
 
   function setResposta(itemId, resposta, data) {
     setRespostas((atual) => {
@@ -179,15 +187,51 @@ export default function Comorbidades({ registros, onSalvar, onExcluir, onSair })
     });
   }
 
+  /**
+   * Backup em arquivo.
+   *
+   * O armazenamento do aparelho some com o cache limpo, o navegador trocado
+   * ou o telefone perdido — e aqui não há servidor guardando cópia. Um
+   * arquivo que o profissional leva consigo é a única rede de segurança.
+   */
+  function exportar() {
+    const conteudo = JSON.stringify({ versao: 1, registros }, null, 2);
+    const url = URL.createObjectURL(new Blob([conteudo], { type: "application/json" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nomeDoBackup();
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 200);
+  }
+
+  function importar(arquivo) {
+    const leitor = new FileReader();
+    leitor.onload = (e) => {
+      try {
+        const dados = JSON.parse(e.target.result);
+        const lista = Array.isArray(dados) ? dados : dados.registros;
+        if (!Array.isArray(lista)) throw new Error("formato");
+        // JUNTA, não substitui: importar um backup não pode apagar o que já
+        // foi levantado hoje. Mesmo id vindo do arquivo vence, porque é o que
+        // o profissional acabou de escolher trazer.
+        onImportar(lista);
+      } catch (erro) {
+        window.alert("Não consegui ler esse arquivo. Confira se é um backup exportado por esta mesma aba.");
+      }
+    };
+    leitor.readAsText(arquivo);
+  }
+
   function novo() {
-    setInicial("");
+    setNome("");
     setRespostas({});
     setEditandoId(null);
     setTela("form");
   }
 
   function abrir(reg) {
-    setInicial(reg.inicial);
+    setNome(reg.nome || reg.inicial || "");
     setRespostas(reg.respostas || {});
     setEditandoId(reg.id);
     setTela("form");
@@ -196,7 +240,7 @@ export default function Comorbidades({ registros, onSalvar, onExcluir, onSair })
   function salvar() {
     onSalvar({
       id: editandoId || Date.now(),
-      inicial: inicial.trim().toUpperCase(),
+      nome: nome.trim(),
       respostas,
       atualizadoEm: new Date().toISOString(),
     });
@@ -205,6 +249,11 @@ export default function Comorbidades({ registros, onSalvar, onExcluir, onSair })
 
   // ── Lista de pacientes levantados ────────────────────────────────────────
   if (tela === "lista") {
+    const termo = busca.trim().toLowerCase();
+    const visiveis = termo
+      ? registros.filter((r) => (r.nome || r.inicial || "").toLowerCase().includes(termo))
+      : registros;
+
     return (
       <div style={{ padding: "20px 20px 28px", display: "flex", flexDirection: "column", flex: 1 }}>
         <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1.2, color: ACCENT, textTransform: "uppercase" }}>
@@ -213,7 +262,6 @@ export default function Comorbidades({ registros, onSalvar, onExcluir, onSair })
         <div style={{ fontSize: 24, fontWeight: 700, marginTop: 4 }}>Comorbidades</div>
         <div style={{ color: MUTED, fontSize: 14, marginTop: 2, lineHeight: 1.4 }}>
           Levantamento de {TODOS_OS_ITENS.length} condições e procedimentos, por paciente.
-          Em tela só entra a inicial — nunca o nome.
         </div>
 
         <button
@@ -223,21 +271,60 @@ export default function Comorbidades({ registros, onSalvar, onExcluir, onSair })
           <Plus size={19} /> Novo levantamento
         </button>
 
-        <div style={{ marginTop: 22, fontSize: 13, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6 }}>
-          Pacientes ({registros.length})
+        {/* Backup em arquivo: o armazenamento do aparelho não é cópia de
+            segurança, e aqui não há servidor guardando nada. */}
+        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+          <button onClick={exportar} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: "none", border: `1px solid ${BORDER}`, borderRadius: 11, padding: "11px", color: TEXT, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            <Download size={15} color={ACCENT} /> Exportar
+          </button>
+          <button onClick={() => inputArquivo.current && inputArquivo.current.click()} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: "none", border: `1px solid ${BORDER}`, borderRadius: 11, padding: "11px", color: TEXT, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            <Upload size={15} color={ACCENT} /> Importar
+          </button>
+          <input
+            ref={inputArquivo}
+            type="file"
+            accept="application/json"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) importar(e.target.files[0]);
+              e.target.value = "";
+            }}
+          />
         </div>
 
-        {registros.length === 0 ? (
+        {registros.length > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 16, background: BG, border: `1px solid ${BORDER}`, borderRadius: 11, padding: "10px 12px" }}>
+            <Search size={15} color={DIM} />
+            <input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar paciente"
+              className="kn-input"
+              style={{ flex: 1, minWidth: 0, background: "none", border: "none", outline: "none", color: TEXT, fontSize: 14.5, fontFamily: "inherit" }}
+            />
+            {busca && (
+              <button onClick={() => setBusca("")} aria-label="Limpar busca" style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}>
+                <X size={15} color={DIM} />
+              </button>
+            )}
+          </div>
+        )}
+
+        <div style={{ marginTop: 18, fontSize: 13, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 0.6 }}>
+          Pacientes ({visiveis.length}{busca ? ` de ${registros.length}` : ""})
+        </div>
+
+        {visiveis.length === 0 ? (
           <div style={{ marginTop: 12, padding: 18, border: `1px dashed ${BORDER}`, borderRadius: 12, color: DIM, fontSize: 13.5, textAlign: "center", lineHeight: 1.5 }}>
-            Nenhum paciente ainda.<br />O que você acrescentar fica salvo aqui no aparelho.
+            {busca ? "Nenhum paciente com esse nome." : <>Nenhum paciente ainda.<br />O que você acrescentar fica salvo aqui no aparelho.</>}
           </div>
         ) : (
-          registros.map((reg) => {
+          visiveis.map((reg) => {
             const r = resumir(reg.respostas);
             return (
               <div key={reg.id} style={{ marginTop: 10, border: `1px solid ${BORDER}`, borderRadius: 12, background: SURFACE, display: "flex", alignItems: "center", gap: 10, padding: "13px 14px" }}>
                 <button onClick={() => abrir(reg)} style={{ flex: 1, minWidth: 0, background: "none", border: "none", cursor: "pointer", color: TEXT, textAlign: "left", padding: 0, fontFamily: "inherit" }}>
-                  <div style={{ fontSize: 16, fontWeight: 800 }}>{reg.inicial}</div>
+                  <div style={{ fontSize: 16, fontWeight: 800 }}>{reg.nome || reg.inicial}</div>
                   <div style={{ fontSize: 12, color: MUTED, marginTop: 3 }}>
                     <span style={{ color: ACCENT, fontWeight: 700 }}>{r.sim} sim</span>
                     {" · "}{r.respondidas} de {r.total} respondidas
@@ -248,7 +335,7 @@ export default function Comorbidades({ registros, onSalvar, onExcluir, onSair })
                 </button>
                 <button
                   onClick={() => onExcluir(reg.id)}
-                  aria-label={`Excluir levantamento de ${reg.inicial}`}
+                  aria-label={`Excluir levantamento de ${reg.nome || reg.inicial}`}
                   style={{ flexShrink: 0, background: "none", border: `1px solid ${BORDER}`, borderRadius: 9, padding: 9, cursor: "pointer" }}
                 >
                   <Trash2 size={15} color={DIM} />
@@ -276,13 +363,13 @@ export default function Comorbidades({ registros, onSalvar, onExcluir, onSair })
         {editandoId ? "Editar levantamento" : "Novo levantamento"}
       </div>
 
-      <div style={{ marginTop: 16, fontSize: 13, color: MUTED, fontWeight: 600 }}>Inicial do paciente</div>
+      <div style={{ marginTop: 16, fontSize: 13, color: MUTED, fontWeight: 600 }}>Paciente</div>
       <input
-        value={inicial}
-        onChange={(e) => setInicial(e.target.value)}
-        placeholder="Ex: M.A.S."
+        value={nome}
+        onChange={(e) => setNome(e.target.value)}
+        placeholder="Nome ou iniciais do paciente"
         className="kn-input"
-        style={{ width: "100%", minWidth: 0, marginTop: 7, background: BG, border: `1.5px solid ${inicial.trim() ? ACCENT : BORDER}`, borderRadius: 12, padding: "14px 16px", color: TEXT, fontSize: 17, fontWeight: 700, fontFamily: "inherit", outline: "none" }}
+        style={{ width: "100%", minWidth: 0, marginTop: 7, background: BG, border: `1.5px solid ${nome.trim() ? ACCENT : BORDER}`, borderRadius: 12, padding: "14px 16px", color: TEXT, fontSize: 17, fontWeight: 700, fontFamily: "inherit", outline: "none" }}
       />
 
       <div style={{ marginTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 14px", background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 11 }}>
@@ -302,7 +389,14 @@ export default function Comorbidades({ registros, onSalvar, onExcluir, onSair })
         />
       ))}
 
-      <div style={{ display: "flex", gap: 12, marginTop: 22 }}>
+      <button
+        onClick={() => { setResumoTexto(gerarResumo({ nome, respostas })); setCopiado(false); }}
+        style={{ width: "100%", marginTop: 20, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "none", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "13px", color: TEXT, fontSize: 14.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+      >
+        <Copy size={16} color={ACCENT} /> Ver resumo para o prontuário
+      </button>
+
+      <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
         <button onClick={() => setTela("lista")} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "none", border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px", color: TEXT, fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
           <ArrowLeft size={17} /> Voltar
         </button>
@@ -316,7 +410,43 @@ export default function Comorbidades({ registros, onSalvar, onExcluir, onSair })
       </div>
       {!podeSalvar && (
         <div style={{ marginTop: 8, fontSize: 12, color: DIM, textAlign: "center" }}>
-          Informe a inicial do paciente para salvar.
+          Informe o nome ou as iniciais para salvar.
+        </div>
+      )}
+
+      {/* Resumo pronto para colar no prontuário. Só o positivo entra nomeado;
+          o que não foi avaliado vira contagem, porque "não perguntei" e "não
+          tem" são coisas diferentes. */}
+      {resumoTexto !== null && (
+        <div
+          onClick={() => setResumoTexto(null)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 20 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: "100%", maxWidth: 480, maxHeight: "80vh", overflowY: "auto", background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: "18px 18px 0 0", padding: 18, paddingBottom: "calc(18px + env(safe-area-inset-bottom))" }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <div style={{ fontSize: 16, fontWeight: 800 }}>Resumo da avaliação</div>
+              <button onClick={() => setResumoTexto(null)} aria-label="Fechar" style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}>
+                <X size={18} color={MUTED} />
+              </button>
+            </div>
+            <div style={{ background: BG, border: `1px solid ${BORDER}`, borderRadius: 11, padding: 14, fontSize: 13.5, lineHeight: 1.6, whiteSpace: "pre-wrap", color: "#E4EDE9" }}>
+              {resumoTexto}
+            </div>
+            <button
+              onClick={() => {
+                navigator.clipboard?.writeText(resumoTexto).then(
+                  () => { setCopiado(true); setTimeout(() => setCopiado(false), 1600); },
+                  () => {},
+                );
+              }}
+              style={{ width: "100%", marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: ACCENT, border: "none", borderRadius: 11, padding: "13px", color: BG, fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}
+            >
+              {copiado ? <><Check size={16} /> Copiado</> : <><Copy size={16} /> Copiar</>}
+            </button>
+          </div>
         </div>
       )}
     </div>

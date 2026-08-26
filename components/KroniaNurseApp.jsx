@@ -449,6 +449,25 @@ export default function KroniaNurseApp() {
     });
   }
 
+  /**
+   * Importa um backup JUNTANDO com o que já existe.
+   *
+   * Substituir apagaria os levantamentos feitos hoje, que não estão no
+   * arquivo. Em caso de mesmo id, o que vem do arquivo vence: é o que o
+   * profissional acabou de escolher trazer de volta.
+   */
+  function importarComorbidades(lista) {
+    setComorbidades((atual) => {
+      const porId = new Map(atual.map((r) => [r.id, r]));
+      lista.forEach((r) => { if (r && r.id) porId.set(r.id, r); });
+      const juntos = [...porId.values()].sort((a, b) =>
+        String(b.atualizadoEm || "").localeCompare(String(a.atualizadoEm || "")),
+      );
+      store.set("comorbidades_pacientes", JSON.stringify(juntos)).catch(() => {});
+      return juntos;
+    });
+  }
+
   function excluirComorbidade(id) {
     setComorbidades((atual) => {
       const lista = atual.filter((r) => r.id !== id);
@@ -936,6 +955,7 @@ export default function KroniaNurseApp() {
             registros={comorbidades}
             onSalvar={salvarComorbidade}
             onExcluir={excluirComorbidade}
+            onImportar={importarComorbidades}
             onSair={() => setScreen("home")}
           />
         )}
