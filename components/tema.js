@@ -1,7 +1,9 @@
 // Tokens de cor, extraídos das telas oficiais.
 //
-// Ficam num módulo próprio desde que a aba de comorbidades passou a existir:
-// duas telas com paletas copiadas divergem no primeiro ajuste de cor.
+// Ficam num módulo próprio, e não dentro da tela que as usa: paleta copiada
+// de um arquivo pro outro diverge no primeiro ajuste de cor. Nasceram aqui
+// quando havia duas telas lendo as mesmas cores; a segunda se mudou pro app
+// da Agenda, e o módulo fica — é onde a paleta se edita numa linha só.
 export const ACCENT = "#25E08C";
 export const ACCENT_2 = "#7DF3BE";
 export const BG = "#020B08";
