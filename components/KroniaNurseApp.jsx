@@ -126,14 +126,8 @@ function LogoLockup({ size = 132 }) {
 }
 
 // ---- Tokens de cor (extraídos das telas oficiais) ----
-const ACCENT = "#25E08C";
-const ACCENT_2 = "#7DF3BE";
-const BG = "#020B08";
-const SURFACE = "#08170F";
-const BORDER = "#153A28";
-const TEXT = "#F3F8F5";
-const MUTED = "#8FA79C";
-const DIM = "#5C7A6D";
+// Moram em components/tema.js para não divergirem da aba de comorbidades.
+import { ACCENT, ACCENT_2, BG, SURFACE, BORDER, TEXT, MUTED, DIM } from "./tema.js";
 
 // O motor vive em lib/evolucao/grafo-adaptativo.js — extraído deste protótipo
 // por recorte de arquivo, sem reescrita de lógica, e coberto por
@@ -151,6 +145,8 @@ import {
 // de outro documento. gerarEvolucao encaixa a prosa do motor na abertura, na
 // linha de sinais vitais, no exame por sistema e nos cuidados realizados.
 import { gerarEvolucao } from "../lib/evolucao/evolucao.js";
+// Aba de comorbidades: levantamento por paciente, separado da evolução.
+import Comorbidades from "./Comorbidades.jsx";
 // Atualização automática: o service worker é gerado no build por
 // scripts/gerar-sw.js — ver README, "Atualização".
 import { useAtualizacao } from "./useAtualizacao";
@@ -351,7 +347,7 @@ export default function KroniaNurseApp() {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState({});
   const [showResult, setShowResult] = useState(false);
-  // "splash" | "login" | "home" | "identificacao" | "quiz" | "historico"
+  // "splash" | "login" | "home" | "identificacao" | "quiz" | "historico" | "comorbidades"
   const [screen, setScreen] = useState("splash");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -425,6 +421,40 @@ export default function KroniaNurseApp() {
 
   function limparRascunho() {
     store.set("rascunho_evolucao", "").catch(() => {});
+  }
+
+  // ── Comorbidades ─────────────────────────────────────────────────────────
+  // Aba própria, guardada à parte do histórico de evoluções: são documentos
+  // diferentes, com ciclos de vida diferentes. Fica no aparelho, e em tela só
+  // entra a inicial do paciente.
+  const [comorbidades, setComorbidades] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const bruto = await store.get("comorbidades_pacientes");
+        setComorbidades(bruto ? JSON.parse(bruto) : []);
+      } catch (e) {
+        setComorbidades([]);
+      }
+    })();
+  }, []);
+
+  function salvarComorbidade(registro) {
+    setComorbidades((atual) => {
+      const semEle = atual.filter((r) => r.id !== registro.id);
+      const lista = [registro, ...semEle].sort((a, b) => b.atualizadoEm.localeCompare(a.atualizadoEm));
+      store.set("comorbidades_pacientes", JSON.stringify(lista)).catch(() => {});
+      return lista;
+    });
+  }
+
+  function excluirComorbidade(id) {
+    setComorbidades((atual) => {
+      const lista = atual.filter((r) => r.id !== id);
+      store.set("comorbidades_pacientes", JSON.stringify(lista)).catch(() => {});
+      return lista;
+    });
   }
 
   // Carrega o histórico do plantão (persistente entre sessões) uma vez.
@@ -827,6 +857,27 @@ export default function KroniaNurseApp() {
               </svg>
             </button>
 
+            {/* Comorbidades — aba separada da evolução */}
+            <button
+              onClick={() => setScreen("comorbidades")}
+              style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "13px 14px", cursor: "pointer", color: TEXT, fontFamily: "inherit" }}
+            >
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: `${ACCENT}18`, border: `1px solid ${ACCENT}33`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <ClipboardList size={17} color={ACCENT} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 800 }}>Comorbidades</div>
+                <div style={{ fontSize: 11.5, color: MUTED, marginTop: 1 }}>
+                  Levantamento por paciente, com data aproximada
+                </div>
+              </div>
+              {comorbidades.length > 0 && (
+                <span style={{ flexShrink: 0, minWidth: 24, height: 22, padding: "0 7px", borderRadius: 999, background: ACCENT, color: BG, fontSize: 11.5, fontWeight: 800, lineHeight: "22px", textAlign: "center" }}>
+                  {comorbidades.length}
+                </span>
+              )}
+            </button>
+
             {/* Dica */}
             <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "flex-start", gap: 9, background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 14, padding: "10px 12px" }}>
               <Lightbulb size={16} color={ACCENT} style={{ flexShrink: 0, marginTop: 1 }} />
@@ -851,7 +902,7 @@ export default function KroniaNurseApp() {
               <Home size={23} color={ACCENT} />
               <span style={{ fontSize: 11, fontWeight: 700, color: ACCENT }}>Início</span>
             </button>
-            <button style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "4px 6px" }}>
+            <button onClick={() => setScreen("comorbidades")} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "4px 6px" }}>
               <Users size={23} color={DIM} />
               <span style={{ fontSize: 11, fontWeight: 600, color: DIM }}>Pacientes</span>
             </button>
@@ -875,6 +926,18 @@ export default function KroniaNurseApp() {
               <span style={{ fontSize: 11, fontWeight: 600, color: DIM }}>Perfil</span>
             </button>
           </div>
+        )}
+
+        {/* ---------------------------------------------------------------- */}
+        {/* COMORBIDADES — aba separada, não faz parte da evolução             */}
+        {/* ---------------------------------------------------------------- */}
+        {screen === "comorbidades" && (
+          <Comorbidades
+            registros={comorbidades}
+            onSalvar={salvarComorbidade}
+            onExcluir={excluirComorbidade}
+            onSair={() => setScreen("home")}
+          />
         )}
 
         {/* ---------------------------------------------------------------- */}
