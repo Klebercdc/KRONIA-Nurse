@@ -16,9 +16,14 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <>
       <Head>
+        {/* interactive-widget=resizes-content: no iOS/Chrome que suportam,
+            faz o layout viewport (e portanto 100dvh) encolher junto com o
+            teclado, em vez de manter o viewport fixo e deixar o Safari
+            rolar a página inteira pra manter o input focado visível — que é
+            a causa do scroll indesejado ao focar um campo. */}
         <meta
           name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+          content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
         />
       </Head>
       <Component {...pageProps} />
