@@ -572,8 +572,10 @@ export default function KroniaNurseApp() {
     .kn-num::-webkit-outer-spin-button,
     .kn-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     .kn-num { -moz-appearance: textfield; appearance: textfield; }
-    /* 100dvh acompanha o teclado; 100vh fica como fallback de navegador velho. */
-    .kn-tela { min-height: 100vh; min-height: 100dvh; }
+    /* height (não min-height): trava a caixa no tamanho da viewport — quem
+       excede rola por dentro (overflow-y no wrapper interno), documento não
+       se mexe. 100dvh acompanha a barra do Safari; 100vh é fallback velho. */
+    .kn-tela { height: 100vh; height: 100dvh; }
     @media (prefers-reduced-motion: reduce) {
       .kn-pulso-path { animation: none; stroke-dashoffset: 0; }
       .kn-pulso-brilho { animation: none; opacity: 0; }
@@ -582,9 +584,9 @@ export default function KroniaNurseApp() {
   `;
 
   return (
-    <div className="kn-tela" style={{ background: BG, color: TEXT, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", display: "flex", justifyContent: "center" }}>
+    <div className="kn-tela" style={{ background: BG, color: TEXT, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", display: "flex", justifyContent: "center", overflow: "hidden" }}>
       <style>{estilosGlobais}</style>
-      <div className="kn-tela" style={{ width: "100%", maxWidth: 480, display: "flex", flexDirection: "column", paddingTop: "env(safe-area-inset-top)" }}>
+      <div className="kn-tela" style={{ width: "100%", maxWidth: 480, display: "flex", flexDirection: "column", paddingTop: "env(safe-area-inset-top)", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
 
         {/* Header — só nas telas internas */}
         {!semShell && (
@@ -613,7 +615,7 @@ export default function KroniaNurseApp() {
             style={{
               flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
               background: `radial-gradient(circle at 50% 45%, #08201A 0%, ${BG} 62%)`,
-              border: "none", cursor: "pointer", minHeight: "100vh", width: "100%",
+              border: "none", cursor: "pointer", width: "100%",
             }}
           >
             <div className="kn-fade">
