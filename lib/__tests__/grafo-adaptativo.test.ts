@@ -163,6 +163,10 @@ const CRITICO_VM: Answers = {
   pele: 'lesao', pele_estadiamento: '2',
   pele_lesao_local: 'Região sacral', pele_lesao_tamanho: { a: '4', b: '2.5' },
   perfusao_perif: 'tec_lento',
+  // Paciente taquicárdico, hipotenso, hipoxêmico e febril não pode herdar o
+  // "estado geral preservado, sem sinais de sofrimento" do cenário estável —
+  // contradiria a própria validação cruzada que existe para acusar isso.
+  estado_geral: 'alterado',
   mmss: 'alterado', mmss_detalhe: 'Edema em membro superior direito',
   mmii: 'alterado', mmii_detalhe: 'Edema bilateral +2/4',
 };
@@ -232,6 +236,7 @@ describe('cenário 2 — crítico com sedação e ventilação mecânica', () =>
     // "Alterado" carrega needsReview: o texto livre descreve o achado, mas a
     // marca (CONFERIR) permanece — quem confere é o profissional, não o motor.
     expect(pendencias(CRITICO_VM)).toEqual([
+      '(CONFERIR — Como está o estado geral? — resposta "Alterado" precisa de detalhamento)',
       '(CONFERIR — Membros superiores sem alterações? — resposta "Alterado" precisa de detalhamento)',
       '(CONFERIR — Membros inferiores sem alterações? — resposta "Alterado" precisa de detalhamento)',
     ]);
@@ -607,6 +612,79 @@ describe('invariantes do motor', () => {
     expect(ids({}).length).toBe(7);
     expect(ids({ idade_unidade: 'anos' }).length).toBeGreaterThan(6);
     expect(ids(CRITICO_VM).length).toBeGreaterThan(ids(ADULTO_ESTAVEL).length);
+  });
+});
+
+// ── Checkup de consistência clínica — regras novas de validacoesCruzadas ────
+//
+// Uma contradição real (SpO₂ 85% + "ar ambiente" + "aumento de fluxo/FiO₂")
+// escapou porque a árvore nunca validava o conjunto final entre seções
+// distantes. Cada teste abaixo cobre uma categoria de dependência cruzada
+// mapeada na varredura, não só o caso de O₂ que motivou a varredura.
+describe('validacoesCruzadas — checkup de consistência clínica', () => {
+  it('acusa estado geral preservado com sinal vital fora da faixa (regra genérica, cobre FC/FR/PA/SpO₂/temperatura/glicemia)', () => {
+    expect(contem({ ...ADULTO_ESTAVEL, fc: '160' }, 'há sinal vital fora da faixa de referência')).toBe(true);
+    expect(contem({ ...ADULTO_ESTAVEL, spo2: '85' }, 'há sinal vital fora da faixa de referência')).toBe(true);
+    expect(contem({ ...ADULTO_ESTAVEL, temperatura: '39' }, 'há sinal vital fora da faixa de referência')).toBe(true);
+    // estado geral alterado com o mesmo vital não deve acusar nada — o
+    // profissional já sinalizou o achado.
+    expect(contem({ ...ADULTO_ESTAVEL, estado_geral: 'alterado', fc: '160' }, 'há sinal vital fora da faixa de referência')).toBe(false);
+  });
+
+  it('acusa "aumento de fluxo/FiO₂" com paciente em ar ambiente — o caso relatado', () => {
+    const contradicao = {
+      ...ADULTO_ESTAVEL,
+      spo2: '85',
+      conduta_hipoxemia: 'aumento_fluxo',
+      via_aerea: 'ar_ambiente',
+    };
+    expect(contem(contradicao, 'não é possível aumentar fluxo de suporte de oxigênio inexistente')).toBe(true);
+    // Com cateter de O₂ de verdade, a mesma conduta não é contraditória.
+    const semContradicao = { ...contradicao, via_aerea: 'cateter_o2', fluxo_o2: '3' };
+    expect(contem(semContradicao, 'não é possível aumentar fluxo')).toBe(false);
+  });
+
+  it('acusa "Nenhum" dispositivo marcado junto com outro(s) dispositivo(s)', () => {
+    expect(contem({ ...ADULTO_ESTAVEL, dispositivos: ['nenhum', 'avp'] }, "'Nenhum' selecionado junto com outro(s) dispositivo(s)")).toBe(true);
+    expect(contem({ ...ADULTO_ESTAVEL, dispositivos: ['avp'] }, "'Nenhum' selecionado")).toBe(false);
+  });
+
+  it('acusa "Nenhum" acesso neonatal marcado junto com outro(s) acesso(s)', () => {
+    const RN_BASE = { idade_unidade: 'dias', idade_dias: '5', idade_gestacional: '39', peso: '3200', sexo: 'feminino' };
+    expect(contem({ ...RN_BASE, dispositivos_neo: ['nenhum', 'picc'] }, "'Nenhum' selecionado junto com outro(s) acesso(s)")).toBe(true);
+  });
+
+  it('acusa "Nenhuma característica" de dor torácica marcada junto com outra característica', () => {
+    const contradicao = { ...ADULTO_ESTAVEL, dor: 'moderada', dor_localizacao: 'toracica', dor_toracica_caracteristicas: ['nenhuma', 'sudorese'] };
+    expect(contem(contradicao, "'Nenhuma característica associada' selecionada junto com outra")).toBe(true);
+  });
+
+  it('acusa balanço hídrico fortemente positivo ou hidratação "edemaciado" sem edema em nenhum membro', () => {
+    expect(contem({ ...ADULTO_ESTAVEL, balanco_hidrico: { a: '4000', b: '1000' } }, 'sem edema — checar consistência entre os três campos')).toBe(true);
+    expect(contem({ ...ADULTO_ESTAVEL, hidratacao: 'edemaciado' }, 'sem edema — checar consistência entre os três campos')).toBe(true);
+    // Membro com edema registrado condiz com o achado — não acusa.
+    expect(contem({ ...ADULTO_ESTAVEL, hidratacao: 'edemaciado', mmss: 'alterado', mmss_detalhe: 'edema' }, 'sem edema — checar consistência')).toBe(false);
+  });
+
+  it('acusa escore RASS incompatível com o nível de consciência', () => {
+    expect(contem({ ...CRITICO_VM, sedacao_rass: '0' }, 'escore RASS registrado incompatível')).toBe(true);
+    expect(contem({ ...ADULTO_ESTAVEL, consciencia: 'sonolento', sedacao_rass: '-5' }, 'escore RASS registrado incompatível')).toBe(true);
+  });
+
+  it('acusa parâmetro ventilatório respondido sem via aérea em VM (defensivo)', () => {
+    expect(contem({ ...ADULTO_ESTAVEL, fio2: '40' }, 'via aérea não está registrada como ventilação mecânica invasiva')).toBe(true);
+    const RN_VM = { idade_unidade: 'dias', idade_dias: '2', idade_gestacional: '32', peso: '1800', sexo: 'masculino', fio2_neo: '30', via_aerea_neo: 'cpap' };
+    expect(contem(RN_VM, 'via aérea não está registrada como ventilação mecânica invasiva')).toBe(true);
+  });
+
+  it('acusa detalhe de dispositivo respondido sem o dispositivo marcado (AVP/CVC/dreno)', () => {
+    expect(contem({ ...ADULTO_ESTAVEL, avp_calibre: '20g' }, 'sem AVP marcado em dispositivos')).toBe(true);
+    expect(contem({ ...ADULTO_ESTAVEL, cvc_sitio: 'jugular_d' }, 'sem CVC marcado em dispositivos')).toBe(true);
+    expect(contem({ ...ADULTO_ESTAVEL, dreno_debito: '50' }, 'sem dreno marcado em dispositivos')).toBe(true);
+  });
+
+  it('acusa sedativo registrado sem nível de consciência compatível (defensivo)', () => {
+    expect(contem({ ...ADULTO_ESTAVEL, sedativo_qual: ['midazolam'] }, 'sem nível de consciência compatível')).toBe(true);
   });
 });
 
